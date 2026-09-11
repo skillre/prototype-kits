@@ -1,0 +1,330 @@
+/* =============================================================================
+ * Style Pack · cinematic · tokens
+ *
+ * 深色、空间纵深、环境光、局部 glow、数据视觉、更强 interaction。
+ *
+ * 与 editorial 的根本差异不在「深色」而在**层级建立方式**：
+ * editorial 用字号与留白分层，cinematic 用**光与深度**分层。
+ * 所以这里有：多层径向环境光、glass 表面、hover 抬升、指针视差。
+ * ========================================================================== */
+
+@import "../_contract/tokens.css";
+
+/* -----------------------------------------------------------------------------
+ * 1. 颜色 —— 深空 + 环境光
+ *
+ * 深色不等于黑。canvas 是带蓝的深灰（#0b0e14），表面比它更亮一点点，
+ * 靠「表面比背景亮」建立纵深。强调色收敛到两个：青 + 琥珀。
+ * -------------------------------------------------------------------------- */
+
+
+/* -----------------------------------------------------------------------------
+ * 2. 十个维度的立场
+ * -------------------------------------------------------------------------- */
+
+[data-kits-pack="cinematic"] {
+  /* --- 颜色（深空 + 环境光）--------------------------------------- */
+  --kits-color-canvas: #07090f;
+  --kits-color-surface: #0f1420;
+  --kits-color-surface-raised: #161d2c;
+  --kits-color-surface-sunken: #05070c;
+  --kits-color-ink: #eef2f8;
+  --kits-color-ink-muted: #93a0b8;
+  --kits-color-accent: #4fd6ff;
+  --kits-color-accent-ink: #04121a;
+  --kits-color-accent-2: #ffb64f;
+  --kits-color-positive: #4ade80;
+  --kits-color-negative: #ff7a7a;
+  --kits-color-rule: rgb(255 255 255 / 0.09);
+  --kits-color-rule-strong: rgb(255 255 255 / 0.2);
+  --kits-color-focus: #4fd6ff;
+  --kits-color-glow: rgb(79 214 255 / 0.5);
+
+  /* TYPOGRAPHY · spatial
+   * 无衬线中等字重 + 大字号 + **正字距**（+0.01em）。
+   * 深色背景会让字显得更细，因此字重提到 500，行高放大到 1.08 —— 字在空间里飘。 */
+  --kits-font-display: "SF Pro Display", "Inter", ui-sans-serif, system-ui,
+    "PingFang SC", sans-serif;
+  --kits-font-body: "SF Pro Text", "Inter", ui-sans-serif, system-ui,
+    "PingFang SC", sans-serif;
+  --kits-font-mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo,
+    monospace;
+
+  --kits-display-size: clamp(2.25rem, 1rem + 5vw, 4rem);
+  --kits-display-line: 1.08;
+  --kits-display-tracking: 0.005em; /* 正字距 = 空间感，与 editorial 的负字距相反 */
+  --kits-display-weight: 500;
+  --kits-display-transform: none;
+
+  --kits-title-size: 1.25rem;
+  --kits-title-line: 1.4;
+  --kits-title-tracking: 0.005em;
+
+  --kits-body-size: 0.9375rem;
+  --kits-body-line: 1.65;
+  --kits-body-max-width: 60ch;
+
+  --kits-label-size: 0.75rem;
+  --kits-label-tracking: 0.08em;
+  --kits-label-transform: none;
+  --kits-label-weight: 500;
+
+  --kits-data-size: 2.25rem;
+  --kits-data-weight: 500;
+  --kits-data-tracking: -0.01em;
+
+  /* SPACING RHYTHM · layered
+   * 脉搏 8px，但**层级间距差极大**：区块之间 96px，层级内部只 8px。
+   * 这是「层」的节奏，不是「列」的节奏。 */
+  --kits-space-unit: 8px;
+  --kits-gutter: calc(var(--kits-space-unit) * 4); /*  32px */
+  --kits-section-gap: calc(var(--kits-space-unit) * 12); /* 96px */
+  --kits-content-max: 78rem;
+
+  /* DENSITY · medium —— 比 editorial 收，比 instrument 松 */
+  --kits-control-height: 2.25rem;
+  --kits-control-padding-x: calc(var(--kits-space-unit) * 1.5);
+  --kits-row-height: 2.75rem;
+  --kits-label-gap: var(--kits-space-unit);
+  --kits-card-padding: calc(var(--kits-space-unit) * 3);
+
+  /* RADIUS PHILOSOPHY · continuous
+   * 材质是连续的。大圆角 + 大半径，让光沿着边缘爬。 */
+  --kits-radius-sm: 6px;
+  --kits-radius-md: 10px;
+  --kits-radius-lg: 18px;
+  --kits-radius-surface: 14px;
+  --kits-radius-control: 8px;
+  --kits-radius-avatar: 999px;
+
+  /* BORDER TREATMENT · none-with-depth
+   * **没有边界**：区块之间靠亮度差与光晕分开。
+   * 若确实需要边界，用 1px 的白色 9% —— 那是「光边」，不是描边。 */
+  --kits-border-width: 0px;
+  --kits-border-width-strong: 1px;
+  --kits-border-style: solid;
+  --kits-border-hairline-color: var(--kits-color-rule);
+  --kits-border-color: var(--kits-color-rule-strong);
+
+  /* SURFACE TREATMENT · ambient-glow
+   * 表面 = 半透明玻璃 + 内描边光 + 环境光背景层。
+   * 这一组变量是 cinematic 与另外两套最直观的分野。 */
+  --kits-surface-shadow:
+    0 1px 0 0 rgb(255 255 255 / 0.06) inset,
+    0 24px 60px -24px rgb(0 0 0 / 0.9);
+  --kits-surface-backdrop: blur(16px) saturate(140%);
+  --kits-scrim-strength: 0.55;
+  --kits-texture-image: none;
+  --kits-texture-opacity: 0;
+  --kits-texture-blend: normal;
+
+  /* NAVIGATION FEEL · overlay-space
+   * 导航浮在内容之上（半透明 + backdrop blur），带当前项光点。 */
+  --kits-nav-height: 3.75rem;
+  --kits-nav-gap: var(--kits-space-unit);
+  --kits-nav-item-padding-x: calc(var(--kits-space-unit) * 1.5);
+  --kits-nav-indicator: var(--kits-color-accent);
+  --kits-nav-font-size: var(--kits-label-size);
+  --kits-nav-font-tracking: var(--kits-label-tracking);
+
+  /* DATA LANGUAGE · glow-series
+   * 数据是发光的：细网格 + 渐变面积 + glow 描边 + 端点光点。 */
+  --kits-data-series-1: var(--kits-color-accent);
+  --kits-data-series-2: var(--kits-color-accent-2);
+  --kits-data-series-3: #8b7bff;
+  --kits-data-grid-color: rgb(255 255 255 / 0.07);
+  --kits-data-grid-width: 1px;
+  --kits-data-mark-size: 5px;
+  --kits-data-bar-cap: 6px;
+
+  /* HIERARCHY · light-and-depth —— 越靠前越亮、越大、越有光 */
+
+  /* 组件数值 */
+  --kits-hero-padding-block: calc(var(--kits-space-unit) * 14);
+  --kits-hero-gap: calc(var(--kits-space-unit) * 2.5);
+  --kits-spotlight-size: 320px;
+  --kits-spotlight-opacity: 0.5;
+  --kits-spotlight-color: var(--kits-color-accent);
+  --kits-grid-cell: 64px;
+  --kits-grid-line-color: rgb(255 255 255 / 0.045);
+  --kits-grid-fade: 55%;
+  --kits-cursor-color: var(--kits-color-accent);
+  --kits-cursor-ring-size: 44px;
+  --kits-cursor-ring-color: rgb(79 214 255 / 0.55);
+  --kits-reveal-blur: 6px; /* 从虚到实 = 从远到近 */
+  --kits-reveal-distance: 24px;
+}
+
+/* -----------------------------------------------------------------------------
+ * 3. 排版规则
+ * -------------------------------------------------------------------------- */
+
+[data-kits-pack="cinematic"] .kits-display {
+  font-family: var(--kits-font-display);
+  font-size: var(--kits-display-size);
+  line-height: var(--kits-display-line);
+  letter-spacing: var(--kits-display-tracking);
+  font-weight: var(--kits-display-weight);
+  text-transform: var(--kits-display-transform);
+  text-wrap: balance;
+  max-width: 24ch;
+  /* 标题自带一点点光：不是 glow 特效，是「被环境光照到」 */
+  text-shadow: 0 0 40px rgb(79 214 255 / 0.12);
+}
+
+[data-kits-pack="cinematic"] .kits-body {
+  font-family: var(--kits-font-body);
+  font-size: var(--kits-body-size);
+  line-height: var(--kits-body-line);
+  color: var(--kits-color-ink-muted);
+  max-width: var(--kits-body-max-width);
+  text-wrap: pretty;
+}
+
+[data-kits-pack="cinematic"] .kits-label {
+  font-family: var(--kits-font-body);
+  font-size: var(--kits-label-size);
+  letter-spacing: var(--kits-label-tracking);
+  text-transform: var(--kits-label-transform);
+  font-weight: var(--kits-label-weight);
+  color: var(--kits-color-accent);
+  text-shadow: 0 0 18px rgb(79 214 255 / 0.35);
+}
+
+[data-kits-pack="cinematic"] .kits-data {
+  font-family: var(--kits-font-display);
+  font-size: var(--kits-data-size);
+  font-weight: var(--kits-data-weight);
+  letter-spacing: var(--kits-data-tracking);
+  color: var(--kits-color-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+[data-kits-pack="cinematic"] .kits-lead {
+  font-size: calc(var(--kits-body-size) * 1.15);
+  line-height: 1.55;
+  color: var(--kits-color-ink);
+  max-width: 48ch;
+}
+
+[data-kits-pack="cinematic"] .kits-mark {
+  color: var(--kits-color-accent);
+  text-shadow: 0 0 24px rgb(79 214 255 / 0.4);
+}
+
+/* -----------------------------------------------------------------------------
+ * 4. 表面：环境光 + 玻璃
+ *
+ * 环境光做成**容器级**的三个径向渐变层（一个伪元素），
+ * 而不是给每个卡片加 glow —— 一次绘制，N 个元素受益。
+ * -------------------------------------------------------------------------- */
+
+[data-kits-pack="cinematic"] .kits-surface {
+  position: relative;
+  isolation: isolate;
+  background-color: var(--kits-color-surface);
+  border-radius: var(--kits-radius-surface);
+  box-shadow: var(--kits-surface-shadow);
+  border: var(--kits-border-width-strong) solid
+    var(--kits-border-hairline-color);
+}
+
+[data-kits-pack="cinematic"] .kits-surface--glass {
+  background: color-mix(
+    in srgb,
+    var(--kits-color-surface-raised) 72%,
+    transparent
+  );
+  backdrop-filter: var(--kits-surface-backdrop);
+  -webkit-backdrop-filter: var(--kits-surface-backdrop);
+}
+
+/* 环境光层：三个径向光源，固定在容器上，不随内容滚动 */
+[data-kits-pack="cinematic"] .kits-ambient {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+  background-image:
+    radial-gradient(
+      60% 50% at 18% 8%,
+      rgb(79 214 255 / 0.16) 0%,
+      transparent 62%
+    ),
+    radial-gradient(
+      50% 45% at 85% 20%,
+      rgb(255 182 79 / 0.1) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      70% 55% at 50% 105%,
+      rgb(139 123 255 / 0.12) 0%,
+      transparent 65%
+    );
+}
+
+/* 分区：不用线，用一道极淡的光晕渐变 */
+[data-kits-pack="cinematic"] .kits-rule {
+  border: 0;
+  height: var(--kits-border-width-strong);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--kits-color-rule-strong),
+    transparent
+  );
+  margin: 0;
+}
+
+[data-kits-pack="cinematic"] .kits-rule--short {
+  background: linear-gradient(
+    90deg,
+    var(--kits-color-accent),
+    transparent
+  );
+  width: 4rem;
+  box-shadow: 0 0 18px var(--kits-color-glow);
+  margin-bottom: var(--kits-space-md);
+}
+
+/* -----------------------------------------------------------------------------
+ * 5. 控件：发光主按钮 + 玻璃次按钮
+ * -------------------------------------------------------------------------- */
+
+[data-kits-pack="cinematic"] .kits-control {
+  font-family: var(--kits-font-body);
+  font-size: var(--kits-label-size);
+  letter-spacing: 0.02em;
+  height: var(--kits-control-height);
+  padding-inline: var(--kits-control-padding-x);
+  border-radius: var(--kits-radius-control);
+  border: var(--kits-border-width-strong) solid var(--kits-color-rule);
+  background: rgb(255 255 255 / 0.04);
+  color: var(--kits-color-ink);
+  backdrop-filter: blur(8px);
+  transition:
+    transform var(--kits-dur-quick) var(--kits-ease-out),
+    box-shadow var(--kits-dur-base) var(--kits-ease-out),
+    border-color var(--kits-dur-quick) var(--kits-ease-out);
+}
+
+[data-kits-pack="cinematic"] .kits-control:hover {
+  transform: translateY(-1px);
+  border-color: var(--kits-color-rule-strong);
+  box-shadow: 0 8px 30px -12px var(--kits-color-glow);
+}
+
+[data-kits-pack="cinematic"] .kits-control--primary {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--kits-color-accent) 88%, white 12%),
+    var(--kits-color-accent)
+  );
+  color: var(--kits-color-accent-ink);
+  border-color: transparent;
+  font-weight: 600;
+  box-shadow:
+    0 0 24px -4px var(--kits-color-glow),
+    0 12px 32px -16px rgb(0 0 0 / 0.9);
+}

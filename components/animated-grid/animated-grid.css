@@ -1,0 +1,135 @@
+/* =============================================================================
+ * AnimatedGrid —— 结构样式
+ *
+ * 输入（全部来自 Style Pack）：
+ *   --kits-grid-cell            单元格基准尺寸（48 / 64 / 32px）
+ *   --kits-grid-line-color      线色（不透明度由 pack 控制）
+ *   --kits-grid-line-width      线宽（editorial = 0px → 网格自动消失）
+ *   --kits-grid-fade            淡出半径（editorial = 0% → 铺满硬边）
+ *   --kits-dur-ambient          环境动效周期
+ *   --kits-ease-linear          环境动效缓动
+ *
+ * 关键的"自动降级"：
+ *   editorial 的 --kits-grid-line-width 是 **0px**，因此整套网格在这些页面里
+ *   自然消失 —— 组件不需要知道"editorial 不用网格"这件事。
+ * ========================================================================== */
+
+.kits-grid {
+  --kits-grid-cell-size: var(--kits-grid-cell);
+  --kits-grid-mask-size: 36%;
+
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(
+      to right,
+      var(--kits-grid-line-color) 0,
+      var(--kits-grid-line-color) var(--kits-grid-line-width),
+      transparent var(--kits-grid-line-width),
+      transparent var(--kits-grid-cell-size)
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      var(--kits-grid-line-color) 0,
+      var(--kits-grid-line-color) var(--kits-grid-line-width),
+      transparent var(--kits-grid-line-width),
+      transparent var(--kits-grid-cell-size)
+    );
+  /* 边缘淡出：让网格看起来"从中心展开"，而不是把画面切成格子纸 */
+  mask-image: radial-gradient(
+    ellipse at center,
+    black 0%,
+    transparent var(--kits-grid-mask-size)
+  );
+  -webkit-mask-image: radial-gradient(
+    ellipse at center,
+    black 0%,
+    transparent var(--kits-grid-mask-size)
+  );
+}
+
+.kits-grid--fixed {
+  position: fixed;
+}
+
+.kits-grid--elevation-neg {
+  z-index: -1;
+}
+
+.kits-grid--elevation-0 {
+  z-index: 0;
+}
+
+/* -----------------------------------------------------------------------------
+ * 动效：drift（环境动效）
+ *
+ * 用 translate 位移整个网格层，而不是改 background-position ——
+ * 后者每帧都会触发一次 paint。translate 只走合成。
+ * 位移量固定为一个单元格（视觉上无缝，无限循环）。
+ * -------------------------------------------------------------------------- */
+
+@keyframes kits-grid-drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1.02);
+  }
+  to {
+    transform: translate3d(
+        var(--kits-grid-cell-size),
+        var(--kits-grid-cell-size),
+        0
+      )
+      scale(1.02);
+  }
+}
+
+.kits-grid--motion-drift {
+  animation: kits-grid-drift var(--kits-dur-ambient) var(--kits-ease-linear)
+    infinite;
+  /* 位移一个单元格时必须稍稍放大，否则边缘会露出空隙。
+     注意：scale 写在 keyframes 里而不是这里 —— `scale` 与 `transform` 同时
+     出现时，`transform` 会把 `scale` 覆盖掉。 */
+}
+
+/* -----------------------------------------------------------------------------
+ * 动效：pulse（网格亮度呼吸）
+ *
+ * 只动 opacity（合成属性），不动线色 —— 后者会触发整层重绘。
+ * 注意：这里动的是整个网格层的不透明度，因此范围要克制（0.6 → 1）。
+ * -------------------------------------------------------------------------- */
+
+@keyframes kits-grid-pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.kits-grid--motion-pulse {
+  animation: kits-grid-pulse var(--kits-dur-ambient) var(--kits-ease-inout)
+    infinite;
+}
+
+/* -----------------------------------------------------------------------------
+ * 降级
+ *
+ * 移动端：动效一律关闭（省电，且网格在小屏上本身就是噪音）。
+ * reduced-motion：关闭动效，保留静态网格。
+ * -------------------------------------------------------------------------- */
+
+@media (hover: none), (pointer: coarse) {
+  .kits-grid--motion-drift,
+  .kits-grid--motion-pulse {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kits-grid--motion-drift,
+  .kits-grid--motion-pulse {
+    animation: none;
+  }
+}

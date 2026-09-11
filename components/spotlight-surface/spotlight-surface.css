@@ -1,0 +1,118 @@
+/* =============================================================================
+ * SpotlightSurface —— 结构样式
+ *
+ * 光斑的全部几何与色彩都来自 Style Pack：
+ *   --kits-spotlight-size      光斑直径（editorial 220px / cinematic 320px / instrument 140px）
+ *   --kits-spotlight-opacity   基础不透明度（editorial **0** → 完全无光斑）
+ *   --kits-spotlight-color     颜色（由 --kits-component-tone 覆盖）
+ *   --kits-pointer-factor      指针幅度（editorial 0.15 / cinematic 1 / instrument 0.4）
+ *
+ * 组件自己只负责：定位（--kits-px/py → 百分比）、裁切、内容层隔离。
+ * ========================================================================== */
+
+.kits-spotlight {
+  position: relative;
+  isolation: isolate;
+  background: var(--kits-color-surface);
+  border-radius: var(--kits-radius-surface);
+  box-shadow: var(--kits-surface-shadow);
+  border: var(--kits-spotlight-border);
+  /* 指针未就绪时的静止位置：顶部居中（由组件写入 0.5 / 0） */
+  --kits-px: 0.5;
+  --kits-py: 0;
+}
+
+.kits-spotlight--clip {
+  overflow: hidden;
+}
+
+.kits-spotlight--glass {
+  background: color-mix(
+    in srgb,
+    var(--kits-color-surface-raised) 72%,
+    transparent
+  );
+  backdrop-filter: var(--kits-surface-backdrop);
+  -webkit-backdrop-filter: var(--kits-surface-backdrop);
+}
+
+/* -----------------------------------------------------------------------------
+ * 光斑层
+ *
+ * 关键实现：用一个固定尺寸的径向渐变圆，通过 transform: translate 移动到指针处。
+ * 相比 background-position 动效，translate 走合成层，不触发绘制 —— 这是
+ * 本组件性能分级为 B 而不是 C 的原因。
+ *
+ * 幅度缩放：位移量乘 --kits-pointer-factor。
+ * editorial 的 0.15 让光斑几乎不跟随（纸上的光不该跳舞），
+ * cinematic 的 1.0 让光斑完整跟随（这是它"活"的来源）。
+ * -------------------------------------------------------------------------- */
+
+.kits-spotlight__veil {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: calc(var(--kits-spotlight-opacity, 0) * var(--kits-component-intensity, 1));
+  background-image: radial-gradient(
+    circle var(--kits-spotlight-size) at center,
+    color-mix(
+        in srgb,
+        var(--kits-component-tone, var(--kits-color-accent)) 55%,
+        transparent
+      )
+      0%,
+    transparent 70%
+  );
+  background-repeat: no-repeat;
+  background-size: var(--kits-spotlight-size) var(--kits-spotlight-size);
+  background-position: 50% 0%;
+  /* 位移 = (指针比例 − 0.5) × 容器宽度 × 幅度
+     → 幅度为 0（editorial / 触屏 / reduced-motion）时 translate 恒等于 0，
+       光斑停在顶部居中，不会因为降级而"滑到左边"。 */
+  translate: calc((var(--kits-px, 0.5) * 100% - 50%) * var(--kits-pointer-factor, 0))
+    0;
+  transition: opacity var(--kits-dur-base) var(--kits-ease-out);
+}
+
+/* 静止模式（触屏 / reduced-motion / intensity=none）：光斑不跟随，只保留静态背景光 */
+.kits-spotlight--static .kits-spotlight__veil {
+  background-position: 50% 0%;
+  translate: none;
+}
+
+/* 表面上的内容必须盖在光斑之上 */
+.kits-spotlight__content {
+  position: relative;
+  z-index: 1;
+  display: block;
+  padding: var(--kits-card-padding);
+}
+
+/* -----------------------------------------------------------------------------
+ * 指针不悬停时降低光斑强度：避免静止画面被一块常亮的光斑污染
+ * -------------------------------------------------------------------------- */
+
+.kits-spotlight:hover .kits-spotlight__veil {
+  opacity: calc(
+    var(--kits-spotlight-opacity, 0) * var(--kits-component-intensity, 1) * 1.15
+  );
+}
+
+/* -----------------------------------------------------------------------------
+ * 移动端：光斑在触屏上没有意义（没有 hover，指针跟随会造成误触发）
+ * -------------------------------------------------------------------------- */
+
+@media (hover: none), (pointer: coarse) {
+  .kits-spotlight__veil {
+    translate: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .kits-spotlight__content {
+    /* 移动端减少内边距：卡片的可用宽度已经很紧张 */
+    padding: var(--kits-space-sm);
+  }
+}

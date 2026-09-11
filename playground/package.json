@@ -1,0 +1,39 @@
+{
+  "name": "@kits/playground",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Prototype Kits · Visual Playground —— 三套 Style Pack 并排 + 五个 Signature Component 验收 + Registry 审计。不是业务产品。",
+  "scripts": {
+    "dev": "next dev -p 3200",
+    "build": "next build",
+    "start": "next start -p 3200",
+    "lint": "eslint .",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@kits/animated-grid": "workspace:*",
+    "@kits/data-cursor": "workspace:*",
+    "@kits/insight-reveal": "workspace:*",
+    "@kits/interactive-hero": "workspace:*",
+    "@kits/spotlight-surface": "workspace:*",
+    "@kits/style-cinematic": "workspace:*",
+    "@kits/style-editorial": "workspace:*",
+    "@kits/style-instrument": "workspace:*",
+    "next": "16.3.4",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.4",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^3"
+  }
+}

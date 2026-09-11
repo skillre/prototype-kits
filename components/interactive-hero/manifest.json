@@ -1,0 +1,139 @@
+{
+  "id": "interactive-hero",
+  "name": "InteractiveHero",
+  "version": "0.1.0",
+  "status": "approved",
+  "type": "component",
+  "apiVersion": "1.0.0",
+
+  "summary": "首屏「第一视觉」组件：只负责结构、节奏与视差行为，不负责任何视觉决策。字号/间距/圆角/颜色/动效幅度全部来自 Style Pack。",
+  "purpose": "让产品在更换视觉风格时，首屏结构不需要重写 —— 换 pack 而不是换组件。",
+
+  "internalApi": {
+    "component": "InteractiveHero",
+    "props": {
+      "title": { "type": "ReactNode", "required": true, "note": "渲染为 h1，语义层级固定" },
+      "lead": { "type": "ReactNode", "required": false },
+      "eyebrow": { "type": "ReactNode", "required": false },
+      "actions": { "type": "ReactNode", "required": false },
+      "media": { "type": "ReactNode", "required": false, "note": "图表/画布/视频插槽" },
+      "mediaPlacement": { "type": "\"side\" | \"below\" | \"background\"", "default": "side" },
+      "align": { "type": "\"start\" | \"center\"", "default": "start" },
+      "depth": { "type": "Intensity", "default": "subtle", "note": "视差强度；none 为完全静态" },
+      "as": { "type": "\"h1\" | \"h2\"", "default": "h1" },
+      "disableMotion": { "type": "boolean", "default": false, "note": "仅产品级开关" },
+      "className": { "type": "string" },
+      "id": { "type": "string" }
+    },
+    "explicitlyNotExposed": [
+      "glowColor",
+      "blurRadius",
+      "fontSize",
+      "padding",
+      "borderRadius",
+      "easing",
+      "任何视觉字面量"
+    ],
+    "example": "<InteractiveHero eyebrow=\"Q3 Review\" title=\"把复杂还给简单。\" lead=\"…\" actions={<a className=\"kits-control\">阅读全文</a>} depth=\"subtle\" />"
+  },
+
+  "adapter": {
+    "required": true,
+    "reason": "产品代码不得直接依赖第三方组件的 API。",
+    "pattern": "External Component → Adapter → 内部稳定 API → Product",
+    "currentImplementation": "first-party（无第三方依赖）",
+    "swapInThirdParty": [
+      "1. 第三方资产放入 incoming/components/ 并走完整 incoming 流程",
+      "2. 在 adapters/ 下新增适配文件，把第三方 props 映射到本 manifest 的 internalApi.props",
+      "3. 替换内部实现，产品代码一行不改"
+    ]
+  },
+
+  "apiStability": {
+    "breakingChangePolicy": "破坏性变更必须升 major（apiVersion 2.x），并在 README 的 Changelog 段给出迁移示例",
+    "additiveChangePolicy": "新增可选 prop 属于 minor，产品无需改动"
+  },
+
+  "dependencies": [],
+  "thirdPartyRuntime": "none",
+  "bundleSize": "≈1.6 KB gzip（含共享 hook，React 外置）",
+  "performance": {
+    "classification": "B",
+    "cost": "视差在 pointermove + rAF 中写 CSS 变量，触发合成层位移；无布局重排",
+    "notes": [
+      "读取 getBoundingClientRect 只在 pointermove 回调里发生，且位移写入被 rAF 合并",
+      "视差层使用 will-change: transform；静态模式下主动移除 will-change 以释放显存"
+    ]
+  },
+
+  "ssrCompatible": true,
+  "ssrNotes": [
+    "组件带 \"use client\"，可在 RSC 树中作为客户端叶子使用",
+    "首帧（服务端 + hydration）始终渲染为静态（data-kits-depth-active=\"false\"），挂载后才可能启用视差 → 不存在 hydration mismatch",
+    "不读取 window/document 于渲染期；所有能力探测在 useEffect 内完成",
+    "无随机数、无 Date.now()、无 useId 依赖 → 服务端与客户端输出逐字节一致",
+    "Next.js 使用提示：若页面本身是 Server Component，直接把 <InteractiveHero … /> 放在 JSX 中即可，不需要 dynamic import；不要用 ssr:false（会白白丢掉首屏 HTML）"
+  ],
+
+  "mobileCompatible": true,
+  "mobileFallback": {
+    "trigger": "(hover: none) or (pointer: coarse)，或视口 ≤ 640px",
+    "behavior": [
+      "指针视差完全关闭（组件不注册 pointermove 监听）",
+      "背景板不透明度降到 0.6，保证文字对比度",
+      "actions 区在 ≤640px 下占满整行宽度（触控目标面积）",
+      "mediaPlacement=\"side\" 在 ≤900px 自动堆叠为单列，不隐藏 media"
+    ],
+    "noContentLoss": true
+  },
+
+  "reducedMotion": {
+    "behavior": [
+      "useMotionAllowed 返回 false → 不注册任何指针监听，所有层 translate3d 归零",
+      "首帧即为静态，不播放任何入场动画",
+      "信息完整：标题/导语/行动区/媒体全部照常渲染"
+    ],
+    "mechanism": "组件内建（prefers-reduced-motion + JS 双保险），产品不需要处理"
+  },
+
+  "a11y": {
+    "notes": [
+      "标题渲染为真实 h1（可用 as 改），层级不因视觉大小而变",
+      "eyebrow 是普通 <p>，不是 heading —— 避免破坏文档大纲",
+      "背景板带 aria-hidden=\"true\" 且 pointer-events:none，不进入无障碍树也不拦截点击",
+      "视差是纯装饰增强：任何信息都不依赖指针位置",
+      "depth=\"none\" 与触屏下视觉结果一致 → 不存在「只有鼠标用户才能看到的信息」"
+    ],
+    "keyboard": "无键盘交互（组件不含可聚焦元素本身，聚焦目标由 actions 插槽提供）",
+    "contrastResponsibility": "颜色来自 Style Pack，对比度由 pack 的 a11y 段保证；组件不引入新颜色"
+  },
+
+  "usedByStylePacks": {
+    "editorial": "recommended",
+    "cinematic": "optional",
+    "instrument": "discouraged"
+  },
+
+  "avoidFor": [
+    "一屏多指标的高密度监控页（首屏英雄区在 instrument 语义下是浪费）",
+    "需要快速扫读的工具首页"
+  ],
+
+  "demo": "demo.tsx",
+  "readme": "README.md",
+  "files": {
+    "implementation": "interactive-hero.tsx",
+    "styles": "interactive-hero.css",
+    "entry": "index.ts"
+  },
+
+  "source": {
+    "kind": "first-party",
+    "origin": "prototype-kits",
+    "license": "UNLICENSED (internal)",
+    "containsThirdPartyCode": false
+  },
+
+  "maintainer": "Prototype Factory",
+  "updatedAt": "2026-09-11"
+}

@@ -1,0 +1,152 @@
+{
+  "id": "spotlight-surface",
+  "name": "SpotlightSurface",
+  "version": "0.1.0",
+  "status": "approved",
+  "type": "component",
+  "apiVersion": "1.0.0",
+
+  "summary": "响应指针的表面：指针位置在表面上形成局部光斑。它是 Adapter 模式的参考实现 —— 产品只表达「语调 + 强度」，光斑的颜色/尺寸/幅度全部由 Style Pack 决定。",
+  "purpose": "把「一个会发光的卡片」这种最容易把第三方 API 泄漏进产品的组件，收敛成两个产品语义 prop。",
+
+  "internalApi": {
+    "component": "SpotlightSurface",
+    "props": {
+      "tone": { "type": "\"neutral\" | \"brand\" | \"signal\" | \"critical\"", "default": "neutral", "note": "映射到 pack 的颜色槽位，不传颜色值" },
+      "intensity": { "type": "Intensity", "default": "medium", "note": "none=完全关闭光斑" },
+      "surface": { "type": "\"plain\" | \"glass\"", "default": "plain", "note": "glass 只在 cinematic 下有意义，其他 pack 自动退化为平面" },
+      "as": { "type": "\"div\" | \"li\" | \"section\" | \"article\"", "default": "div" },
+      "clip": { "type": "boolean", "default": true, "note": "光斑超出表面时必须裁切" },
+      "children": { "type": "ReactNode" },
+      "disableMotion": { "type": "boolean", "default": false },
+      "className": { "type": "string" },
+      "id": { "type": "string" }
+    },
+    "explicitlyNotExposed": [
+      "glowColor / color",
+      "blurRadius / blur",
+      "opacity",
+      "size / diameter",
+      "offsetX / offsetY",
+      "followSpeed",
+      "任何视觉字面量"
+    ],
+    "example": "<SpotlightSurface tone=\"brand\" intensity=\"medium\">…</SpotlightSurface>"
+  },
+
+  "adapter": {
+    "required": true,
+    "reason": "这是最容易被第三方 API 污染的一类组件。若产品直接写 <FancyGlowCard glowColor=\"#4fd6ff\" blurRadius={24} />，换库即全站重构。",
+    "pattern": "External Component → Adapter → 内部稳定 API → Product",
+    "currentImplementation": "first-party（无第三方依赖）",
+    "workedExample": {
+      "thirdPartyCall": "<FancyGlowCard glowColor=\"#4fd6ff\" blurRadius={24} opacity={0.6} followSpeed={0.15} />",
+      "adapterMapping": {
+        "tone": "TONE_VAR[tone] → the third party's color prop（产品不传颜色）",
+        "intensity": "INTENSITY_SCALE[intensity] → blurRadius / opacity（产品不传数值）",
+        "pointerFactor": "Style Pack 的 --kits-pointer-factor → followSpeed（风格决定跟随幅度）",
+        "surface": "\"glass\" → 第三方 glass 开关"
+      },
+      "productCallAfterSwap": "<SpotlightSurface tone=\"brand\" intensity=\"medium\">…</SpotlightSurface>",
+      "productCodeChanged": false
+    },
+    "swapInThirdParty": [
+      "1. 第三方资产放入 incoming/components/ 并走完整 incoming 流程（license → dependency → compatibility）",
+      "2. 在 adapters/ 下新增映射文件，把第三方 props 收敛为本 manifest 的 internalApi.props",
+      "3. 替换内部实现，产品代码零改动",
+      "4. 跑 contracts 测试：tone/intensity 到 CSS 变量的映射必须不变"
+    ]
+  },
+
+  "apiStability": {
+    "breakingChangePolicy": "破坏性变更必须升 major 并在 README 给出迁移示例",
+    "additiveChangePolicy": "新增 tone 槽位属于 minor（由 Style Pack 提供颜色）；新增视觉 prop 属于**违规**"
+  },
+
+  "dependencies": [],
+  "thirdPartyRuntime": "none",
+  "bundleSize": "≈1.2 KB gzip（React 外置）",
+  "performance": {
+    "classification": "B",
+    "cost": "光斑位移走 translate（合成层），不触发重绘；但 radial-gradient 本身是一次性绘制成本",
+    "notes": [
+      "位移使用 `translate` 而非 background-position：后者每帧都会触发绘制",
+      "radial-gradient 在元素创建时绘制一次，之后仅合成",
+      "surface=\"glass\" 会引入 backdrop-filter —— 同屏不得超过 2 处（见 cinematic README）",
+      "编辑器 / 低端设备上 320px 光斑的成本主要在首次绘制，不在动画"
+    ]
+  },
+
+  "ssrCompatible": true,
+  "ssrNotes": [
+    "组件带 \"use client\"；首帧始终是静态（.kits-spotlight--static），挂载后才启用跟随",
+    "--kits-px / --kits-py 的静止值由 CSS 兜底（0.5 / 0），因此服务端产出的 HTML 本身就是完整可用的表面",
+    "不读取 window/document 于渲染期；能力探测全部在 useEffect",
+    "无随机数、无时间戳 → 服务端与客户端输出一致，无 hydration mismatch"
+  ],
+
+  "mobileCompatible": true,
+  "mobileFallback": {
+    "trigger": "(hover: none) or (pointer: coarse)",
+    "behavior": [
+      "不注册 pointermove（触屏上 hover 跟随会造成滚动中的误触发与掉帧）",
+      "translate 归零 → 光斑停在顶部居中，表面外观完整",
+      "≤640px 时内容内边距降到 --kits-space-sm，为卡片争取可用宽度"
+    ],
+    "noContentLoss": true
+  },
+
+  "reducedMotion": {
+    "behavior": [
+      "不注册指针监听；translate 归零",
+      "光斑不消失 —— 它变成一张静态的顶部高光（信息与视觉不减损）",
+      "opacity 过渡时长为 0ms"
+    ],
+    "mechanism": "组件内建"
+  },
+
+  "a11y": {
+    "notes": [
+      "光斑层是 <span aria-hidden=\"true\"> + pointer-events:none —— 不进入无障碍树、不拦截点击",
+      "tone 使用语义命名（brand / signal / critical）而非色相命名，便于屏幕阅读器用户理解意图标注",
+      "tone=\"critical\" 的颜色不足以单独表达告警：调用方必须在内容中同时给出文字/图标",
+      "表面自身不引入可聚焦元素；若 children 含交互控件，其焦点环由 pack 的 --kits-color-focus 保证可见"
+    ],
+    "keyboard": "组件本身无键盘交互；内容键盘可达性完全由 children 决定",
+    "contrastResponsibility": "光斑是叠加在表面上的半透明光，不是文字背景。内容层 z-index 高于光斑，颜色对比度由 Style Pack 保证"
+  },
+
+  "usedByStylePacks": {
+    "cinematic": "signature",
+    "editorial": "optional（editorial 的 --kits-spotlight-opacity = 0，光斑自动消失，只保留纸质表面）",
+    "instrument": "discouraged"
+  },
+
+  "avoidFor": [
+    "editorial 下的正文区域（纸不该有光斑；pack 已把 opacity 设为 0，这里只是明确语义）",
+    "instrument 下的密集面板（光斑在读数区域内是干扰，且高密度下没人悬停）",
+    "同屏超过 6 个（每次 radial-gradient 都是真实绘制成本）"
+  ],
+
+  "demo": "demo.tsx",
+  "readme": "README.md",
+  "files": {
+    "implementation": "spotlight-surface.tsx",
+    "styles": "spotlight-surface.css",
+    "entry": "index.ts"
+  },
+
+  "source": {
+    "kind": "first-party",
+    "origin": "prototype-kits",
+    "license": "UNLICENSED (internal)",
+    "containsThirdPartyCode": false,
+    "inspiration": [
+      "卡片级指针跟随高光的通用交互模式（多家 UI 库都有类似实现）",
+      "本实现为独立编写，未复制任何第三方源码"
+    ]
+  },
+
+  "maintainer": "Prototype Factory",
+  "updatedAt": "2026-09-11"
+}

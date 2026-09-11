@@ -1,0 +1,275 @@
+/* =============================================================================
+ * Style Pack · editorial · tokens
+ *
+ * 编辑式：大留白、强排版、少卡片、暖色纸感、极克制 motion。
+ *
+ * 这个文件做两件事：
+ *   1. 在 [data-kits-pack="editorial"] 作用域内**全量**提供契约变量的取值
+ *      （颜色 + 十个维度 + 组件数值），因此多个 pack 可以同页共存
+ *   2. 声明 scoped 排版与表面规则
+ *
+ * 判据：如果去掉颜色，editorial 与 cinematic 仍然一眼可分 —— 那是排版、
+ * 间距节奏、圆角与边界在起作用，不是调色板。
+ * ========================================================================== */
+
+@import "../_contract/tokens.css";
+
+/* -----------------------------------------------------------------------------
+ * 1. 契约变量的取值（全部写在 pack 作用域内）
+ *
+ * 为什么颜色也放进作用域，而不是 :root：
+ * 如果颜色写在 :root 上，同页导入多个 pack 时**最后导入的那个会赢得所有子树**
+ * （同特异度、后者胜出）—— 那样「三套风格并排对比」直接失效。
+ * 放进作用域后，每个 pack 子树都拿到自己完整的一套取值。
+ *
+ * 产品要换品牌色：在自己的容器上重新声明同样的变量即可（见 docs/integration.md）。
+ * -------------------------------------------------------------------------- */
+
+[data-kits-pack="editorial"] {
+  /* --- 颜色（暖色纸感）--------------------------------------------- */
+  --kits-color-canvas: #faf7f2;
+  --kits-color-surface: #fdfbf7;
+  --kits-color-surface-raised: #ffffff;
+  --kits-color-surface-sunken: #f2ede4;
+  --kits-color-ink: #1a1614;
+  --kits-color-ink-muted: #6f665c;
+  --kits-color-accent: #b3441f;
+  --kits-color-accent-ink: #fdfbf7;
+  --kits-color-accent-2: #1f5c4a;
+  --kits-color-positive: #3f6b3a;
+  --kits-color-negative: #a8321c;
+  --kits-color-rule: rgb(26 22 20 / 0.14);
+  --kits-color-rule-strong: rgb(26 22 20 / 0.4);
+  --kits-color-focus: #b3441f;
+  --kits-color-glow: transparent;
+
+  /* TYPOGRAPHY · editorial
+   * 标题用衬线（印刷传统的正文面孔被借来做标题），
+   * 标签用等宽大写小字号做「running head」。
+   * 行高压到 1.02 是关键：这不是「大字号」，这是「被排过的字」。 */
+  --kits-font-display: "Iowan Old Style", "Palatino Linotype", Palatino,
+    "Songti SC", "Source Han Serif SC", Georgia, serif;
+  --kits-font-body: "Iowan Old Style", Palatino, "Songti SC", Georgia, serif;
+  --kits-font-mono: ui-monospace, SFMono-Regular, "IBM Plex Mono", Menlo,
+    monospace;
+
+  --kits-display-size: clamp(2.5rem, 1.4rem + 4.2vw, 4.5rem);
+  --kits-display-line: 1.02;
+  --kits-display-tracking: -0.022em;
+  --kits-display-weight: 400;
+  --kits-display-transform: none;
+
+  --kits-title-size: 1.375rem;
+  --kits-title-line: 1.25;
+  --kits-title-tracking: -0.01em;
+
+  --kits-body-size: 1.0625rem;
+  --kits-body-line: 1.7;
+  --kits-body-max-width: 58ch;
+
+  --kits-label-size: 0.6875rem;
+  --kits-label-tracking: 0.16em;
+  --kits-label-transform: uppercase;
+  --kits-label-weight: 500;
+
+  --kits-data-size: 2.75rem;
+  --kits-data-weight: 400;
+  --kits-data-tracking: -0.02em;
+
+  /* SPACING RHYTHM · generous
+   * 4px 脉搏 + 超大段落间距 = 呼吸感。留白是这里的主要设计手段。 */
+  --kits-space-unit: 4px;
+  --kits-gutter: calc(var(--kits-space-unit) * 8);
+  --kits-section-gap: calc(var(--kits-space-unit) * 24);
+  --kits-content-max: 66rem;
+
+  /* DENSITY · low —— 一屏放得少，但每一条都读得清 */
+  --kits-control-height: 2.5rem;
+  --kits-control-padding-x: calc(var(--kits-space-unit) * 4);
+  --kits-row-height: 3.25rem;
+  --kits-label-gap: calc(var(--kits-space-unit) * 2);
+  --kits-card-padding: calc(var(--kits-space-unit) * 6);
+
+  /* RADIUS PHILOSOPHY · flush —— 半径 0。纸是方的，印刷不切圆角。
+ * 与 instrument 的 square（1–3px 机械公差）刻意区分：两者都是「小半径」，
+ * 但语义不同 —— 这里是「没有圆角」，那里是「圆角小到像制造工艺」。 */
+  --kits-radius-sm: 0;
+  --kits-radius-md: 0;
+  --kits-radius-lg: 0;
+  --kits-radius-surface: 0;
+  --kits-radius-control: 0;
+  --kits-radius-avatar: 0;
+
+  /* BORDER TREATMENT · hairline-rule
+   * 边界用「细线」表达：一条 1px 的横线就足以分区，因此几乎不用卡片。 */
+  --kits-border-width: 0px;
+  --kits-border-width-strong: 1px;
+  --kits-border-style: solid;
+  --kits-border-hairline-color: var(--kits-color-rule);
+  --kits-border-color: var(--kits-color-rule-strong);
+
+  /* SURFACE TREATMENT · paper
+   * 表面靠极轻的纸纹 + 0 阴影。层级靠留白与字号，不靠投影。 */
+  --kits-surface-shadow: none;
+  --kits-surface-backdrop: none;
+  --kits-scrim-strength: 0.04;
+  --kits-texture-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  --kits-texture-opacity: 0.035;
+  --kits-texture-blend: multiply;
+
+  /* NAVIGATION FEEL · running-head
+   * 导航 = 页眉的「书眉行」：一条线 + 一行小字，不占空间、不吸附。 */
+  --kits-nav-height: 4.25rem;
+  --kits-nav-gap: calc(var(--kits-space-unit) * 6);
+  --kits-nav-item-padding-x: 0px;
+  --kits-nav-indicator: var(--kits-color-ink);
+  --kits-nav-font-size: var(--kits-label-size);
+  --kits-nav-font-tracking: var(--kits-label-tracking);
+
+  /* DATA LANGUAGE · ink-rules
+   * 图表 = 细线 + 衬线读数。没有填充块，没有发光，没有网格背景。 */
+  --kits-data-series-1: var(--kits-color-ink);
+  --kits-data-series-2: var(--kits-color-accent);
+  --kits-data-series-3: var(--kits-color-ink-muted);
+  --kits-data-grid-color: var(--kits-color-rule);
+  --kits-data-grid-width: 1px;
+  --kits-data-mark-size: 2px;
+  --kits-data-bar-cap: 0;
+
+  /* HIERARCHY · scale-and-space —— 层级只有两个工具：字号与留白 */
+
+  /* 组件数值 */
+  --kits-hero-padding-block: calc(var(--kits-space-unit) * 20);
+  --kits-hero-gap: calc(var(--kits-space-unit) * 5);
+  --kits-spotlight-opacity: 0;
+  --kits-spotlight-border: 0 solid transparent;
+  --kits-grid-line-width: 0px;
+  --kits-grid-fade: 0%;
+  --kits-cursor-color: var(--kits-color-ink);
+  --kits-cursor-ring-size: 0px;
+  --kits-reveal-blur: 0px;
+  --kits-reveal-distance: 10px;
+}
+
+/* -----------------------------------------------------------------------------
+ * 3. 排版规则：不需要 Tailwind 也能成立的「强排版」
+ *
+ * 这些规则是 pack 的一部分，不是组件的一部分 —— 所以组件可以完全不写
+ * 字体相关的 CSS，换 pack 自动换排版性格。
+ * -------------------------------------------------------------------------- */
+
+[data-kits-pack="editorial"] .kits-display {
+  font-family: var(--kits-font-display);
+  font-size: var(--kits-display-size);
+  line-height: var(--kits-display-line);
+  letter-spacing: var(--kits-display-tracking);
+  font-weight: var(--kits-display-weight);
+  text-transform: var(--kits-display-transform);
+  text-wrap: balance;
+  max-width: 22ch;
+}
+
+[data-kits-pack="editorial"] .kits-body {
+  font-family: var(--kits-font-body);
+  font-size: var(--kits-body-size);
+  line-height: var(--kits-body-line);
+  max-width: var(--kits-body-max-width);
+  text-wrap: pretty;
+}
+
+[data-kits-pack="editorial"] .kits-label {
+  font-family: var(--kits-font-body);
+  font-size: var(--kits-label-size);
+  letter-spacing: var(--kits-label-tracking);
+  text-transform: var(--kits-label-transform);
+  font-weight: var(--kits-label-weight);
+  color: var(--kits-color-ink-muted);
+}
+
+[data-kits-pack="editorial"] .kits-data {
+  font-family: var(--kits-font-display);
+  font-size: var(--kits-data-size);
+  font-weight: var(--kits-data-weight);
+  letter-spacing: var(--kits-data-tracking);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* 首段放大 —— 杂志的 lead paragraph，editorial 最典型的排版动作 */
+[data-kits-pack="editorial"] .kits-lead {
+  font-size: calc(var(--kits-body-size) * 1.2);
+  line-height: 1.5;
+  color: var(--kits-color-ink);
+  max-width: 46ch;
+}
+
+/* 强调不用背景色块，用一条下划线式的暖色 mark */
+[data-kits-pack="editorial"] .kits-mark {
+  color: var(--kits-color-accent);
+}
+
+/* -----------------------------------------------------------------------------
+ * 4. 表面：纸纹 + 细分隔线（不用卡片）
+ * -------------------------------------------------------------------------- */
+
+[data-kits-pack="editorial"] .kits-surface {
+  background-color: var(--kits-color-surface);
+  border-radius: var(--kits-radius-surface);
+  box-shadow: var(--kits-surface-shadow);
+  position: relative;
+}
+
+[data-kits-pack="editorial"] .kits-surface::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--kits-texture-image);
+  opacity: var(--kits-texture-opacity);
+  mix-blend-mode: var(--kits-texture-blend);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* 分区用一条横线，而不是一个带边框的盒子 */
+[data-kits-pack="editorial"] .kits-rule {
+  border: 0;
+  border-top: var(--kits-border-width-strong) var(--kits-border-style)
+    var(--kits-border-hairline-color);
+  margin: 0;
+}
+
+[data-kits-pack="editorial"] .kits-rule--short {
+  border-top-color: var(--kits-color-ink);
+  width: 3rem;
+  margin-bottom: var(--kits-space-md);
+}
+
+/* -----------------------------------------------------------------------------
+ * 5. 控件：下划线式，而非描边按钮
+ * -------------------------------------------------------------------------- */
+
+[data-kits-pack="editorial"] .kits-control {
+  font-family: var(--kits-font-body);
+  font-size: var(--kits-label-size);
+  letter-spacing: var(--kits-label-tracking);
+  text-transform: var(--kits-label-transform);
+  background: transparent;
+  color: var(--kits-color-ink);
+  border: 0;
+  border-bottom: var(--kits-border-width-strong) var(--kits-border-style)
+    var(--kits-color-rule-strong);
+  padding-block: var(--kits-space-xs);
+  padding-inline: 0;
+  border-radius: 0;
+  transition:
+    color var(--kits-dur-quick) var(--kits-ease-out),
+    border-color var(--kits-dur-quick) var(--kits-ease-out);
+}
+
+[data-kits-pack="editorial"] .kits-control:hover {
+  color: var(--kits-color-accent);
+  border-bottom-color: var(--kits-color-accent);
+}
+
+[data-kits-pack="editorial"] .kits-control--primary {
+  border-bottom-color: var(--kits-color-ink);
+}

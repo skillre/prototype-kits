@@ -1,0 +1,25 @@
+{
+  "name": "@kits/style-cinematic",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Style Pack · cinematic —— 深色、空间纵深、环境光、局部 glow、数据视觉、更强 interaction",
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./motion": "./motion.ts",
+    "./tokens.css": "./tokens.css",
+    "./manifest.json": "./manifest.json"
+  },
+  "files": [
+    "index.ts",
+    "motion.ts",
+    "tokens.css",
+    "manifest.json",
+    "README.md",
+    "SKILL.md"
+  ],
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "keywords": ["style-pack", "cinematic", "prototype-kits"]
+}

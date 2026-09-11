@@ -1,0 +1,22 @@
+{
+  "name": "@kits/effects",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Effect Packs · 纯 CSS 表面与环境效果（paper-grain / ambient-glow / scanline-sweep）",
+  "type": "module",
+  "exports": {
+    "./paper-grain.css": "./paper-grain.css",
+    "./ambient-glow.css": "./ambient-glow.css",
+    "./scanline-sweep.css": "./scanline-sweep.css",
+    "./manifest.json": "./manifest.json"
+  },
+  "files": [
+    "*.css",
+    "manifest.json",
+    "README.md"
+  ],
+  "keywords": [
+    "effect-pack",
+    "prototype-kits"
+  ]
+}

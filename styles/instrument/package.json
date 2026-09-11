@@ -1,0 +1,25 @@
+{
+  "name": "@kits/style-instrument",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Style Pack · instrument —— 工业仪表、工程感、密集数据、硬边界、小圆角、技术型图表",
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./motion": "./motion.ts",
+    "./tokens.css": "./tokens.css",
+    "./manifest.json": "./manifest.json"
+  },
+  "files": [
+    "index.ts",
+    "motion.ts",
+    "tokens.css",
+    "manifest.json",
+    "README.md",
+    "SKILL.md"
+  ],
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "keywords": ["style-pack", "instrument", "prototype-kits"]
+}

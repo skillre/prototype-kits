@@ -1,0 +1,88 @@
+{
+  "manifestVersion": "0.1.0",
+  "description": "Effect Packs —— 可复用的表面/环境效果。每个效果都必须声明所属 pack、性能分级、降级行为。",
+  "contract": {
+    "cssOnly": true,
+    "note": "Effect 必须是纯 CSS：一旦需要 JS 驱动，它就应该是一个 Signature Component，而不是 effect。",
+    "requiredFields": [
+      "id",
+      "name",
+      "pack",
+      "entry",
+      "performance",
+      "trigger",
+      "reducedMotion",
+      "mobile",
+      "constraints"
+    ]
+  },
+  "effects": [
+    {
+      "id": "paper-grain",
+      "name": "PaperGrain",
+      "pack": "editorial",
+      "entry": "paper-grain.css",
+      "class": "kits-effect-paper-grain",
+      "performance": "A",
+      "trigger": "static（无动效）",
+      "what": "纸纹：内联 SVG feTurbulence 噪声，0.035 不透明度 + multiply 混合",
+      "why": "让表面看起来是纸而不是屏幕；editorial 的材质基础",
+      "reducedMotion": "不需降级（静态效果）",
+      "mobile": "保留（静态，无成本）",
+      "constraints": [
+        "必须是单层伪元素，禁止逐子元素叠加",
+        "不透明度必须 < 0.06，否则降低文本对比度",
+        "pointer-events: none，不得拦截命中测试"
+      ]
+    },
+    {
+      "id": "ambient-glow",
+      "name": "AmbientGlow",
+      "pack": "cinematic",
+      "entry": "ambient-glow.css",
+      "class": "kits-effect-ambient-glow",
+      "performance": "B",
+      "trigger": "static（默认）/ is-breathing 显式开启呼吸",
+      "what": "环境光：三个有方向的径向光源（主光/辅光/补光）",
+      "why": "cinematic 的层级建立方式 —— 用光分层，而不是用边框分层",
+      "reducedMotion": "关闭呼吸动画，保留静态环境光",
+      "mobile": "关闭呼吸动画（省电），保留静态光",
+      "constraints": [
+        "容器级：一个容器一次绘制，禁止每个卡片各画一次",
+        "一页最多一个环境光容器",
+        "同屏发光元素 ≤ 1"
+      ]
+    },
+    {
+      "id": "scanline-sweep",
+      "name": "ScanlineSweep",
+      "pack": "instrument",
+      "entry": "scanline-sweep.css",
+      "class": "kits-effect-scanlines",
+      "performance": "A（静态）/ B（扫掠）",
+      "trigger": "static 扫描线 + is-sweeping 单次扫掠",
+      "what": "扫描线：4px 周期刻度线；扫掠是数据刷新时的一次性信号",
+      "why": "instrument 里扫描线是「仪器在跑」的信号，不是纹理装饰",
+      "reducedMotion": "取消扫掠（扫掠是冗余信号，数值本身已变）",
+      "mobile": "取消扫掠",
+      "constraints": [
+        "没有「常驻流动」档位 —— 监控面板上持续动画 = 无意义耗电 + 干扰对真实变化的感知",
+        "扫掠必须是 1 次播放（animation: 1 both），不是 infinite"
+      ]
+    }
+  ],
+  "reserved": [
+    {
+      "id": "dither-overlay",
+      "pack": "instrument",
+      "status": "incoming",
+      "note": "半调抖动覆盖层：用于让大面积渐变呈现工程印刷质感。未实现，先占位以防命名冲突。"
+    },
+    {
+      "id": "film-bloom",
+      "pack": "cinematic",
+      "status": "incoming",
+      "note": "高光溢出：仅用于单个焦点元素。需要谨慎的性能评估（blur + blend 组合昂贵）。"
+    }
+  ]
+}

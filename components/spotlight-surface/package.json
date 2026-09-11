@@ -1,0 +1,17 @@
+{
+  "name": "@kits/spotlight-surface",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Signature Component · SpotlightSurface —— 响应指针的表面；Adapter 模式的参考实现（产品只见 tone / intensity）",
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./manifest.json": "./manifest.json"
+  },
+  "files": ["index.ts", "spotlight-surface.tsx", "spotlight-surface.css", "manifest.json", "README.md", "demo.tsx"],
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "keywords": ["signature-component", "spotlight", "adapter-pattern", "prototype-kits"]
+}

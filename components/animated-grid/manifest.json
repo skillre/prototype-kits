@@ -1,0 +1,133 @@
+{
+  "id": "animated-grid",
+  "name": "AnimatedGrid",
+  "version": "0.1.0",
+  "status": "approved",
+  "type": "component",
+  "apiVersion": "1.0.0",
+
+  "summary": "结构性背景网格：给界面一个空间度量。纯装饰层（aria-hidden / pointer-events:none / z-index:-1），动效只有语义档位（none / drift / pulse）。",
+  "purpose": "让「空间感」成为一个可插拔的视觉资产，而不是每个页面各写一遍背景样式。",
+
+  "internalApi": {
+    "component": "AnimatedGrid",
+    "props": {
+      "cell": { "type": "\"none\" | \"dense\" | \"normal\" | \"wide\"", "default": "normal", "note": "密度乘数；绝对尺寸来自 --kits-grid-cell" },
+      "fade": { "type": "\"none\" | \"subtle\" | \"medium\" | \"strong\"", "default": "medium", "note": "边缘淡出；none = 铺满硬边网格" },
+      "motion": { "type": "\"none\" | \"drift\" | \"pulse\"", "default": "none", "note": "语义档位，不是速度值" },
+      "placement": { "type": "\"absolute\" | \"fixed\"", "default": "absolute" },
+      "elevation": { "type": "-1 | 0", "default": -1 },
+      "disableMotion": { "type": "boolean", "default": false },
+      "className": { "type": "string" }
+    },
+    "explicitlyNotExposed": [
+      "lineColor",
+      "lineWidth",
+      "cellSize（px）",
+      "speed / duration",
+      "opacity",
+      "blurRadius",
+      "任何视觉字面量"
+    ],
+    "example": "<AnimatedGrid cell=\"normal\" fade=\"medium\" motion=\"drift\" />"
+  },
+
+  "adapter": {
+    "required": true,
+    "reason": "网格类组件（例如各类 dot-grid / mesh-gradient 背景库）的 API 通常直接暴露颜色、间距、速度数值，一旦进入产品就锁死了风格。",
+    "pattern": "External Component → Adapter → 内部稳定 API → Product",
+    "currentImplementation": "first-party（纯 CSS，无第三方依赖）",
+    "swapInThirdParty": [
+      "1. 第三方资产放入 incoming/components/ 走完整审计流程",
+      "2. 在 adapters/ 下把其 color/gap/speed 参数映射为 --kits-grid-* 与 motion 档位",
+      "3. 产品代码零改动"
+    ]
+  },
+
+  "apiStability": {
+    "breakingChangePolicy": "破坏性变更升 major",
+    "additiveChangePolicy": "新增档位（例如 cell=\"ultra-dense\"）属于 minor"
+  },
+
+  "dependencies": [],
+  "thirdPartyRuntime": "none",
+  "bundleSize": "≈0.7 KB gzip（React 外置）",
+  "performance": {
+    "classification": "B",
+    "cost": "静态网格为一次性绘制；drift/pulse 走合成；但 mask-image 会增加一次合成层",
+    "notes": [
+      "drift 使用 transform: translate3d（不是 background-position），避免每帧 paint",
+      "pulse 使用 opacity（合成属性），不修改线色 —— 后者会触发整层重绘",
+      "mask-image 在小概率场景下会禁用 GPU 快速路径；instrument（fade=None 无 mask）不受影响",
+      "不要嵌套多个 AnimatedGrid（每层都是一次全屏绘制）"
+    ]
+  },
+
+  "ssrCompatible": true,
+  "ssrNotes": [
+    "纯 CSS 网格：服务端产出的 HTML 已经是完整网格，不依赖 JS",
+    "组件带 \"use client\" 仅为使用 useMotionAllowed；即使 JS 完全失败，网格仍照常显示（只是不动）",
+    "style 属性由 props 经纯函数计算，服务端/客户端结果一致",
+    "无随机数、无时间戳 → 无 hydration mismatch"
+  ],
+
+  "mobileCompatible": true,
+  "mobileFallback": {
+    "trigger": "(hover: none) or (pointer: coarse)",
+    "behavior": [
+      "drift / pulse 动画完全关闭（省电；小屏上网格本身就是噪音）",
+      "静态网格保留 —— 它是背景结构，不是动效",
+      "pack 层同时把 --kits-grid-cell 放大 1.5 倍（见 _contract/tokens.css 的 coarse-pointer 段），避免小屏上过密的网格变成摩尔纹"
+    ],
+    "noContentLoss": true
+  },
+
+  "reducedMotion": {
+    "behavior": [
+      "所有动画关闭；静态网格保留",
+      "网格是装饰层，没有任何信息依赖它，因此不存在信息损失"
+    ],
+    "mechanism": "JS（useMotionAllowed → motion 解析为 none）+ CSS（@media prefers-reduced-motion）双保险"
+  },
+
+  "a11y": {
+    "notes": [
+      "aria-hidden=\"true\"：网格是纯装饰，不进入无障碍树",
+      "pointer-events: none：不拦截任何点击、不遮挡可交互元素",
+      "z-index: -1：默认在所有内容之下；若父容器没有 isolation，会退到最近的层叠上下文（请给父容器 position:relative）",
+      "网格不承载任何信息：屏幕阅读器用户与低视力用户不依赖它理解页面结构"
+    ],
+    "keyboard": "不可聚焦，不参与 Tab 顺序",
+    "contrastResponsibility": "线色不透明度由 Style Pack 控制（最高 0.16），远低于文本对比阈值，不会干扰文字可读性"
+  },
+
+  "usedByStylePacks": {
+    "cinematic": "signature（64px + 55% 淡出 + drift）",
+    "instrument": "signature（32px + 22% 淡出 + 无动效，网格即刻度）",
+    "editorial": "discouraged（--kits-grid-line-width = 0px，网格自动消失）"
+  },
+
+  "avoidFor": [
+    "editorial 页面（纸质表面上的网格 = 印刷网点事故；pack 已自动禁用）",
+    "任何需要密集文本阅读的区域（网格线与文字基线会互相干扰）",
+    "同屏多个（每个都是全屏绘制层）"
+  ],
+
+  "demo": "demo.tsx",
+  "readme": "README.md",
+  "files": {
+    "implementation": "animated-grid.tsx",
+    "styles": "animated-grid.css",
+    "entry": "index.ts"
+  },
+
+  "source": {
+    "kind": "first-party",
+    "origin": "prototype-kits",
+    "license": "UNLICENSED (internal)",
+    "containsThirdPartyCode": false
+  },
+
+  "maintainer": "Prototype Factory",
+  "updatedAt": "2026-09-11"
+}

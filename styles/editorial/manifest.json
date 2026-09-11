@@ -1,0 +1,144 @@
+{
+  "id": "editorial",
+  "name": "Editorial",
+  "displayName": "编辑式 · 纸与字",
+  "version": "0.1.0",
+  "status": "approved",
+  "type": "style",
+  "contractVersion": "1.0.0",
+  "summary": "把界面当印刷品来处理：强排版、大留白、细分隔线、几乎不用卡片。适合需要「被阅读」而不是「被操作」的产品。",
+  "oneLineFirstVisual": "一个巨大的衬线标题，下方一条 1px 横线，然后是正文。",
+  "recommendedFor": [
+    "行业研究报告 / 深度分析页",
+    "内容优先的落地页与品牌故事页",
+    "编辑类后台：文章、批注、审阅",
+    "需要长时间阅读与对照的数据叙事（annual review、letter to investors）",
+    "任何「少而重要」的信息面板"
+  ],
+  "avoidFor": [
+    "实时监控大屏（信息刷新速度要求高于阅读体验）",
+    "每屏超过 30 个数据字段的密集工作台",
+    "强实时反馈的工具（编辑式的动效延迟会显得迟钝）",
+    "需要大量并列对比的卡片式目录",
+    "游戏化 / 社交化的强互动界面"
+  ],
+  "signatureComponents": [
+    "insight-reveal",
+    "interactive-hero"
+  ],
+  "optionalComponents": [
+    "spotlight-surface"
+  ],
+  "discouragedComponents": [
+    "data-cursor",
+    "animated-grid"
+  ],
+  "effects": [
+    "paper-grain"
+  ],
+  "designPrinciples": [
+    "留白是主要设计手段：段落间距大于任何控件的尺寸，先给空间，再给内容。",
+    "层级只用两个工具：字号与留白。不靠颜色深浅，不靠投影，不靠卡片边界。",
+    "分隔用线，不用盒子。一条 1px 横线能解决的事，不要画一个带边框的区域。",
+    "排版即品牌：衬线标题 + 等宽小标签 + 大号 tabular 数字，三者构成身份。",
+    "数字要能被严肃对待：读数用衬线大字号，不用渐变和光晕装饰。",
+    "阅读顺序优先于操作顺序：先让读者读完，再让他们点击。"
+  ],
+  "antiPatterns": [
+    "glassmorphism（毛玻璃与纸感互斥）",
+    "purple-gradient（霓虹渐变会立刻破坏印刷感）",
+    "card-everywhere（每个区块都套卡片 = 放弃留白）",
+    "drop-shadow-elevation（纸没有投影，层级用线表达）",
+    "heavy-border（粗描边让页面变成表格）",
+    "neon-glow / bloom",
+    "bouncy-easing（回弹动效与克制动效语言冲突）",
+    "multi-color-chart（editorial 图表只用墨色 + 一个强调色）",
+    "uppercase-everywhere（大写仅用于标签层，正文大写会毁掉阅读节奏）"
+  ],
+  "typography": {
+    "display": "衬线（Iowan Old Style / Palatino / Songti SC 回退栈）",
+    "body": "衬线，1.0625rem / 1.7，max-width 58ch",
+    "label": "等宽小标签，uppercase，letter-spacing 0.16em",
+    "data": "衬线大字号，tabular-nums",
+    "note": "标题行高压到 1.02，字距收紧到 -0.022em —— 这是「被排过」而不是「被设置过」的字"
+  },
+  "profile": {
+    "typeVoice": "editorial",
+    "spacingRhythm": "generous",
+    "density": "low",
+    "radiusPhilosophy": "flush",
+    "borderTreatment": "hairline-rule",
+    "surfaceTreatment": "paper",
+    "navigationFeel": "running-head",
+    "dataLanguage": "ink-rules",
+    "motionLanguage": "restrained",
+    "hierarchyMethod": "scale-and-space"
+  },
+  "tokens": {
+    "cssVariables": "tokens.css",
+    "motionModule": "motion.ts",
+    "selector": "[data-kits-pack=\"editorial\"]",
+    "peakValues": {
+      "spaceUnit": "4px",
+      "sectionGap": "96px",
+      "radiusSurface": "0",
+      "displaySizeMax": "4.5rem",
+      "displayLineHeight": "1.02",
+      "borderWidth": "0px",
+      "textureOpacity": "0.035"
+    },
+    "colorScope": "[data-kits-pack] 作用域（不是 :root）—— 多 pack 可同页共存而不互相污染",
+    "ownedByPack": true
+  },
+  "motion": {
+    "language": "restrained",
+    "roles": [
+      "enter",
+      "interact"
+    ],
+    "durationRange": "80–480ms",
+    "pointerFactor": 0.15,
+    "reducedMotion": "collapseTo 0ms；保留透明度淡入；静态呈现信息完整",
+    "mobile": "无指针视差；位移缩放 0.6；无环境动效"
+  },
+  "performance": {
+    "classification": "A",
+    "cost": "静态 CSS 为主，几乎零运行时",
+    "jsRuntime": "0 KB",
+    "cssSize": "~4 KB（未压缩）",
+    "notes": "唯一可能影响合成的属性是纸纹 ::before（opacity + mix-blend-mode），已在单一伪元素内封闭"
+  },
+  "ssrCompatible": true,
+  "mobileCompatible": true,
+  "reducedMotion": "supported",
+  "a11y": {
+    "minContrast": "ink #1a1614 on paper #fdfbf7 ≈ 15.9:1",
+    "mutedContrast": "ink-muted #6f665c on paper #fdfbf7 ≈ 5.4:1",
+    "notes": [
+      "颜色对比天然达标（纸墨关系本身高对比）",
+      "uppercase 小标签必须保留 letter-spacing ≥ 0.1em，否则可读性下降",
+      "分隔线 opacity 0.14 仅作装饰，不承载唯一语义"
+    ]
+  },
+  "dependencies": [],
+  "source": {
+    "kind": "first-party",
+    "origin": "prototype-kits",
+    "license": "UNLICENSED (internal)",
+    "inspiration": [
+      "印刷品 / 杂志的 running head 与 lead paragraph 传统",
+      "Swiss editorial typography 的尺度层级",
+      "stripe-press 类年报页的信息节奏"
+    ],
+    "note": "不含任何第三方源码；纸纹为内联 SVG feTurbulence，非外部资产"
+  },
+  "files": {
+    "tokens": "tokens.css",
+    "motion": "motion.ts",
+    "index": "index.ts",
+    "readme": "README.md",
+    "skill": "SKILL.md"
+  },
+  "maintainer": "Prototype Factory",
+  "updatedAt": "2026-09-11"
+}

@@ -1,0 +1,49 @@
+/* =============================================================================
+ * Effect · paper-grain —— 纸纹
+ *
+ * pack: editorial（也可用于任何"实体材质"风格的表面）
+ * 性能分级: A
+ *
+ * 实现：内联 SVG feTurbulence 生成噪声，作为伪元素的 background-image。
+ * 之所以内联，是因为 Kits **不允许把外部图片当作依赖** —— 一个 PNG 纹理
+ * 会让"可审计"变成"依赖一个二进制文件"。
+ *
+ * 用法：
+ *   <div class="kits-surface">…</div>          ← editorial 的 .kits-surface 已内建
+ *   <div class="kits-effect-paper-grain">…</div>
+ *
+ * 约束：
+ *   - 必须是**单层**伪元素。不要给滚动列表的每个子元素加纹理（一次合成 → N 次）。
+ *   - 使用 mix-blend-mode: multiply 会创建混合上下文；不要嵌套超过一层。
+ *   - 纹理不透明度必须低于 0.06，否则会降低文本对比度。
+ * ========================================================================== */
+
+.kits-effect-paper-grain {
+  position: relative;
+  isolation: isolate;
+}
+
+.kits-effect-paper-grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  opacity: var(--kits-texture-opacity, 0.035);
+  mix-blend-mode: multiply;
+  border-radius: inherit;
+}
+
+/* 纹理层之下必须有内容层：使用本效果时请给直接子元素加 z-index: 1 */
+.kits-effect-paper-grain > * {
+  position: relative;
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* 纸纹是静态的，没有动效需要降级 —— 这条只是明确记录契约 */
+  .kits-effect-paper-grain::after {
+    animation: none;
+  }
+}

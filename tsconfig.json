@@ -1,0 +1,16 @@
+/**
+ * 根 tsconfig —— 仅用于编辑器 / IDE 的语言服务，不参与质量门。
+ *
+ * - Kits 包（styles/ components/ tests/）由 tsconfig.kits.json 做 `tsc --noEmit`。
+ * - Playground 有自己的 tsconfig.json（Next.js 生成 + next typegen + 自己的 node_modules 解析）。
+ *
+ * 两者刻意分开：Playground 通过 node_modules 的 workspace 软链接解析 @kits/*，
+ * 而 Kits 自己用相对路径解析。混在一个项目里会让同一份源码被两种解析器检查，
+ * 产生只在特定调用方式下出现的假报错。
+ */
+{
+  "extends": "./tsconfig.kits.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.cache/root.tsbuildinfo"
+  }
+}

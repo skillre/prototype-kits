@@ -1,0 +1,164 @@
+/* =============================================================================
+ * InteractiveHero —— 结构样式（样式契约的一部分）
+ *
+ * 契约规则（违反即违规）：
+ *   - 本文件**不允许**出现任何 hex / px 字面量以外的视觉决策：
+ *     字号、字距、行高、间距、圆角、颜色、阴影、缓动、时长
+ *     全部必须写成 `var(--kits-*)`。
+ *   - 唯一允许的字面量是**结构性数值**：0、100%、1、2、以及 transform 的
+ *     单位换算（例如视差层用 1px 作为乘子）。
+ *   - 布局必须能在三种 pack 下都不破：这里不写死 max-width 的绝对值，
+ *     用 `--kits-content-max`。
+ * ========================================================================== */
+
+.kits-hero {
+  position: relative;
+  isolation: isolate;
+  padding-block: var(--kits-hero-padding-block);
+  background: transparent;
+}
+
+.kits-hero__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--kits-hero-gap);
+  width: 100%;
+  max-width: var(--kits-content-max);
+  margin-inline: auto;
+  padding-inline: var(--kits-gutter);
+}
+
+.kits-hero__copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--kits-hero-gap);
+  min-width: 0;
+}
+
+.kits-hero__eyebrow {
+  margin: 0;
+  /* 标签与标题之间的距离是"眉与题"的关系，比一般段落更紧 */
+  margin-bottom: calc(var(--kits-hero-eyebrow-gap) * -1);
+}
+
+.kits-hero__title {
+  margin: 0;
+}
+
+.kits-hero__lead {
+  margin: 0;
+}
+
+.kits-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--kits-space-sm);
+}
+
+/* -----------------------------------------------------------------------------
+ * 视差层
+ *
+ * 偏移量由 JS 写入 `--kits-layer-dx` / `--kits-layer-dy`（单位 px 的数字）。
+ * 这里做三件事：
+ *   1. 把偏移翻译成 translate3d（走合成层，不触发重排）；
+ *   2. 用 --kits-pointer-factor 二次缩放 —— 换 pack 自动换幅度；
+ *   3. 在静态模式（触屏 / reduced-motion / depth=none）下归零。
+ * -------------------------------------------------------------------------- */
+
+.kits-hero [data-kits-depth] {
+  --kits-layer-factor: var(--kits-pointer-factor, 0);
+  transform: translate3d(
+    calc(var(--kits-layer-dx, 0) * 1px * var(--kits-layer-factor)),
+    calc(var(--kits-layer-dy, 0) * 1px * var(--kits-layer-factor)),
+    0
+  );
+  will-change: transform;
+}
+
+.kits-hero--static [data-kits-depth] {
+  transform: none;
+  will-change: auto;
+}
+
+.kits-hero {
+  --kits-hero-media-ratio: 16 / 10;
+}
+
+/* -----------------------------------------------------------------------------
+ * 媒体插槽：side
+ * -------------------------------------------------------------------------- */
+
+.kits-hero--media-side .kits-hero__inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+}
+
+@media (min-width: 900px) {
+  .kits-hero--media-side .kits-hero__inner {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    gap: var(--kits-section-gap);
+  }
+}
+
+.kits-hero__media {
+  position: relative;
+  min-width: 0;
+}
+
+/* -----------------------------------------------------------------------------
+ * 媒体插槽：below
+ * -------------------------------------------------------------------------- */
+
+.kits-hero--media-below .kits-hero__media {
+  width: 100%;
+}
+
+/* -----------------------------------------------------------------------------
+ * 媒体插槽：background
+ *
+ * 背板必须完全退出无障碍树与命中测试 —— 它是背景，不是内容。
+ * -------------------------------------------------------------------------- */
+
+.kits-hero__backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.kits-hero__backdrop > * {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* -----------------------------------------------------------------------------
+ * 对齐与移动端
+ *
+ * 移动端不隐藏任何内容 —— 只改排列。信息密度由 pack 决定，
+ * 组件不在这里做"移动端简化"。唯一的例外是背景板在窄屏下会
+ * 干扰文字对比：此时降低其不透明度而不是隐藏它。
+ * -------------------------------------------------------------------------- */
+
+.kits-hero--center .kits-hero__copy {
+  align-items: center;
+  text-align: center;
+}
+
+.kits-hero--center .kits-hero__title,
+.kits-hero--center .kits-hero__lead {
+  margin-inline: auto;
+}
+
+@media (max-width: 640px) {
+  .kits-hero__backdrop {
+    opacity: 0.6;
+  }
+
+  .kits-hero__actions {
+    width: 100%;
+  }
+}

@@ -1,0 +1,152 @@
+{
+  "id": "cinematic",
+  "name": "Cinematic",
+  "displayName": "电影感 · 光与深度",
+  "version": "0.1.0",
+  "status": "approved",
+  "type": "style",
+  "contractVersion": "1.0.0",
+  "summary": "用光与深度分层，而不是用字号与留白。深色画布 + 环境光 + 玻璃表面 + 指针视差，适合需要让人「沉浸」的产品。",
+  "oneLineFirstVisual": "深色空间里一片从左上打下来的光，标题浮在光里，下方是一条发光的曲线。",
+  "recommendedFor": [
+    "AI 产品的对话 / 生成式界面（内容需要「浮出来」）",
+    "数据叙事与增长看板（趋势比字段重要）",
+    "产品发布会页、营销首屏、Demo 场景",
+    "需要长时间注视并保持兴奋度的工具（创作、分析、监控概览）",
+    "任何「一屏讲一个故事」的场景"
+  ],
+  "avoidFor": [
+    "需要打印或导出为浅色文档的场景",
+    "强日光 / 户外使用场景（深色 + 反光 = 不可读）",
+    "长时间连续作业的表单密集型后台（深色 + 高对比会加速眼疲劳）",
+    "医院 / 政务 / 财务合规类正式界面（情绪过于「产品发布会」）",
+    "需要同时显示 40+ 行数据的表格页"
+  ],
+  "signatureComponents": [
+    "spotlight-surface",
+    "data-cursor",
+    "animated-grid"
+  ],
+  "optionalComponents": [
+    "interactive-hero",
+    "insight-reveal"
+  ],
+  "discouragedComponents": [],
+  "effects": [
+    "ambient-glow",
+    "animated-grid"
+  ],
+  "designPrinciples": [
+    "层级由光建立：越靠前的元素越亮、越大、越有光晕。不要用边框分层级。",
+    "面包屑式的空间关系：canvas → surface → raised，每一层比上一层亮一点点。",
+    "环境光是容器级的，不是元素级的。一个容器一次绘制，所有子元素受益。",
+    "局部 glow 只在当前焦点出现：同时发光的东西不能超过一个。",
+    "交互要有物理感：hover 抬升 1px、指针视差、spotlight 跟随，但都要能被关闭。",
+    "深色页面的正文不能是纯白：用 #eef2f8，否则会产生光晕残影（halation）。",
+    "数据是光的载体：曲线发光、端点有光点，但网格必须极淡（7% 白）。"
+  ],
+  "antiPatterns": [
+    "purple-gradient 铺满整屏（cinematic 的渐变必须来自有限的光源方向，不是背景图）",
+    "glassmorphism-everywhere（玻璃只用于浮层与导航，正文区域用实表面）",
+    "card-everywhere（每个区块都加玻璃卡 = 深度失效，因为深度需要对比）",
+    "multiple-simultaneous-glows（同时发光超过一个 = 没有焦点）",
+    "pure-white-text-on-pure-black（#ffffff on #000000 会产生 halation，且对比过硬）",
+    "heavy-border（深色下的粗描边像调试框）",
+    "neon-everywhere（霓虹只在焦点元素上，不能成为基础色）",
+    "bouncy-easing-on-large-elements（大元素回弹会晕）",
+    "animation-everywhere（环境动效必须有明确用途，否则是耗电的噪音）"
+  ],
+  "typography": {
+    "display": "无衬线 500 字重，clamp 到 4rem，line-height 1.08，正字距 +0.005em",
+    "body": "无衬线 0.9375rem / 1.65，颜色为 ink-muted（不是 ink）",
+    "label": "青色小标签 + 微弱 text-shadow 光",
+    "data": "2.25rem 无衬线 tabular-nums",
+    "note": "深色下字重必须 ≥500：400 字重会被背景吃掉，这是深色界面最常见的排版错误"
+  },
+  "profile": {
+    "typeVoice": "spatial",
+    "spacingRhythm": "layered",
+    "density": "medium",
+    "radiusPhilosophy": "continuous",
+    "borderTreatment": "none-with-depth",
+    "surfaceTreatment": "ambient-glow",
+    "navigationFeel": "overlay-space",
+    "dataLanguage": "glow-series",
+    "motionLanguage": "atmospheric",
+    "hierarchyMethod": "light-and-depth"
+  },
+  "tokens": {
+    "cssVariables": "tokens.css",
+    "motionModule": "motion.ts",
+    "selector": "[data-kits-pack=\"cinematic\"]",
+    "peakValues": {
+      "spaceUnit": "8px",
+      "sectionGap": "96px",
+      "radiusSurface": "14px",
+      "displaySizeMax": "4rem",
+      "displayLineHeight": "1.08",
+      "borderWidth": "0px",
+      "surfaceBackdrop": "blur(16px) saturate(140%)"
+    },
+    "colorScope": "[data-kits-pack] 作用域（不是 :root）—— 多 pack 可同页共存而不互相污染",
+    "ownedByPack": true
+  },
+  "motion": {
+    "language": "atmospheric",
+    "roles": [
+      "enter",
+      "interact",
+      "ambient",
+      "data"
+    ],
+    "durationRange": "120–720ms（ambient 9000ms）",
+    "pointerFactor": 1,
+    "reducedMotion": "collapseTo 0ms；保留透明度淡入（避免深色闪烁）；指针视差与网格动画全部关闭",
+    "mobile": "指针视差关闭；位移缩放 0.5；环境光动画关闭（省电）"
+  },
+  "performance": {
+    "classification": "B",
+    "cost": "compositor 友好，但 backdrop-filter 与多层渐变有真实代价",
+    "jsRuntime": "0 KB（组件自身的运行时另计，见组件 manifest）",
+    "cssSize": "~6 KB（未压缩）",
+    "notes": [
+      "backdrop-filter 在低端设备上是昂贵的：只允许用在导航与浮层，且同屏不超过 2 处",
+      "环境光是一个绝对定位伪元素，禁止给每个子元素重复绘制",
+      "text-shadow 光晕在低端 Android 上可能触发额外合成：数值已限制在 40px/12% 以内"
+    ]
+  },
+  "ssrCompatible": true,
+  "mobileCompatible": true,
+  "reducedMotion": "supported",
+  "a11y": {
+    "minContrast": "ink #eef2f8 on surface #0f1420 ≈ 15.3:1",
+    "mutedContrast": "ink-muted #93a0b8 on surface #0f1420 ≈ 6.8:1",
+    "accentContrast": "accent #4fd6ff on surface #0f1420 ≈ 10.9:1（accent-ink on accent ≈ 12.4:1）",
+    "notes": [
+      "深色界面禁用纯白 #fff：halation 会让文字边缘发虚，已用 #eef2f8 规避",
+      "玻璃表面的实际对比度取决于背后内容，正文容器不得使用 backdrop-filter",
+      "所有指针对效（spotlight / cursor / parallax）必须有 reduced-motion 与触屏降级"
+    ]
+  },
+  "dependencies": [],
+  "source": {
+    "kind": "first-party",
+    "origin": "prototype-kits",
+    "license": "UNLICENSED (internal)",
+    "inspiration": [
+      "电影摄影的环境光与景深关系",
+      "线性 / Vercel 式深色产品页的空间层次",
+      "Bloomberg 深色终端的克制用色（只让数据发光）"
+    ],
+    "note": "不含任何第三方源码"
+  },
+  "files": {
+    "tokens": "tokens.css",
+    "motion": "motion.ts",
+    "index": "index.ts",
+    "readme": "README.md",
+    "skill": "SKILL.md"
+  },
+  "maintainer": "Prototype Factory",
+  "updatedAt": "2026-09-11"
+}

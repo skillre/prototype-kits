@@ -1,0 +1,14 @@
+packages:
+  - "styles/*"
+  - "effects"
+  - "components/*"
+  - "playground"
+
+# 构建脚本白名单（pnpm 会自动维护占位）。
+#   esbuild        —— vitest 的依赖，必须允许安装其原生二进制，否则测试无法运行
+#   unrs-resolver  —— eslint-config-next 的解析器，运行原生绑定即可，跳过安装脚本更可复现
+# sharp          —— Playground 不使用 next/image 优化，显式跳过
+allowBuilds:
+  esbuild: true
+  sharp: false
+  unrs-resolver: false

@@ -1,0 +1,89 @@
+/* =============================================================================
+ * Effect · scanline-sweep —— 扫描线
+ *
+ * pack: instrument
+ * 性能分级: A（静态扫描线）/ B（开启动态扫掠）
+ *
+ * 扫描线在 instrument 里**不是装饰**：它是"这个仪器在跑"的信号。
+ * 因此它只有两个档位：静态刻度线（默认）与单次扫掠（用于一次数据刷新）。
+ * 没有"常驻流动"档位 —— 那在监控面板上就是 24 小时无意义耗电。
+ *
+ * 用法：
+ *   <div class="kits-effect-scanlines">…</div>            ← 静态扫描线
+ *   <div class="kits-effect-scanlines is-sweeping">…</div> ← 单次扫掠
+ * ========================================================================== */
+
+.kits-effect-scanlines {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.kits-effect-scanlines::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgb(18 22 26 / 0.5) 0px,
+    rgb(18 22 26 / 0.5) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+  opacity: var(--kits-texture-opacity, 0.02);
+}
+
+.kits-effect-scanlines > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* -----------------------------------------------------------------------------
+ * 单次扫掠：数据刷新时的一次性信号，不是持续动画
+ * -------------------------------------------------------------------------- */
+
+.kits-effect-scanlines.is-sweeping::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  height: 18%;
+  top: -18%;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    color-mix(in srgb, var(--kits-color-accent, #0b63c5) 14%, transparent),
+    transparent
+  );
+  animation: kits-scanline-sweep var(--kits-dur-slow, 220ms)
+    var(--kits-ease-out, ease-out) 1 both;
+}
+
+@keyframes kits-scanline-sweep {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 660%, 0);
+  }
+}
+
+/* 降级：reduced-motion 下不做扫掠。
+   注意：扫掠是"刷新发生过了"的**冗余**信号 —— 数值本身已经变了，
+   因此取消它零信息损失。 */
+@media (prefers-reduced-motion: reduce) {
+  .kits-effect-scanlines.is-sweeping::after {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .kits-effect-scanlines.is-sweeping::after {
+    animation: none;
+    opacity: 0;
+  }
+}

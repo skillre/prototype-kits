@@ -1,0 +1,17 @@
+{
+  "name": "@kits/data-cursor",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Signature Component · DataCursor —— 跟随指针的数据指示器；悬停读取 data-cursor 标记，系统光标只在标记区域内隐藏",
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./manifest.json": "./manifest.json"
+  },
+  "files": ["index.ts", "data-cursor.tsx", "data-cursor.css", "manifest.json", "README.md", "demo.tsx"],
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "keywords": ["signature-component", "cursor", "data-inspection", "prototype-kits"]
+}

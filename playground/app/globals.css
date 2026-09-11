@@ -1,0 +1,533 @@
+@import "tailwindcss";
+
+/* =============================================================================
+ * Playground · 全局样式
+ *
+ * 这个文件本身就是"契约如何被消费"的示范：
+ *
+ *   @import "@kits/style-<id>/tokens.css";   ← 契约 + pack（必须在最前面）
+ *
+ * 三个 pack 全部导入，但**它们只在各自的 [data-kits-pack] 子树里生效**：
+ *   - :root 上的颜色变量是后导入者胜出（即 instrument）—— 但 Playground 的
+ *     外壳不使用这些变量，因此外壳不受影响；
+ *   - 所有排版/间距/组件规则都写在 [data-kits-pack="…"] 作用域下，
+ *     永远不会泄漏到另一个 pack 的列里。
+ *
+ * 这就是「可插拔」在 CSS 层面的证据：三套风格可以在同一个页面共存，
+ * 而它们的冲突面只有 :root 上的颜色变量。
+ * ========================================================================== */
+
+@import "@kits/style-editorial/tokens.css";
+@import "@kits/style-cinematic/tokens.css";
+@import "@kits/style-instrument/tokens.css";
+
+/* =============================================================================
+ * Playground 外壳（不使用任何 pack 变量 —— 外壳是中立的）
+ * ========================================================================== */
+
+:root {
+  --pg-bg: #101114;
+  --pg-panel: #17191e;
+  --pg-border: rgb(255 255 255 / 0.1);
+  --pg-ink: #e8eaee;
+  --pg-ink-dim: #8b93a1;
+  --pg-accent: #7cc4ff;
+  --pg-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --pg-sans: ui-sans-serif, system-ui, "PingFang SC", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--pg-bg);
+  color: var(--pg-ink);
+  font-family: var(--pg-sans);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+}
+
+/* -----------------------------------------------------------------------------
+ * 页头
+ * -------------------------------------------------------------------------- */
+
+.pg-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 14px 24px;
+  background: color-mix(in srgb, var(--pg-bg) 88%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--pg-border);
+}
+
+.pg-brand {
+  font-family: var(--pg-mono);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pg-brand span {
+  color: var(--pg-ink-dim);
+  font-weight: 400;
+}
+
+.pg-nav {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.pg-nav a {
+  font-family: var(--pg-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  color: var(--pg-ink-dim);
+}
+
+.pg-nav a:hover {
+  background: rgb(255 255 255 / 0.06);
+  color: var(--pg-ink);
+}
+
+.pg-header__note {
+  margin-left: auto;
+  font-family: var(--pg-mono);
+  font-size: 11px;
+  color: var(--pg-ink-dim);
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .pg-header {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 16px;
+  }
+  .pg-header__note {
+    display: none;
+  }
+}
+
+/* -----------------------------------------------------------------------------
+ * 页面容器
+ * -------------------------------------------------------------------------- */
+
+.pg-main {
+  padding: 32px 24px 96px;
+  max-width: 1800px;
+  margin-inline: auto;
+}
+
+@media (max-width: 720px) {
+  .pg-main {
+    padding: 20px 12px 64px;
+  }
+}
+
+.pg-title {
+  font-size: 26px;
+  line-height: 1.25;
+  margin: 0 0 8px;
+  letter-spacing: -0.01em;
+}
+
+.pg-lede {
+  margin: 0 0 28px;
+  max-width: 78ch;
+  color: var(--pg-ink-dim);
+  font-size: 14px;
+}
+
+.pg-section {
+  margin-top: 48px;
+}
+
+.pg-section__title {
+  font-family: var(--pg-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--pg-ink-dim);
+  border-top: 1px solid var(--pg-border);
+  padding-top: 10px;
+  margin: 0 0 20px;
+}
+
+/* -----------------------------------------------------------------------------
+ * 并排对比：三栏 / 双栏 / 单栏
+ * -------------------------------------------------------------------------- */
+
+.pg-grid {
+  display: grid;
+  gap: 16px;
+  align-items: start;
+}
+
+.pg-grid--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pg-grid--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.pg-grid--1 {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (max-width: 1200px) {
+  .pg-grid--3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  .pg-grid--3,
+  .pg-grid--2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* 每一列：pack 作用域 + 中立的外框（外框不属于任何 pack） */
+.pg-column {
+  border: 1px solid var(--pg-border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--pg-panel);
+}
+
+.pg-column__head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--pg-border);
+  font-family: var(--pg-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pg-ink-dim);
+}
+
+.pg-column__head strong {
+  color: var(--pg-ink);
+  font-weight: 600;
+}
+
+.pg-column__stage {
+  /* pack 子树：这里开始应用某一套 Style Pack */
+  background: var(--kits-color-canvas);
+  color: var(--kits-color-ink);
+  font-family: var(--kits-font-body);
+  font-size: var(--kits-body-size);
+  line-height: var(--kits-body-line);
+  min-height: 120px;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.pg-inner {
+  padding: var(--kits-gutter);
+}
+
+/* -----------------------------------------------------------------------------
+ * Playground 专属的 demo 元素
+ *
+ * 这些 class 全部写在 `[data-kits-pack]` 作用域下，因此它们读取的是
+ * **当前子树所属 pack** 的变量，而不是 :root 上最后导入的那个。
+ * -------------------------------------------------------------------------- */
+
+[data-kits-pack="editorial"] .kits-demo-media,
+[data-kits-pack="cinematic"] .kits-demo-media,
+[data-kits-pack="instrument"] .kits-demo-media {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--kits-space-sm);
+}
+
+[data-kits-pack="editorial"] .kits-demo-media__plot,
+[data-kits-pack="cinematic"] .kits-demo-media__plot,
+[data-kits-pack="instrument"] .kits-demo-media__plot {
+  aspect-ratio: 16 / 10;
+  border-radius: var(--kits-radius-md);
+  border: var(--kits-border-width) var(--kits-border-style)
+    var(--kits-border-color);
+  background-image:
+    repeating-linear-gradient(
+      to right,
+      var(--kits-data-grid-color) 0,
+      var(--kits-data-grid-color) var(--kits-data-grid-width),
+      transparent var(--kits-data-grid-width),
+      transparent 25%
+    ),
+    linear-gradient(
+      to bottom,
+      transparent 62%,
+      color-mix(in srgb, var(--kits-data-series-1) 40%, transparent) 62%,
+      color-mix(in srgb, var(--kits-data-series-1) 8%, transparent) 100%
+    );
+  position: relative;
+}
+
+/* 曲线上的端点光点：cinematic 的数据语言 */
+[data-kits-pack="cinematic"] .kits-demo-media__plot::after {
+  content: "";
+  position: absolute;
+  left: 62%;
+  top: 58%;
+  width: var(--kits-data-mark-size);
+  height: var(--kits-data-mark-size);
+  border-radius: 999px;
+  background: var(--kits-data-series-1);
+  box-shadow: 0 0 12px var(--kits-color-glow);
+}
+
+[data-kits-pack="instrument"] .kits-demo-media__plot {
+  border-radius: var(--kits-radius-surface);
+}
+
+.kits-demo-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--kits-space-md);
+}
+
+.kits-demo-stage {
+  position: relative;
+  isolation: isolate;
+  min-height: 240px;
+  border-radius: var(--kits-radius-surface);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: var(--kits-color-canvas);
+}
+
+.kits-demo-stage__content {
+  position: relative;
+  z-index: 1;
+  padding: var(--kits-card-padding);
+  max-width: 46ch;
+}
+
+.kits-demo-cursor-area {
+  border-radius: var(--kits-radius-surface);
+  border: var(--kits-border-width) var(--kits-border-style)
+    var(--kits-border-color);
+  background: var(--kits-color-surface);
+  padding: var(--kits-card-padding);
+}
+
+.kits-demo-reading-list {
+  list-style: none;
+  margin: var(--kits-space-sm) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--kits-space-2xs);
+}
+
+.kits-demo-reading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--kits-space-sm);
+  width: 100%;
+  height: var(--kits-row-height);
+  padding-inline: var(--kits-space-sm);
+  background: var(--kits-color-surface-raised);
+  border: var(--kits-border-width) var(--kits-border-style)
+    var(--kits-border-hairline-color);
+  border-radius: var(--kits-radius-control);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.kits-demo-reading:hover {
+  border-color: var(--kits-color-rule-strong);
+}
+
+.kits-demo-reading:focus-visible {
+  outline: var(--kits-focus-ring-width) var(--kits-focus-ring-style)
+    var(--kits-color-focus);
+  outline-offset: var(--kits-focus-ring-offset);
+}
+
+/* 中性示例块（供 AnimatedGrid 等需要容器的 demo 使用） */
+.kits-demo-panel {
+  background: var(--kits-color-surface);
+  border: var(--kits-border-width) var(--kits-border-style)
+    var(--kits-border-color);
+  border-radius: var(--kits-radius-surface);
+  padding: var(--kits-card-padding);
+}
+
+/* -----------------------------------------------------------------------------
+ * Registry / Audit 页（外壳，中立样式）
+ * -------------------------------------------------------------------------- */
+
+.pg-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--pg-mono);
+  font-size: 12px;
+}
+
+.pg-table th,
+.pg-table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--pg-border);
+  vertical-align: top;
+}
+
+.pg-table th {
+  color: var(--pg-ink-dim);
+  font-weight: 500;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.pg-table td code {
+  color: var(--pg-accent);
+}
+
+.pg-pill {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--pg-border);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pg-pill--approved {
+  border-color: rgb(110 220 150 / 0.5);
+  color: rgb(140 230 170);
+}
+
+.pg-pill--experimental {
+  border-color: rgb(240 200 110 / 0.5);
+  color: rgb(245 215 140);
+}
+
+.pg-pill--incoming {
+  border-color: rgb(150 180 255 / 0.5);
+  color: rgb(170 195 255);
+}
+
+.pg-pill--deprecated {
+  border-color: rgb(255 140 140 / 0.5);
+  color: rgb(255 160 160);
+}
+
+.pg-matrix {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.pg-card {
+  border: 1px solid var(--pg-border);
+  border-radius: 8px;
+  padding: 14px;
+  background: var(--pg-panel);
+}
+
+.pg-card h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-family: var(--pg-mono);
+  letter-spacing: 0.04em;
+}
+
+.pg-kv {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  gap: 4px 12px;
+  font-family: var(--pg-mono);
+  font-size: 11.5px;
+  color: var(--pg-ink-dim);
+  margin: 0;
+}
+
+.pg-kv dt {
+  color: var(--pg-ink-dim);
+}
+
+.pg-kv dd {
+  margin: 0;
+  color: var(--pg-ink);
+  overflow-wrap: anywhere;
+}
+
+.pg-flow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  font-family: var(--pg-mono);
+  font-size: 11px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pg-flow li {
+  padding: 3px 8px;
+  border: 1px solid var(--pg-border);
+  border-radius: 4px;
+  color: var(--pg-ink-dim);
+}
+
+.pg-flow li[data-state="done"] {
+  color: rgb(140 230 170);
+  border-color: rgb(110 220 150 / 0.4);
+}
+
+.pg-note {
+  border-left: 2px solid var(--pg-accent);
+  padding-left: 12px;
+  color: var(--pg-ink-dim);
+  font-size: 13px;
+  margin: 16px 0;
+}
+
+.pg-code {
+  font-family: var(--pg-mono);
+  font-size: 12px;
+  background: rgb(0 0 0 / 0.35);
+  border: 1px solid var(--pg-border);
+  border-radius: 6px;
+  padding: 12px;
+  overflow-x: auto;
+  margin: 0;
+}

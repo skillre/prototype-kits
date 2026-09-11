@@ -1,0 +1,29 @@
+{
+  "name": "prototype-kits",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Prototype Factory · 可插拔视觉与能力资产库 (Style Packs / Signature Components / Effects / Skills / References)",
+  "license": "UNLICENSED",
+  "type": "module",
+  "packageManager": "pnpm@11.22.0",
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "pnpm --filter @kits/playground typecheck && tsc --noEmit -p tsconfig.kits.json",
+    "test": "vitest run",
+    "build": "pnpm --filter @kits/playground build",
+    "dev": "pnpm --filter @kits/playground dev",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "qa": "node .qa/kits-shots.mjs",
+    "registry": "node scripts/registry-audit.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.4",
+    "typescript": "^5",
+    "vitest": "^3"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "allowImportingTsExtensions": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "tsBuildInfoFile": "./node_modules/.cache/kits.tsbuildinfo",
+    "types": ["node"],
+    "paths": {
+      "@kits/style-editorial": ["./styles/editorial/index.ts"],
+      "@kits/style-cinematic": ["./styles/cinematic/index.ts"],
+      "@kits/style-instrument": ["./styles/instrument/index.ts"]
+    }
+  },
+  "include": [
+    "styles/**/*.ts",
+    "components/**/*.ts",
+    "components/**/*.tsx",
+    "tests/**/*.ts",
+    "effects/**/*.ts",
+    "vitest.config.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next",
+    "playground/**",
+    "**/node_modules"
+  ]
+}

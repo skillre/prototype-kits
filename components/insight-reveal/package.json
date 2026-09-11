@@ -1,0 +1,17 @@
+{
+  "name": "@kits/insight-reveal",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Signature Component · InsightReveal —— 按阅读顺序逐段揭示；三层降级，JS 失败时内容依然可见",
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./manifest.json": "./manifest.json"
+  },
+  "files": ["index.ts", "insight-reveal.tsx", "insight-reveal.css", "manifest.json", "README.md", "demo.tsx"],
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "keywords": ["signature-component", "reveal", "scroll", "prototype-kits"]
+}

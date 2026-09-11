@@ -1,0 +1,77 @@
+/* =============================================================================
+ * Effect · ambient-glow —— 环境光
+ *
+ * pack: cinematic
+ * 性能分级: B
+ *
+ * 环境光是**容器级**效果：一个容器一次绘制，所有子元素受益。
+ * 这是它与"给每个卡片加 glow"的根本区别 —— 后者是 N 次绘制，且会让
+ * 焦点彻底消失（到处发光 = 没有焦点）。
+ *
+ * 用法：
+ *   <section class="kits-effect-ambient-glow kits-scope-cinematic">…</section>
+ *
+ * 约束：
+ *   - 一个页面最多一个容器级环境光；
+ *   - 同屏发光元素 ≤ 1 个；
+ *   - 光有方向（左上主光 + 右上辅光 + 底部补光），不是无方向的背景渐变。
+ * ========================================================================== */
+
+.kits-effect-ambient-glow {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.kits-effect-ambient-glow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(
+      60% 50% at 18% 8%,
+      rgb(79 214 255 / 0.16) 0%,
+      transparent 62%
+    ),
+    radial-gradient(
+      50% 45% at 85% 20%,
+      rgb(255 182 79 / 0.1) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      70% 55% at 50% 105%,
+      rgb(139 123 255 / 0.12) 0%,
+      transparent 65%
+    );
+}
+
+/* 可选：极缓慢的呼吸。必须显式开启（默认静态），因为持续动画有真实成本。 */
+.kits-effect-ambient-glow--breathing::before {
+  animation: kits-ambient-breathe var(--kits-dur-ambient, 9s)
+    var(--kits-ease-inout, ease-in-out) infinite;
+}
+
+@keyframes kits-ambient-breathe {
+  0%,
+  100% {
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* 降级：移动端与 reduced-motion 下关闭呼吸，保留静态环境光 */
+@media (hover: none), (pointer: coarse) {
+  .kits-effect-ambient-glow--breathing::before {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kits-effect-ambient-glow--breathing::before {
+    animation: none;
+  }
+}

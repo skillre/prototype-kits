@@ -1,0 +1,17 @@
+{
+  "name": "@kits/interactive-hero",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Signature Component · InteractiveHero —— 首屏第一视觉：结构 + 视差节奏，视觉全部交给 Style Pack",
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./manifest.json": "./manifest.json"
+  },
+  "files": ["index.ts", "interactive-hero.tsx", "interactive-hero.css", "manifest.json", "README.md", "demo.tsx"],
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "keywords": ["signature-component", "hero", "prototype-kits"]
+}
