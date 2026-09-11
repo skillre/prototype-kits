@@ -1,0 +1,39 @@
+# Vercel 上传排除清单。
+#
+# 为什么需要：`vercel deploy` 是从本地目录上传的，不像 git 那样自动尊重 .gitignore
+# 的全部规则。没有这份清单时每次会传 ~18MB 的构建产物与依赖缓存。
+#
+# 注意这里**不排除** node_modules/@kits —— 那是 workspace 软链接，
+# Vercel 会在远端重新 install，不需要本地的链接。
+
+# 依赖
+node_modules/
+**/node_modules/
+
+# 构建产物
+.next/
+**/.next/
+out/
+**/out/
+build/
+**/build/
+
+# 测试与 QA 产物
+test-results/
+playwright-report/
+.qa/out/
+**/coverage/
+
+# 缓存与增量编译信息
+*.tsbuildinfo
+.pnpm-store/
+
+# 本地 Vercel 状态
+.vercel/
+.env*
+!.env.example
+
+# 编辑器与系统
+.DS_Store
+*.pem
+*.log
