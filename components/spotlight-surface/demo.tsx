@@ -12,7 +12,7 @@
  */
 
 import { SpotlightSurface } from "./spotlight-surface.tsx";
-import type { Intensity, Tone } from "../_shared/contract.ts";
+import type { Intensity, Tone } from "@kits/react-utils";
 
 export interface SpotlightSurfaceDemoProps {
   tone?: Tone;

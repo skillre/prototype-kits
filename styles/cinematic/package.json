@@ -18,8 +18,12 @@
     "README.md",
     "SKILL.md"
   ],
-  "peerDependencies": {
-    "react": ">=18"
-  },
-  "keywords": ["style-pack", "cinematic", "prototype-kits"]
+  "keywords": [
+    "style-pack",
+    "cinematic",
+    "prototype-kits"
+  ],
+  "dependencies": {
+    "@kits/contracts": "workspace:*"
+  }
 }

@@ -47,8 +47,8 @@ import {
   type Intensity,
   type MotionFallbackProps,
   type Tone,
-} from "../_shared/contract.ts";
-import { useElementPointer } from "../_shared/use-element-pointer.ts";
+} from "@kits/react-utils";
+import { useElementPointer } from "@kits/react-utils";
 import "./spotlight-surface.css";
 
 export interface SpotlightSurfaceProps extends MotionFallbackProps {

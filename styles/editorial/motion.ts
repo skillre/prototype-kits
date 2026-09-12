@@ -12,7 +12,7 @@
  *     信息全部在文字里，不依赖任何动画传达。
  */
 
-import type { StylePackMotion } from "../_contract/contract.ts";
+import type { StylePackMotion } from "@kits/contracts";
 
 export const editorialMotion: StylePackMotion = {
   language: "restrained",

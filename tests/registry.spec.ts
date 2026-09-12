@@ -15,7 +15,7 @@ const ROOT = path.resolve(import.meta.dirname, "..");
 type Asset = {
   id: string;
   name: string;
-  type: "style" | "component" | "effect" | "skill";
+  type: "style" | "component" | "effect" | "skill" | "package";
   status: "incoming" | "experimental" | "approved" | "deprecated";
   version: string;
   path: string;
@@ -25,7 +25,7 @@ type Asset = {
   demo?: string;
   readme?: string;
   selector?: string;
-  dependencies: string[];
+  dependencies: Array<string | { id: string; version?: string }>;
   performance: string;
   ssrCompatible: boolean | string;
   mobileCompatible: boolean | string;
@@ -94,8 +94,12 @@ describe("registry/assets.json", () => {
       expect(registry.statusLifecycle, `${asset.id} 的 status`).toContain(
         asset.status,
       );
-      expect(["style", "component", "effect", "skill"], `${asset.id} 的 type`)
-        .toContain(asset.type);
+      // `package` 是基础设施包（contracts / react-utils / cli）——
+      // 它们不是视觉资产，但没有它们 style / component 无法被独立安装。
+      expect(
+        ["style", "component", "effect", "skill", "package"],
+        `${asset.id} 的 type`,
+      ).toContain(asset.type);
     }
   });
 
@@ -253,8 +257,13 @@ describe("registry 覆盖度", () => {
       dependency.startsWith("node:") ||
       dependency.startsWith("@types/");
 
+    // dependencies 可以是字符串，也可以是 { id, version } —— 归一化后再判断。
+    const depId = (d: string | { id: string; version?: string }) =>
+      typeof d === "string" ? d : d.id;
+
     for (const asset of registry.assets) {
-      for (const dependency of asset.dependencies) {
+      for (const raw of asset.dependencies) {
+        const dependency = depId(raw);
         const valid = known.has(dependency) || isSourceReference(dependency);
         if (!valid) {
           expect(

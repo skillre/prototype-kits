@@ -1,0 +1,42 @@
+/*
+ * Fixture 的全局样式。
+ *
+ * 只 import **适配层**（lib/kits/adapters/），不直接 import 托管区。
+ * 这是 Kits 契约要求的引用面：升级 Kits（覆盖 installed/）时这几行不动。
+ *
+ * 刻意不引 Tailwind：这个 fixture 要证明的是"Kits 的源码能在裸 Next 项目里
+ * 编译并把样式画出来"，而不是"Kits 能不能和某个 CSS 框架共存"。
+ */
+@import "../lib/kits/adapters/style-cinematic.css";
+@import "../lib/kits/adapters/effect-ambient-glow.css";
+
+:root {
+  color-scheme: light;
+  font-family: var(--kits-font-body);
+}
+
+body {
+  margin: 0;
+  background: var(--kits-color-canvas);
+  color: var(--kits-color-ink);
+  font-family: var(--kits-font-body);
+}
+
+.fixture-shell {
+  /* 产品自己的外壳样式取契约变量，而不是写死颜色 —— 这样换 pack 它也跟着变 */
+  padding: var(--kits-space-lg);
+  max-width: var(--kits-content-max);
+  margin-inline: auto;
+}
+
+.fixture-panel {
+  padding: var(--kits-card-padding);
+  border-radius: var(--kits-radius-surface);
+  box-shadow: var(--kits-surface-shadow);
+  background: var(--kits-color-surface);
+}
+
+.fixture-row {
+  padding: var(--kits-space-xs) var(--kits-space-sm);
+  border-bottom: var(--kits-border-width-strong) solid var(--kits-color-rule);
+}

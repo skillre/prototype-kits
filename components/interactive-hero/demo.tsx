@@ -11,7 +11,7 @@
  */
 
 import { InteractiveHero } from "./interactive-hero.tsx";
-import type { Intensity } from "../_shared/contract.ts";
+import type { Intensity } from "@kits/react-utils";
 
 export interface InteractiveHeroDemoProps {
   depth?: Intensity;

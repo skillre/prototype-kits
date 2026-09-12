@@ -22,6 +22,7 @@ const TYPE_LABEL = {
   component: "Signature Components",
   effect: "Effect Packs",
   skill: "Skills",
+  package: "Infrastructure Packages",
 };
 
 const pad = (value, width) => String(value).padEnd(width, " ");
@@ -44,7 +45,7 @@ console.log("=".repeat(78));
 
 console.log("\n[1] 概览\n");
 
-for (const type of ["style", "component", "effect", "skill"]) {
+for (const type of ["style", "component", "effect", "skill", "package"]) {
   const items = registry.assets.filter((asset) => asset.type === type);
   const byStatus = STATUS_ORDER.map((status) => {
     const count = items.filter((asset) => asset.status === status).length;
@@ -139,5 +140,8 @@ console.log(
 );
 console.log(
   `  Skills                 ${registry.assets.filter((a) => a.type === "skill").length}`,
+);
+console.log(
+  `  Infrastructure Pkgs    ${registry.assets.filter((a) => a.type === "package").length}（contracts / react-utils / cli）`,
 );
 console.log("");

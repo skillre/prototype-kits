@@ -11,7 +11,7 @@
  * 但红线不变：交互动效 ≤ 1000ms；动画只服务四类角色。
  */
 
-import type { StylePackMotion } from "../_contract/contract.ts";
+import type { StylePackMotion } from "@kits/contracts";
 
 export const cinematicMotion: StylePackMotion = {
   language: "atmospheric",

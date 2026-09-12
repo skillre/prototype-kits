@@ -20,7 +20,7 @@ import {
   assertStylePackMotion,
   motionToCssVars,
   type StylePackProfile,
-} from "../components/_shared/contract.ts";
+} from "@kits/contracts";
 
 import { editorialMotion, editorialProfile } from "../styles/editorial/index.ts";
 import { cinematicMotion, cinematicProfile } from "../styles/cinematic/index.ts";
@@ -163,7 +163,7 @@ describe("Style Pack Contract · manifest 与代码不漂移", () => {
       const css = read(`styles/${id}/tokens.css`);
       expect(css).toContain(`[data-kits-pack="${id}"]`);
       // 每个 pack 的 tokens 必须导入契约层（保证变量有兜底值）
-      expect(css).toContain('@import "../_contract/tokens.css"');
+      expect(css).toContain('@import "@kits/contracts/tokens.css"');
     },
   );
 });

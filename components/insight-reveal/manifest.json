@@ -131,7 +131,7 @@
     "implementation": "insight-reveal.tsx",
     "styles": "insight-reveal.css",
     "entry": "index.ts",
-    "sharedHook": "../_shared/use-reveal.ts"
+    "sharedHook": "@kits/react-utils/use-reveal"
   },
 
   "source": {

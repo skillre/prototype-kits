@@ -1,9 +1,14 @@
 {
   "$schema": "./assets.schema.json",
   "registryVersion": "0.1.0",
-  "generatedAt": "2026-09-11",
+  "generatedAt": "2026-09-12",
   "description": "Prototype Kits 资产登记表。所有进入过审计流程的视觉与能力资产都必须在这里有一条记录；没有登记的资产不得被任何 Prototype 引用。",
-  "statusLifecycle": ["incoming", "experimental", "approved", "deprecated"],
+  "statusLifecycle": [
+    "incoming",
+    "experimental",
+    "approved",
+    "deprecated"
+  ],
   "policy": {
     "approvalRequired": [
       "manifest 完整（style: id/name/version/status/recommendedFor/avoidFor/signatureComponents/designPrinciples/antiPatterns）",
@@ -34,19 +39,25 @@
       "entry": "styles/editorial/tokens.css",
       "cssEntry": "@kits/style-editorial/tokens.css",
       "selector": "[data-kits-pack=\"editorial\"]",
-      "dependencies": [],
+      "dependencies": [
+        "contracts"
+      ],
       "performance": "A",
       "performanceNotes": "纯 CSS，0 KB JS，~4 KB CSS；唯一非静态属性是单个伪元素的纸纹",
       "ssrCompatible": true,
       "mobileCompatible": true,
       "reducedMotion": "supported",
-      "signatureComponents": ["insight-reveal", "interactive-hero"],
+      "signatureComponents": [
+        "insight-reveal",
+        "interactive-hero"
+      ],
       "source": {
         "kind": "first-party",
         "origin": "prototype-kits",
         "license": "UNLICENSED (internal)",
         "containsThirdPartyCode": false
-      }
+      },
+      "package": "Editorial"
     },
     {
       "id": "cinematic",
@@ -60,7 +71,9 @@
       "entry": "styles/cinematic/tokens.css",
       "cssEntry": "@kits/style-cinematic/tokens.css",
       "selector": "[data-kits-pack=\"cinematic\"]",
-      "dependencies": [],
+      "dependencies": [
+        "contracts"
+      ],
       "performance": "B",
       "performanceNotes": "backdrop-filter + 多层径向渐变 + text-shadow 光晕；同屏 backdrop-filter ≤ 2 处",
       "ssrCompatible": true,
@@ -76,7 +89,8 @@
         "origin": "prototype-kits",
         "license": "UNLICENSED (internal)",
         "containsThirdPartyCode": false
-      }
+      },
+      "package": "Cinematic"
     },
     {
       "id": "instrument",
@@ -90,21 +104,26 @@
       "entry": "styles/instrument/tokens.css",
       "cssEntry": "@kits/style-instrument/tokens.css",
       "selector": "[data-kits-pack=\"instrument\"]",
-      "dependencies": [],
+      "dependencies": [
+        "contracts"
+      ],
       "performance": "A",
       "performanceNotes": "零滤镜 / 零投影 / 零混合模式；扫描线为 repeating-linear-gradient",
       "ssrCompatible": true,
       "mobileCompatible": true,
       "reducedMotion": "supported",
-      "signatureComponents": ["animated-grid", "insight-reveal"],
+      "signatureComponents": [
+        "animated-grid",
+        "insight-reveal"
+      ],
       "source": {
         "kind": "first-party",
         "origin": "prototype-kits",
         "license": "UNLICENSED (internal)",
         "containsThirdPartyCode": false
-      }
+      },
+      "package": "Instrument"
     },
-
     {
       "id": "interactive-hero",
       "name": "InteractiveHero",
@@ -117,7 +136,9 @@
       "entry": "components/interactive-hero/index.ts",
       "demo": "components/interactive-hero/demo.tsx",
       "readme": "components/interactive-hero/README.md",
-      "dependencies": [],
+      "dependencies": [
+        "react-utils"
+      ],
       "thirdPartyRuntime": "none",
       "bundleSize": "≈1.6 KB gzip",
       "performance": "B",
@@ -132,7 +153,8 @@
         "origin": "prototype-kits",
         "license": "UNLICENSED (internal)",
         "containsThirdPartyCode": false
-      }
+      },
+      "package": "InteractiveHero"
     },
     {
       "id": "spotlight-surface",
@@ -146,7 +168,9 @@
       "entry": "components/spotlight-surface/index.ts",
       "demo": "components/spotlight-surface/demo.tsx",
       "readme": "components/spotlight-surface/README.md",
-      "dependencies": [],
+      "dependencies": [
+        "react-utils"
+      ],
       "thirdPartyRuntime": "none",
       "bundleSize": "≈1.2 KB gzip",
       "performance": "B",
@@ -162,7 +186,8 @@
         "origin": "prototype-kits",
         "license": "UNLICENSED (internal)",
         "containsThirdPartyCode": false
-      }
+      },
+      "package": "SpotlightSurface"
     },
     {
       "id": "animated-grid",
@@ -176,7 +201,9 @@
       "entry": "components/animated-grid/index.ts",
       "demo": "components/animated-grid/demo.tsx",
       "readme": "components/animated-grid/README.md",
-      "dependencies": [],
+      "dependencies": [
+        "react-utils"
+      ],
       "thirdPartyRuntime": "none",
       "bundleSize": "≈0.7 KB gzip",
       "performance": "B",
@@ -191,7 +218,8 @@
         "origin": "prototype-kits",
         "license": "UNLICENSED (internal)",
         "containsThirdPartyCode": false
-      }
+      },
+      "package": "AnimatedGrid"
     },
     {
       "id": "data-cursor",
@@ -205,7 +233,9 @@
       "entry": "components/data-cursor/index.ts",
       "demo": "components/data-cursor/demo.tsx",
       "readme": "components/data-cursor/README.md",
-      "dependencies": [],
+      "dependencies": [
+        "react-utils"
+      ],
       "thirdPartyRuntime": "none",
       "bundleSize": "≈1.5 KB gzip",
       "performance": "B",
@@ -220,7 +250,8 @@
         "origin": "prototype-kits",
         "license": "UNLICENSED (internal)",
         "containsThirdPartyCode": false
-      }
+      },
+      "package": "DataCursor"
     },
     {
       "id": "insight-reveal",
@@ -234,7 +265,9 @@
       "entry": "components/insight-reveal/index.ts",
       "demo": "components/insight-reveal/demo.tsx",
       "readme": "components/insight-reveal/README.md",
-      "dependencies": [],
+      "dependencies": [
+        "react-utils"
+      ],
       "thirdPartyRuntime": "none",
       "bundleSize": "≈1.4 KB gzip",
       "performance": "A",
@@ -249,16 +282,16 @@
         "origin": "prototype-kits",
         "license": "UNLICENSED (internal)",
         "containsThirdPartyCode": false
-      }
+      },
+      "package": "InsightReveal"
     },
-
     {
       "id": "paper-grain",
       "name": "PaperGrain",
       "type": "effect",
       "status": "approved",
       "version": "0.1.0",
-      "path": "effects/paper-grain.css",
+      "path": "effects",
       "manifest": "effects/manifest.json",
       "entry": "effects/paper-grain.css",
       "cssEntry": "@kits/effects/paper-grain.css",
@@ -273,7 +306,11 @@
         "origin": "prototype-kits",
         "license": "UNLICENSED (internal)",
         "containsThirdPartyCode": false
-      }
+      },
+      "files": [
+        "effects/paper-grain.css"
+      ],
+      "package": "@kits/effects"
     },
     {
       "id": "ambient-glow",
@@ -281,7 +318,7 @@
       "type": "effect",
       "status": "approved",
       "version": "0.1.0",
-      "path": "effects/ambient-glow.css",
+      "path": "effects",
       "manifest": "effects/manifest.json",
       "entry": "effects/ambient-glow.css",
       "cssEntry": "@kits/effects/ambient-glow.css",
@@ -296,7 +333,11 @@
         "origin": "prototype-kits",
         "license": "UNLICENSED (internal)",
         "containsThirdPartyCode": false
-      }
+      },
+      "files": [
+        "effects/ambient-glow.css"
+      ],
+      "package": "@kits/effects"
     },
     {
       "id": "scanline-sweep",
@@ -304,7 +345,7 @@
       "type": "effect",
       "status": "approved",
       "version": "0.1.0",
-      "path": "effects/scanline-sweep.css",
+      "path": "effects",
       "manifest": "effects/manifest.json",
       "entry": "effects/scanline-sweep.css",
       "cssEntry": "@kits/effects/scanline-sweep.css",
@@ -319,9 +360,12 @@
         "origin": "prototype-kits",
         "license": "UNLICENSED (internal)",
         "containsThirdPartyCode": false
-      }
+      },
+      "files": [
+        "effects/scanline-sweep.css"
+      ],
+      "package": "@kits/effects"
     },
-
     {
       "id": "visual-direction",
       "name": "Visual Direction Skill",
@@ -331,7 +375,9 @@
       "path": "skills/visual-direction/SKILL.md",
       "manifest": null,
       "entry": "skills/visual-direction/SKILL.md",
-      "dependencies": ["registry/assets.json"],
+      "dependencies": [
+        "registry/assets.json"
+      ],
       "performance": "not-applicable",
       "performanceNotes": "Agent 指令，无运行时",
       "ssrCompatible": "not-applicable",
@@ -353,7 +399,9 @@
       "path": "skills/motion-direction/SKILL.md",
       "manifest": null,
       "entry": "skills/motion-direction/SKILL.md",
-      "dependencies": ["registry/assets.json"],
+      "dependencies": [
+        "registry/assets.json"
+      ],
       "performance": "not-applicable",
       "performanceNotes": "Agent 指令，无运行时",
       "ssrCompatible": "not-applicable",
@@ -365,6 +413,118 @@
         "license": "UNLICENSED (internal)",
         "containsThirdPartyCode": false
       }
+    },
+    {
+      "id": "contracts",
+      "name": "@kits/contracts",
+      "type": "package",
+      "status": "approved",
+      "version": "0.1.0",
+      "apiVersion": "1.0.0",
+      "path": "packages/contracts",
+      "manifest": "packages/contracts/package.json",
+      "entry": "packages/contracts/index.ts",
+      "readme": "packages/contracts/README.md",
+      "dependencies": [],
+      "thirdPartyRuntime": "none",
+      "bundleSize": "0 KB（只导出类型与纯函数，无副作用）",
+      "performance": "not-applicable",
+      "performanceNotes": "纯 TypeScript：枚举、契约类型、校验与编译函数。零运行时依赖，零 React 依赖",
+      "ssrCompatible": true,
+      "mobileCompatible": true,
+      "reducedMotion": "not-applicable",
+      "a11yNotes": "不产出 DOM",
+      "adapterRequired": false,
+      "source": {
+        "kind": "first-party",
+        "origin": "prototype-kits",
+        "license": "UNLICENSED (internal)",
+        "containsThirdPartyCode": false
+      },
+      "why": "契约曾分散在 styles/_contract 与 components/_shared 两处并互相复制；motionToCssVars 对消费方不可达，导致产品手抄变量表。现在它是唯一一份公开契约。",
+      "package": "@kits/contracts"
+    },
+    {
+      "id": "react-utils",
+      "name": "@kits/react-utils",
+      "type": "package",
+      "status": "approved",
+      "version": "0.1.0",
+      "apiVersion": "1.0.0",
+      "path": "packages/react-utils",
+      "manifest": "packages/react-utils/package.json",
+      "entry": "packages/react-utils/index.ts",
+      "readme": "packages/react-utils/README.md",
+      "dependencies": [],
+      "thirdPartyRuntime": "none",
+      "bundleSize": "≈0.6 KB gzip（含全部 hook，React 外置）",
+      "performance": "not-applicable",
+      "performanceNotes": "组件共享运行时：SSR 安全的能力探测、指针 hook、共享 IntersectionObserver、组件契约（tone/intensity）",
+      "ssrCompatible": true,
+      "mobileCompatible": true,
+      "reducedMotion": "not-applicable",
+      "a11yNotes": "不产出 DOM；它提供的是各组件的降级判据",
+      "adapterRequired": false,
+      "peerDependencies": {
+        "react": "^18.0.0 || ^19.0.0"
+      },
+      "source": {
+        "kind": "first-party",
+        "origin": "prototype-kits",
+        "license": "UNLICENSED (internal)",
+        "containsThirdPartyCode": false
+      },
+      "why": "组件曾靠 ../_shared/* 向上跨包引用，这正是 file: 安装失败的原因。抽成包之后每个组件都可以被独立安装。",
+      "package": "@kits/react-utils"
+    },
+    {
+      "id": "cli",
+      "name": "@kits/cli",
+      "type": "package",
+      "status": "approved",
+      "version": "0.1.0",
+      "apiVersion": "1.0.0",
+      "path": "packages/cli",
+      "manifest": "packages/cli/package.json",
+      "entry": "packages/cli/kits.mjs",
+      "readme": "packages/cli/README.md",
+      "dependencies": [],
+      "thirdPartyRuntime": "none",
+      "bundleSize": "≈0 KB（零运行时依赖，只用 node: 内置模块）",
+      "performance": "not-applicable",
+      "performanceNotes": "只在安装与体检时运行，不进产品运行时",
+      "ssrCompatible": "not-applicable",
+      "mobileCompatible": "not-applicable",
+      "reducedMotion": "not-applicable",
+      "a11yNotes": "命令行工具",
+      "adapterRequired": false,
+      "source": {
+        "kind": "first-party",
+        "origin": "prototype-kits",
+        "license": "UNLICENSED (internal)",
+        "containsThirdPartyCode": false
+      },
+      "why": "安装后落在产品的 lib/kits/.kits/，因此产品在 Kits 仓库不存在时也能跑 doctor / diff。",
+      "package": "@kits/cli"
     }
-  ]
+  ],
+  "distribution": {
+    "modes": {
+      "delivery": {
+        "name": "Source Installation",
+        "entry": "packages/cli/kits.mjs",
+        "how": "kits add --target <产品根> --style <id> --components <ids>",
+        "result": "资产复制进产品的 lib/kits/installed/，说明符重写为相对路径；装完不再依赖 Kits 仓库",
+        "recommendedFor": "正式交付 / 独立 Vercel 项目 / 不需要私有 npm 认证"
+      },
+      "development": {
+        "name": "Local Link",
+        "entry": "docs/integration.md#development-mode",
+        "how": "package.json 里 link:../prototype-kits/<pkg> + Next 的 transpilePackages / externalDir / turbopack.root",
+        "result": "改 Kits 立刻生效，但产品与 Kits 的目录结构、React 类型版本强耦合",
+        "recommendedFor": "改 Kits 本身 / 实验 / Playground / Style Migration 调查",
+        "notRecommendedFor": "产品交付"
+      }
+    }
+  }
 }

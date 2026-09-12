@@ -4,7 +4,7 @@
  * CSS 主入口：`import "@kits/style-instrument/tokens.css";`
  */
 
-import type { StylePackMotion, StylePackProfile } from "../_contract/contract.ts";
+import type { StylePackMotion, StylePackProfile } from "@kits/contracts";
 import { instrumentMotion } from "./motion.ts";
 
 export { instrumentMotion };

@@ -55,13 +55,15 @@ Design System、Landing Page、React Component）**都不能直接塞进 Prototy
 
 ```
 prototype-kits/
+├── packages/                   基础设施包（都可以被独立安装）
+│   ├── contracts/              契约层：变量词汇表 + 类型 + motionToCssVars + 校验
+│   ├── react-utils/            组件共享运行时：能力探测 + 指针 hook + 揭示观察器
+│   └── cli/                    Installer：add / list / doctor / diff
 ├── styles/                     Style Packs（每套一个包）
-│   ├── _contract/              契约层：变量词汇表 + 类型 + 校验
 │   ├── editorial/              纸与字
 │   ├── cinematic/              光与深度
 │   └── instrument/             刻度与读数
 ├── components/                 Signature Components（每个一个包）
-│   ├── _shared/                契约类型 + 环境探测 + 指针/视差/揭示 hook
 │   ├── interactive-hero/
 │   ├── spotlight-surface/
 │   ├── animated-grid/
@@ -80,9 +82,11 @@ prototype-kits/
 │   ├── assets.schema.json      结构契约
 │   └── README.md               状态语义与准入门槛
 ├── playground/                 轻量 Next.js 验收台（不是业务产品）
-├── docs/                       集成 / 架构 / FAQ
-├── tests/                      契约审计（164 个断言）
-└── .qa/                        Browser QA（截图 + 溢出 + 报错）
+├── fixtures/                   standalone-product：Distribution 的验收装置
+├── scripts/                    registry-audit · verify-standalone
+├── docs/                       集成 / 分发 / 架构 / FAQ
+├── tests/                      契约与安装器审计（274 个断言）
+└── .qa/                        Browser QA（截图 + 溢出 + 报错 + 降级）
 ```
 
 ---
@@ -227,7 +231,59 @@ incoming/components/<name>/
 
 ---
 
-## 8. 快速开始
+## 8. 怎么交付给产品（Distribution）
+
+> **Prototype Kits 是源码分发的设计工具箱（source-distributed design toolkit），
+> 不是 runtime component package。** 完整论证见 [docs/distribution.md](docs/distribution.md)。
+
+两条路，不要混淆：
+
+| | **Delivery Mode**（产品交付） | **Development Mode**（Kits 开发） |
+|---|---|---|
+| 机制 | `kits add` 把资产复制进产品 | `link:../prototype-kits/<pkg>` |
+| 产品有 `@kits/*` 依赖 | **没有** | 有 |
+| 需要改 Next / tsconfig | **不需要** | 三处 + 一个 flag |
+| 删掉 Kits 仓库还能 build | **能** | 不能 |
+
+### 安装
+
+```bash
+# ① 先看计划（不写磁盘）
+node packages/cli/kits.mjs add --target ../my-prototype \
+  --style cinematic --components animated-grid,data-cursor,insight-reveal \
+  --effects ambient-glow --dry-run
+
+# ② 执行
+node packages/cli/kits.mjs add --target ../my-prototype \
+  --style cinematic --components animated-grid,data-cursor,insight-reveal \
+  --effects ambient-glow
+
+# ③ 体检（在产品里，不需要 Kits 仓库）
+node ../my-prototype/lib/kits/.kits/kits.mjs doctor
+```
+
+装完之后产品长这样 —— **`package.json` 与 `next.config.ts` 一行都不用改**：
+
+```
+lib/kits/
+├── installed/       Kits 托管区（只读，重新安装会整体替换）
+├── adapters/        产品托管区（Kits 永不覆盖）
+├── .kits/           Installer 自身
+└── kits.lock.json   安装清单（逐文件 checksum + 来源 commit）
+```
+
+### 验收判据
+
+```bash
+node scripts/verify-standalone.mjs
+```
+
+它会把 `prototype-kits` **改名移走**，然后要求 fixture 仍然
+`tsc --noEmit` + `next build` 通过。**这条不过，就不算能交付。**
+
+---
+
+## 9. 快速开始
 
 ```bash
 git clone <repo> && cd prototype-kits
@@ -240,10 +296,11 @@ pnpm dev          # Playground → http://localhost:3200
 ```bash
 pnpm lint         # ESLint（含 packages 与 playground）
 pnpm typecheck    # playground tsc + kits tsc --noEmit
-pnpm test         # vitest：契约审计（164 个断言）
+pnpm test         # vitest：契约 + 包边界 + 安装器（274 个断言）
 pnpm build        # Playground 生产构建
 pnpm check        # 以上四件
 pnpm qa           # Browser QA：双视口截图 + 溢出/报错/降级检查
+pnpm verify:standalone   # Distribution 验收（把 Kits 仓库移走后仍能 build）
 ```
 
 > `pnpm qa` 需要先起服务：`pnpm build && pnpm --filter @kits/playground start`。
@@ -251,7 +308,7 @@ pnpm qa           # Browser QA：双视口截图 + 溢出/报错/降级检查
 
 ---
 
-## 9. Playground
+## 10. Playground
 
 一个**极轻量**的 Next.js 验收台，不是业务产品，不引入 Storybook。
 
@@ -266,11 +323,12 @@ pnpm qa           # Browser QA：双视口截图 + 溢出/报错/降级检查
 
 ---
 
-## 10. 相关文档
+## 11. 相关文档
 
 | 文档 | 内容 |
 |---|---|
-| [`docs/integration.md`](docs/integration.md) | 怎么在 Prototype 里用 Kits（含品牌色覆盖、渐进接入） |
+| [`docs/integration.md`](docs/integration.md) | 怎么在 Prototype 里用 Kits（Delivery vs Development 两种模式） |
+| [`docs/distribution.md`](docs/distribution.md) | 分发机制、Installer Rules、kits.lock.json、为什么不是 runtime package |
 | [`docs/architecture.md`](docs/architecture.md) | 契约分层、目录归属、与 Factory Core 的边界 |
 | [`docs/faq.md`](docs/faq.md) | 常见问题（为什么不用 Tailwind / 为什么源码分发 / 为什么不做 Storybook） |
 | [`docs/visual-inventory.md`](docs/visual-inventory.md) | prototype-starter 现状盘点与剥离计划（回答题面 C 问题） |
@@ -279,16 +337,17 @@ pnpm qa           # Browser QA：双视口截图 + 溢出/报错/降级检查
 
 ---
 
-## 11. 版本与边界
+## 12. 版本与边界
 
-- 本仓库是 **v0.1**：只做三套 Style Pack、五个组件、三个 effect、两个 skill。
+- 本仓库是 **v0.1**：三套 Style Pack、五个组件、三个 effect、两个 skill，
+  加上三个基础设施包（contracts / react-utils / cli）。
 - **不做**：Style Migration（不改任何现有项目的视觉）、Factory Core 改动、
   第三个业务 Prototype。
 - **不改动**：`prototype-starter`、`prototype-hub`、`prototype-ai-finance`、AI CRM。
 
 ### 未来适合进 Factory Core 的（只登记约定，不搬代码）
 
-pack 契约（`_contract/contract.ts` + `tokens.css` 变量词汇表）、
+pack 契约（`packages/contracts/` —— 纯 TS、零依赖，迁移成本最低）、
 manifest schema、Incoming Workflow、`Visual Manifest` 的字段约定。
 
 ### 必须永远留在 Kits 的

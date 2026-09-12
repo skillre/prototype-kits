@@ -1,0 +1,37 @@
+{
+  "name": "@kits/react-utils",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Prototype Kits · 组件共享运行时 —— 能力探测 hook、指针 hook、揭示观察器、组件契约（tone/intensity）。只依赖 React。",
+  "type": "module",
+  "license": "UNLICENSED",
+  "exports": {
+    ".": "./index.ts",
+    "./contract": "./contract.ts",
+    "./env": "./env.ts",
+    "./use-element-pointer": "./use-element-pointer.ts",
+    "./use-parallax-layers": "./use-parallax-layers.ts",
+    "./use-reveal": "./use-reveal.ts"
+  },
+  "files": [
+    "index.ts",
+    "contract.ts",
+    "env.ts",
+    "use-element-pointer.ts",
+    "use-parallax-layers.ts",
+    "use-reveal.ts",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "react": "^19.2.0"
+  },
+  "keywords": [
+    "prototype-kits",
+    "react",
+    "hooks"
+  ]
+}

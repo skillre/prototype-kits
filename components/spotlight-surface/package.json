@@ -8,10 +8,29 @@
     ".": "./index.ts",
     "./manifest.json": "./manifest.json"
   },
-  "files": ["index.ts", "spotlight-surface.tsx", "spotlight-surface.css", "manifest.json", "README.md", "demo.tsx"],
+  "files": [
+    "index.ts",
+    "spotlight-surface.tsx",
+    "spotlight-surface.css",
+    "manifest.json",
+    "README.md",
+    "demo.tsx"
+  ],
   "peerDependencies": {
-    "react": ">=18",
-    "react-dom": ">=18"
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
   },
-  "keywords": ["signature-component", "spotlight", "adapter-pattern", "prototype-kits"]
+  "keywords": [
+    "signature-component",
+    "spotlight",
+    "adapter-pattern",
+    "prototype-kits"
+  ],
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0"
+  },
+  "dependencies": {
+    "@kits/react-utils": "workspace:*"
+  }
 }

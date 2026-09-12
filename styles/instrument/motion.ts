@@ -12,7 +12,7 @@
  * 这是 instrument 与 cinematic 最本质的动效分歧。
  */
 
-import type { StylePackMotion } from "../_contract/contract.ts";
+import type { StylePackMotion } from "@kits/contracts";
 
 export const instrumentMotion: StylePackMotion = {
   language: "precise",

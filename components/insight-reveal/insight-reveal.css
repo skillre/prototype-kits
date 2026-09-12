@@ -9,6 +9,20 @@
  *   --kits-ease-out          揭示缓动
  *
  * ============================================================================
+ * 两种揭示粒度
+ * ============================================================================
+ *   step="one"    整体揭示 —— 直接作用于子元素。
+ *   step="group"  逐段揭示 —— 组件为每个直接子元素建立一层宿主
+ *                 `.kits-reveal__item`，序号写在**宿主**上。
+ *
+ * 为什么 group 需要宿主（本文件与 .tsx 一起说明这件事）：
+ * 旧实现用 cloneElement 把 `--kits-reveal-index` 塞进子元素的 style，
+ * 这要求消费方的子元素把 style 转发到自己的宿主元素 —— 而产品里的子元素
+ * 通常是自定义组件，于是变量被静默丢弃，步进彻底失效且没有任何报错。
+ * 组件不应当依赖消费方配合才能工作，因此序号改由组件自己建立的宿主承载：
+ * DOM 里一定存在带序号的元素。
+ *
+ * ============================================================================
  * 三层降级（本文件的重点）
  * ============================================================================
  *   第 1、2 层在 JS（use-reveal.ts）：
@@ -27,17 +41,48 @@
 }
 
 /* -----------------------------------------------------------------------------
+ * group 宿主：对布局不可见
+ *
+ * `display: contents` 让宿主不生成盒子，其子元素直接参与父级布局 ——
+ * 因此 flex 的间距、grid 的列数、ol/ul 的列表语义都与"没有这一层"时一致。
+ *
+ * 关键约束：`display: contents` 的元素**不生成盒子，因此 transform 无效**。
+ * 而揭示的位移必须被看见。因此：
+ *   - 透明度作用在宿主上（opacity 作用于子树绘制，display:contents 下仍然生效）
+ *   - 位移与模糊作用在宿主的**子树根**（`.kits-reveal__item > *`）上
+ * 这与 step="one" 的行为一致（那也是作用在子元素本身）。
+ *
+ * 无障碍：display:contents 不改变无障碍树，子元素照常暴露；
+ * 宿主自带 aria-hidden="true"（它是纯装饰的步进容器，不承载语义），
+ * 因此不会多出一个匿名节点，也不会让屏幕阅读器多读一层。
+ * -------------------------------------------------------------------------- */
+
+.kits-reveal--group > .kits-reveal__item {
+  display: contents;
+}
+
+/* -----------------------------------------------------------------------------
  * 已动画 + 尚未揭示 → 隐藏
+ *
+ * 选择器用 `:where()` 包住 `> .kits-reveal__item` 分支，让它保持在
+ * 与 `> *` 相同的特异性（0-1-0），避免 group 模式因为特异性更高而
+ * 意外压过后面基于 `> *` 的规则。
  * -------------------------------------------------------------------------- */
 
 .kits-reveal--animated:not([data-kits-visible="true"]) {
   opacity: 0;
 }
 
+.kits-reveal--animated:not([data-kits-visible="true"]):where(
+    [data-kits-step="group"]
+  )
+  > .kits-reveal__item,
 .kits-reveal--animated:not([data-kits-visible="true"]) > * {
   opacity: 0;
 }
 
+.kits-reveal--animated[data-kits-visible="true"]:where([data-kits-step="group"])
+  > .kits-reveal__item,
 .kits-reveal--animated[data-kits-visible="true"] > * {
   opacity: 1;
 }
@@ -47,8 +92,16 @@
  *
  * 位移量 = --kits-reveal-distance × --kits-reveal-shift-scale
  * 档位（shift prop）只改乘数，绝对距离由 pack 决定。
+ *
+ * group 模式作用在宿主的子树根上（宿主是 display:contents，自身不吃 transform），
+ * one 模式直接作用在子元素上 —— 两者的视觉结果相同。
  * -------------------------------------------------------------------------- */
 
+.kits-reveal--animated.kits-reveal--shift:not([data-kits-visible="true"]):where(
+    [data-kits-step="group"]
+  )
+  > .kits-reveal__item
+  > *,
 .kits-reveal--animated.kits-reveal--shift:not([data-kits-visible="true"]) > * {
   transform: translate3d(
     0,
@@ -65,6 +118,11 @@
  * 揭示完成后（opacity: 1）filter 归零，层数回落。
  * -------------------------------------------------------------------------- */
 
+.kits-reveal--animated.kits-reveal--blur:not([data-kits-visible="true"]):where(
+    [data-kits-step="group"]
+  )
+  > .kits-reveal__item
+  > *,
 .kits-reveal--animated.kits-reveal--blur:not([data-kits-visible="true"]) > * {
   filter: blur(var(--kits-reveal-blur));
 }
@@ -72,10 +130,12 @@
 /* -----------------------------------------------------------------------------
  * 过渡与步进
  *
- * 步进延迟 = 序号 × --kits-reveal-stagger。序号由组件写在
- * --kits-reveal-index 上（0..maxStagger）。
+ * 步进延迟 = 序号 × --kits-reveal-stagger。序号由组件写在宿主的
+ * --kits-reveal-index 上（0..maxStagger）—— 序号一定存在，因为宿主是
+ * 组件自己建立的。
  * -------------------------------------------------------------------------- */
 
+.kits-reveal--animated:where([data-kits-step="group"]) > .kits-reveal__item > *,
 .kits-reveal--animated > * {
   transition:
     opacity var(--kits-dur-base) var(--kits-ease-out),
@@ -90,6 +150,11 @@
   will-change: opacity, transform;
 }
 
+.kits-reveal--animated[data-kits-visible="true"]:where(
+    [data-kits-step="group"]
+  )
+  > .kits-reveal__item
+  > *,
 .kits-reveal--animated[data-kits-visible="true"] > * {
   /* 揭示完成后释放合成资源 */
   will-change: auto;
@@ -111,6 +176,8 @@
 
 @media (scripting: none) {
   .kits-reveal,
+  .kits-reveal > .kits-reveal__item,
+  .kits-reveal > .kits-reveal__item > *,
   .kits-reveal > * {
     opacity: 1;
     transform: none;
@@ -127,6 +194,11 @@
  * -------------------------------------------------------------------------- */
 
 @media (hover: none), (pointer: coarse) {
+  .kits-reveal--animated.kits-reveal--shift:not([data-kits-visible="true"]):where(
+      [data-kits-step="group"]
+    )
+    > .kits-reveal__item
+    > *,
   .kits-reveal--animated.kits-reveal--shift:not([data-kits-visible="true"]) > * {
     transform: translate3d(
       0,
@@ -139,6 +211,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .kits-reveal--animated:where([data-kits-step="group"])
+    > .kits-reveal__item
+    > *,
   .kits-reveal--animated > * {
     transition:
       opacity var(--kits-dur-base) var(--kits-ease-out);

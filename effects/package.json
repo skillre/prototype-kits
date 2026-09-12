@@ -18,5 +18,8 @@
   "keywords": [
     "effect-pack",
     "prototype-kits"
+  ],
+  "sideEffects": [
+    "*.css"
   ]
 }

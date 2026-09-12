@@ -46,8 +46,8 @@ import {
   cx,
   type Intensity,
   type MotionFallbackProps,
-} from "../_shared/contract.ts";
-import { useParallaxLayers } from "../_shared/use-parallax-layers.ts";
+} from "@kits/react-utils";
+import { useParallaxLayers } from "@kits/react-utils";
 import "./interactive-hero.css";
 
 export interface InteractiveHeroProps extends MotionFallbackProps {

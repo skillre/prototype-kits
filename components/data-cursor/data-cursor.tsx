@@ -38,8 +38,8 @@
  */
 
 import type { ReactNode } from "react";
-import { cx, type MotionFallbackProps } from "../_shared/contract.ts";
-import { useFinePointer, useMotionAllowed } from "../_shared/env.ts";
+import { cx, type MotionFallbackProps } from "@kits/react-utils";
+import { useFinePointer, useMotionAllowed } from "@kits/react-utils";
 import { useEffect, useRef, useState } from "react";
 import "./data-cursor.css";
 

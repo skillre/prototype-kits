@@ -1,0 +1,22 @@
+{
+  "name": "kits-standalone-fixture",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Disposable fixture —— 验证 Source Installation 之后，产品在 prototype-kits 仓库不存在时仍可 install / typecheck / build。",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "next build",
+    "doctor": "node lib/kits/.kits/kits.mjs doctor"
+  },
+  "dependencies": {
+    "next": "16.3.4",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "typescript": "^5"
+  }
+}

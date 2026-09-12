@@ -39,9 +39,9 @@
  * 那么 JS 一挂，整页内容就是空白。
  */
 
-import { Children, cloneElement, isValidElement, type ReactNode } from "react";
-import { cx, type MotionFallbackProps } from "../_shared/contract.ts";
-import { useReveal } from "../_shared/use-reveal.ts";
+import { Children, type ReactNode } from "react";
+import { cx, type MotionFallbackProps } from "@kits/react-utils";
+import { useReveal } from "@kits/react-utils";
 import "./insight-reveal.css";
 
 export type RevealStep = "one" | "group";
@@ -89,10 +89,23 @@ export function InsightReveal({
 
   return (
     <Element
+      /*
+       * 根元素是联合类型（div | section | article | ol | ul），因此 ref
+       * 必须收窄成一个对所有分支都可赋值的形态。
+       *
+       * 一次真实接入曾在消费方的 `tsc` 上对这个位置报 TS2322，
+       * 看起来像是这行断言的锅 —— 其实是 @types/react 的版本漂移：
+       * 消费方跟着符号链接到本文件真实路径编译，用**本仓库自己的**
+       * @types/react 检查，于是同一次编译里出现两份 VoidOrUndefinedOnly，
+       * 报出 "Two different types with this name exist, but they are unrelated"。
+       * 根因在依赖策略（见 package.json 的 peer/dev 分工与 kits doctor），
+       * 不在这里。因此这行保持不变 —— 不要为了掩盖版本问题而加断言。
+       */
       ref={ref as React.Ref<never>}
       id={id}
       className={cx(
         "kits-reveal",
+        step === "group" && "kits-reveal--group",
         animated && "kits-reveal--animated",
         once && "kits-reveal--once",
         shift !== "none" && "kits-reveal--shift",
@@ -108,22 +121,47 @@ export function InsightReveal({
       data-kits-step={step}
     >
       {step === "group"
-        ? items.map((child, index) => {
-            if (!isValidElement(child)) return child;
-            const element = child as React.ReactElement<{
-              style?: React.CSSProperties;
-            }>;
-            return cloneElement(element, {
-              style: {
-                ...element.props.style,
-                // 步进序号只作为 CSS 变量存在；CSS 用 calc 相乘得到延迟。
-                // 绝对步进值来自 pack 的 --kits-reveal-stagger，组件不知道它。
-                ["--kits-reveal-index" as string]: String(
-                  Math.min(index, maxStagger),
-                ),
-              },
-            });
-          })
+        ? items.map((child, index) => (
+            /*
+             * 宿主 wrapper —— 步进序号的**唯一落点**。
+             *
+             * 旧实现用 `cloneElement(child, { style: … })` 把
+             * `--kits-reveal-index` 写给子元素。那要求子元素必须把 `style`
+             * 原样转发到自己的宿主元素上；而产品里的子元素通常是自定义
+             * 组件（有自己的 props、不接收 style），于是变量被 React 静默丢弃：
+             *
+             *     children[0].getAttribute("style")  →  null
+             *     --kits-reveal-index                →  ""     ← 步进彻底失效
+             *
+             * 不报错、不警告，只是不生效 —— 组件不应当依赖消费方配合才能工作。
+             * 现在由组件自己建立宿主：DOM 里**一定**存在带序号的元素，
+             * 消费方不需要知道这件事。
+             *
+             * `display: contents` 让这一层对布局不可见（见 insight-reveal.css），
+             * 因此 flex 容器的间距、网格的列数都不受影响。
+             */
+            <div
+              key={index}
+              /*
+               * aria-hidden：这一层是纯装饰的步进宿主，不承载语义。
+               * 子元素照常暴露给无障碍树（display:contents 不剪枝），
+               * 因此屏幕阅读器读到的结构与没有宿主时完全一致。
+               */
+              aria-hidden="true"
+              className="kits-reveal__item"
+              data-kits-reveal-item=""
+              data-kits-reveal-index={index}
+              style={
+                {
+                  // 序号作为 CSS 变量；CSS 用 calc 与 pack 的
+                  // --kits-reveal-stagger 相乘得到延迟。绝对步进值组件不知道。
+                  "--kits-reveal-index": String(Math.min(index, maxStagger)),
+                } as React.CSSProperties
+              }
+            >
+              {child}
+            </div>
+          ))
         : children}
     </Element>
   );

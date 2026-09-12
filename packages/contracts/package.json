@@ -1,0 +1,27 @@
+{
+  "name": "@kits/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Prototype Kits · 契约层 —— Style Pack / Component / Manifest 的类型、枚举、校验与编译函数。纯 TypeScript，零 React 依赖。",
+  "type": "module",
+  "license": "UNLICENSED",
+  "exports": {
+    ".": "./index.ts",
+    "./contract": "./contract.ts",
+    "./tokens.css": "./tokens.css"
+  },
+  "files": [
+    "index.ts",
+    "contract.ts",
+    "tokens.css",
+    "README.md"
+  ],
+  "sideEffects": [
+    "*.css"
+  ],
+  "keywords": [
+    "prototype-kits",
+    "contract",
+    "style-pack"
+  ]
+}

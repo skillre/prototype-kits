@@ -22,8 +22,21 @@ export const ASSET_STATUS = [
 ] as const;
 export type AssetStatus = (typeof ASSET_STATUS)[number];
 
-/** 资产类型 —— 与 registry/assets.json 的 `type` 字段一一对应。 */
-export const ASSET_TYPE = ["style", "component", "effect", "skill"] as const;
+/**
+ * 资产类型 —— 与 registry/assets.json 的 `type` 字段一一对应。
+ *
+ * 前四类是人看的资产；`package` 是**基础设施包**：它们不是视觉资产，
+ * 但没有它们 style / component 无法被独立安装（契约的类型与编译函数、
+ * 组件共享的降级 hook、Installer 自身）。它们同样走 registry 与状态门禁，
+ * 因此"哪些文件被装进产品"永远是可审计的。
+ */
+export const ASSET_TYPE = [
+  "style",
+  "component",
+  "effect",
+  "skill",
+  "package",
+] as const;
 export type AssetType = (typeof ASSET_TYPE)[number];
 
 /* -------------------------------------------------------------------------- */

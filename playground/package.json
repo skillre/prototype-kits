@@ -13,9 +13,11 @@
   },
   "dependencies": {
     "@kits/animated-grid": "workspace:*",
+    "@kits/contracts": "workspace:*",
     "@kits/data-cursor": "workspace:*",
     "@kits/insight-reveal": "workspace:*",
     "@kits/interactive-hero": "workspace:*",
+    "@kits/react-utils": "workspace:*",
     "@kits/spotlight-surface": "workspace:*",
     "@kits/style-cinematic": "workspace:*",
     "@kits/style-editorial": "workspace:*",

@@ -57,8 +57,8 @@
 
 | 文件 | 内容 | 演进节奏 |
 |---|---|---|
-| `_contract/tokens.css` | 变量词汇表 + 中立兜底值 + reduced-motion/触屏全局降级 | **最慢**（破坏性变更需升 major） |
-| `_contract/contract.ts` | 十个维度的枚举、`StylePackProfile`、`StylePackMotion`、`assertStylePackMotion`、`motionToCssVars` | 慢 |
+| `packages/contracts/tokens.css` | 变量词汇表 + 中立兜底值 + reduced-motion/触屏全局降级 | **最慢**（破坏性变更需升 major） |
+| `packages/contracts/contract.ts` | 十个维度的枚举、`StylePackProfile`、`StylePackMotion`、`assertStylePackMotion`、`motionToCssVars` —— 契约**只有这一份**，且是公开 API | 慢 |
 | `registry/assets.schema.json` | 资产登记表的结构契约 | 慢 |
 
 ---
@@ -134,7 +134,7 @@ Factory Core（`prototype-starter` 的骨架、交付流程、AGENTS 约束）�
 
 | 候选 | 为什么适合 Core | 迁移方式 |
 |---|---|---|
-| **Style Pack Contract** | 它定义的是"什么叫一套可替换的风格"，与具体风格无关；所有 Prototype 都应遵守同一个契约 | 把 `_contract/` 提为 Core 的 `contract/`，Kits 依赖它 |
+| **Style Pack Contract** | 它定义的是"什么叫一套可替换的风格"，与具体风格无关；所有 Prototype 都应遵守同一个契约 | 把 `packages/contracts/` 提为 Core 的 `contract/`，Kits 依赖它。它已经是纯 TS、零依赖，迁移成本最低 |
 | **manifest schema** | 资产登记的结构是流程约定，不是设计内容 | 提为 Core 的 `schemas/` |
 | **Incoming Workflow** | 准入流程属于交付流程 | 写进 Core 的 AGENTS.md / 交付清单 |
 | **Visual Manifest 字段约定** | "写 UI 前先声明视觉方向"是一条流程规则 | 写进 Core 的 Agent 规范；详细方法留在 Kits 的 skill |

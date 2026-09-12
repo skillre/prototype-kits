@@ -14,15 +14,21 @@
     "dev": "pnpm --filter @kits/playground dev",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "qa": "node .qa/kits-shots.mjs",
-    "registry": "node scripts/registry-audit.mjs"
+    "registry": "node scripts/registry-audit.mjs",
+    "verify:standalone": "node scripts/verify-standalone.mjs",
+    "qa:reveal": "node .qa/reveal-probe.mjs"
   },
   "devDependencies": {
+    "@kits/contracts": "workspace:*",
+    "@kits/react-utils": "workspace:*",
     "@playwright/test": "^1.63.0",
     "@types/node": "^20",
-    "@types/react": "^19",
+    "@types/react": "^19.3.0",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
     "typescript": "^5",
     "vitest": "^3"
   }

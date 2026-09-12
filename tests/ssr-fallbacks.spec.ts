@@ -73,10 +73,10 @@ describe("SSR import · 客户端边界", () => {
 
   it("共享 hook 里没有裸 window / document 引用", () => {
     for (const file of [
-      "components/_shared/env.ts",
-      "components/_shared/use-element-pointer.ts",
-      "components/_shared/use-parallax-layers.ts",
-      "components/_shared/use-reveal.ts",
+      "packages/react-utils/env.ts",
+      "packages/react-utils/use-element-pointer.ts",
+      "packages/react-utils/use-parallax-layers.ts",
+      "packages/react-utils/use-reveal.ts",
     ]) {
       const source = read(file);
       expect(
@@ -91,9 +91,9 @@ describe("SSR import · 客户端边界", () => {
   });
 
   it("能力探测经过 typeof 守卫（服务端不会抛错）", () => {
-    const env = read("components/_shared/env.ts");
+    const env = read("packages/react-utils/env.ts");
     expect(env).toContain('typeof globalScope.matchMedia !== "function"');
-    const reveal = read("components/_shared/use-reveal.ts");
+    const reveal = read("packages/react-utils/use-reveal.ts");
     expect(reveal).toContain('typeof IntersectionObserver === "undefined"');
   });
 });
@@ -104,7 +104,7 @@ describe("SSR import · 客户端边界", () => {
 
 describe("reduced-motion fallback", () => {
   it("契约层强制把动效变量归零（CSS 兜底）", () => {
-    const contract = read("styles/_contract/tokens.css");
+    const contract = read("packages/contracts/tokens.css");
     expect(contract).toContain("@media (prefers-reduced-motion: reduce)");
     expect(contract).toContain("--kits-pointer-factor: 0 !important");
     expect(contract).toContain("--kits-enter-distance: 0px !important");
@@ -112,7 +112,7 @@ describe("reduced-motion fallback", () => {
   });
 
   it("共享 hook 提供 useMotionAllowed 且首帧为 false（避免 hydration mismatch）", () => {
-    const env = read("components/_shared/env.ts");
+    const env = read("packages/react-utils/env.ts");
     expect(env).toContain("export function useMotionAllowed");
     // 首帧必须与 SSR 一致（静态），挂载后才可能启用动效
     expect(env).toContain("return mounted && !reduced");
@@ -158,7 +158,7 @@ describe("reduced-motion fallback", () => {
 
 describe("mobile fallback", () => {
   it("契约层对粗指针做了全局降级", () => {
-    const contract = read("styles/_contract/tokens.css");
+    const contract = read("packages/contracts/tokens.css");
     expect(contract).toContain("@media (hover: none), (pointer: coarse)");
     expect(contract).toContain("--kits-pointer-factor: 0 !important");
   });

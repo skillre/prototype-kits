@@ -42,8 +42,8 @@
  */
 
 import type { CSSProperties } from "react";
-import { cx, type MotionFallbackProps } from "../_shared/contract.ts";
-import { useMotionAllowed } from "../_shared/env.ts";
+import { cx, type MotionFallbackProps } from "@kits/react-utils";
+import { useMotionAllowed } from "@kits/react-utils";
 import "./animated-grid.css";
 
 export type GridCell = "none" | "dense" | "normal" | "wide";

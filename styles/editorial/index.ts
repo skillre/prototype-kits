@@ -9,7 +9,7 @@
  * Registry 审计和测试使用。产品代码通常只需要 CSS + `data-kits-pack`。
  */
 
-import type { StylePackMotion, StylePackProfile } from "../_contract/contract.ts";
+import type { StylePackMotion, StylePackProfile } from "@kits/contracts";
 import { editorialMotion } from "./motion.ts";
 
 export { editorialMotion };

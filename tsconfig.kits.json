@@ -23,6 +23,8 @@
     }
   },
   "include": [
+    "packages/**/*.ts",
+    "packages/**/*.tsx",
     "styles/**/*.ts",
     "components/**/*.ts",
     "components/**/*.tsx",
