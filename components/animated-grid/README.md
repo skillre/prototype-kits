@@ -108,9 +108,17 @@ import { AnimatedGrid } from "@kits/animated-grid";
 | 条件 | 行为 |
 |---|---|
 | `pointer: coarse` / `hover: none` | `drift` / `pulse` 动画全部关闭（省电） |
-| 同一条件（由 pack 层处理） | `--kits-grid-cell` 放大 **1.5 倍** —— 避免小屏上过密的网格产生摩尔纹 |
+| 同一条件（由**契约层**处理） | `--kits-grid-cell-scale` 置为 **1.5** —— 有效单元格 = `--kits-grid-cell` × 1.5，避免小屏上过密的网格产生摩尔纹 |
 
 静态网格保留：它是背景结构，不是动效。
+
+> **契约分界**：`--kits-grid-cell` 是 pack 的**基准尺寸**，
+> `--kits-grid-cell-scale` 是契约的**指针能力因子**。两者相乘得到有效值
+> （在 `.kits-grid` 上算，见 `animated-grid.css` 的 `--kits-grid-cell-size`）。
+>
+> 分成两个变量是必需的：v0.1.0 直接把 `--kits-grid-cell` 乘 1.5，
+> 与 pack 的同名声明特异性相同而后者的源顺序更晚，缩放被静默吃掉
+> （实测 64px 而非 96px）。详见 CHANGELOG K-02。
 
 ---
 

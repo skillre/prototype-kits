@@ -106,6 +106,12 @@ Playground 的 `/audit` 页对此有说明，测试里也有对应断言。
 
 - **服务端 HTML 中内容可见** → 屏幕阅读器、爬虫、read-it-later 都能读到完整内容。
 - **不改变 DOM 顺序或语义**：揭示是纯视觉增强，`as` 保证列表内容用 `ol`/`ul` 时语义正确。
+- **`step="group"` 的宿主带 `role="presentation"`，绝不带 `aria-hidden`**。
+  宿主里包的是**真实内容**（heading / button / link / listitem）；
+  `aria-hidden="true"` 会把整棵子树从无障碍树剪掉 —— 按钮还在 DOM 里，
+  但 `getByRole("button")` 命中 0，屏幕阅读器读不到整个揭示区。
+  `role="presentation"` 只声明"本元素无语义"，**不剪枝**。
+  （v0.1.0 用过 `aria-hidden`，这是一次真实的无障碍回归，见 CHANGELOG K-01。）
 - **只动 `opacity` / `transform` / `filter`**，绝不用 `display: none` 或 `visibility: hidden`。
   否则键盘用户会被困在"看不见但可聚焦"的元素上（这是最常见的 reveal 组件无障碍事故）。
 - **reduced-motion 下仍保留 opacity 淡入**：避免内容"突兀出现"看起来像加载失败。

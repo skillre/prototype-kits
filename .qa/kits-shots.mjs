@@ -29,6 +29,7 @@ const VIEWPORTS = [
 const ROUTES = [
   { name: "home", path: "/", expect: ["Style Packs"] },
   { name: "components", path: "/components", expect: ["Signature Components"] },
+  { name: "effects", path: "/effects", expect: ["Effect Contract"] },
   { name: "audit", path: "/audit", expect: ["Asset Registry"] },
 ];
 
@@ -200,6 +201,34 @@ async function checkRoute(browser, route, viewport) {
     );
   }
 
+  /*
+   * ---- 第三条判据：真的滚一下 ----
+   *
+   * 前两条都是"量宽度"。它们仍然可能同时撒谎：一个 `position: fixed` 的
+   * 元素或某个 `overflow-x: hidden` 的外壳，可以让 scrollWidth 读起来正好
+   * 等于视口，而页面**仍然能横向滚动**。
+   *
+   * 真正无法伪造的判据是：把滚动位置推到极限，然后看它停在哪。
+   * scrollTo(9999, 0) 之后 scrollX 仍然 ≈ 0，才说明横向根本滚不动。
+   *
+   * 这三条互不替代：
+   *   1. innerWidth === 设备宽度      （布局视口没被撑大）
+   *   2. scrollWidth <= 设备宽度      （内容没有超出）
+   *   3. scrollTo 之后 scrollX ≈ 0    （确实滚不动）
+   */
+  const scrolled = await page.evaluate(() => {
+    window.scrollTo(9999, 0);
+    const x = window.scrollX;
+    window.scrollTo(0, 0);
+    return { scrollX: x, maxScroll: document.documentElement.scrollWidth - window.innerWidth };
+  });
+  if (Math.abs(scrolled.scrollX) > 1) {
+    problems.push(
+      `${viewport.name} ${route.path}: 推到最右后 scrollX=${Math.round(scrolled.scrollX)}（应当 ≈ 0）` +
+        ` —— 页面真的能横向滚动，即使宽度比较看不出来`,
+    );
+  }
+
   if (consoleErrors.length) {
     problems.push(
       `${viewport.name} ${route.path}: 控制台报错 → ${consoleErrors.join(" | ")}`,
@@ -294,6 +323,284 @@ async function checkReducedMotion(browser) {
   return { revealState, factors };
 }
 
+/* --------------------------------------------------------------------------
+ * v0.1.1 新增的四组探针
+ * ----------------------------------------------------------------------- */
+
+/**
+ * K-01 · 无障碍树探针。
+ *
+ * 这是整个 v0.1.1 里最需要"真的量一次"的一条：aria-hidden 造成的剪枝
+ * 在单元测试里完全看不出来（DOM 里按钮明明在），只有无障碍树知道。
+ *
+ * 用 Playwright 的 role 查询来问浏览器：**这些内容还在无障碍树里吗？**
+ * 单位测试断言的是"标记里没有 aria-hidden"，那只是必要条件；
+ * 这里断言的是结论。
+ */
+async function checkInsightRevealA11y(browser) {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await context.newPage();
+  await page.goto(`${BASE}/components`, { waitUntil: "load" });
+
+  // 让揭示跑完（否则停在起手态，量到的是动画中间值）
+  const stages = page.locator("[data-kits-pack]");
+  const stageCount = await stages.count();
+  for (let index = 0; index < stageCount; index += 1) {
+    await stages.nth(index).scrollIntoViewIfNeeded();
+    await page.waitForTimeout(140);
+  }
+  await page.waitForTimeout(800);
+
+  const reveals = page.locator('[data-kits-component="insight-reveal"]');
+  const revealCount = await reveals.count();
+  if (revealCount === 0) {
+    problems.push("a11y: /components 上没有 InsightReveal 实例");
+    await context.close();
+    return { revealCount, perReveal: [] };
+  }
+
+  const perReveal = [];
+  for (let index = 0; index < revealCount; index += 1) {
+    const reveal = reveals.nth(index);
+    const buttons = await reveal.getByRole("button").count();
+    const headings = await reveal.getByRole("heading").count();
+    const links = await reveal.getByRole("link").count();
+    const listitems = await reveal.getByRole("listitem").count();
+    const domButtons = await reveal.locator("button").count();
+    const domHeadings = await reveal.locator("h1,h2,h3,h4,h5,h6").count();
+    const domLinks = await reveal.locator("a[href]").count();
+
+    perReveal.push({
+      buttons,
+      headings,
+      links,
+      listitems,
+      domButtons,
+      domHeadings,
+      domLinks,
+    });
+
+    /*
+     * 判据不是"数量大于零"这么弱，而是**无障碍树与 DOM 一致**：
+     * DOM 里有的可交互元素，必须都能被 role 查到。
+     * aria-hidden 剪枝会让右边的数字变成 0，而左边照常有值。
+     */
+    if (domButtons > 0 && buttons !== domButtons) {
+      problems.push(
+        `a11y: InsightReveal#${index} 的 button 在 DOM 里有 ${domButtons} 个，但无障碍树里只有 ${buttons} 个`,
+      );
+    }
+    if (domHeadings > 0 && headings !== domHeadings) {
+      problems.push(
+        `a11y: InsightReveal#${index} 的 heading 在 DOM 里有 ${domHeadings} 个，但无障碍树里只有 ${headings} 个`,
+      );
+    }
+    if (domLinks > 0 && links !== domLinks) {
+      problems.push(
+        `a11y: InsightReveal#${index} 的 link 在 DOM 里有 ${domLinks} 个，但无障碍树里只有 ${links} 个`,
+      );
+    }
+  }
+
+  // 宿主自身不得带 aria-hidden
+  const hiddenHosts = await page.locator(".kits-reveal__item[aria-hidden]").count();
+  if (hiddenHosts > 0) {
+    problems.push(`a11y: 有 ${hiddenHosts} 个揭示宿主带 aria-hidden（会剪掉整棵子树）`);
+  }
+  const presentationHosts = await page
+    .locator('.kits-reveal__item[role="presentation"]')
+    .count();
+  if (presentationHosts === 0) {
+    problems.push('a11y: 揭示宿主没有 role="presentation"');
+  }
+
+  await context.close();
+  return { revealCount, perReveal, hiddenHosts, presentationHosts };
+}
+
+/**
+ * K-02 · coarse pointer 探针。
+ *
+ * 直接量**有效单元格尺寸**，而不是读 CSS 文本。
+ * 触发条件用真实设备特征（hasTouch + isMobile），不是伪造的 media query。
+ */
+async function checkCoarsePointer(browser) {
+  const measure = async (context) => {
+    const page = await context.newPage();
+    await page.goto(`${BASE}/`, { waitUntil: "load" });
+    await page.waitForTimeout(400);
+    const result = await page.evaluate(() => {
+      const out = {};
+      for (const pack of ["editorial", "cinematic", "instrument"]) {
+        const grid = document.querySelector(`[data-kits-pack="${pack}"] .kits-grid`);
+        if (!grid) continue;
+        const cs = (p) => getComputedStyle(grid).getPropertyValue(p).trim();
+
+        /*
+         * 量"用出来的长度"，不量自定义属性的文本 ——
+         * 自定义属性的计算值会停在 `calc(64px * 1.5)`，那既不是 px 也不能直接比较。
+         *
+         * 两个细节都是踩过的坑：
+         *   1. 用 offsetWidth 而不是 getBoundingClientRect().width ——
+         *      后者含 transform，而 drift 动画把网格 scale(1.02) 过，
+         *      会把 64px 量成 65.28px。
+         *   2. 把密度钉成 1 —— 密度是组件贡献的乘数（playground 的样例用了
+         *      wide = ×2），不归一化就量不到"基准 × 指针因子"这个契约行为。
+         */
+        grid.style.setProperty("--kits-grid-density", "1");
+        let probe = grid.querySelector(".qa-cell-probe");
+        if (!probe) {
+          probe = document.createElement("i");
+          probe.className = "qa-cell-probe";
+          probe.style.width = "var(--kits-grid-cell-size)";
+          probe.style.display = "block";
+          grid.appendChild(probe);
+        }
+        out[pack] = {
+          base: cs("--kits-grid-cell"),
+          scale: cs("--kits-grid-cell-scale"),
+          effectivePx: probe.offsetWidth,
+          animationName: getComputedStyle(grid).animationName,
+        };
+        grid.style.removeProperty("--kits-grid-density");
+      }
+      return {
+        coarse: matchMedia("(pointer: coarse)").matches,
+        hoverNone: matchMedia("(hover: none)").matches,
+        packs: out,
+      };
+    });
+    await context.close();
+    return result;
+  };
+
+  const fineContext = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const fine = await measure(fineContext);
+
+  const coarseContext = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+    deviceScaleFactor: 3,
+  });
+  const coarse = await measure(coarseContext);
+
+  if (!coarse.coarse || !coarse.hoverNone) {
+    problems.push(
+      `coarse-pointer: 设备特征没生效（pointer:coarse=${coarse.coarse} hover:none=${coarse.hoverNone}）`,
+    );
+  }
+
+  for (const pack of ["editorial", "cinematic", "instrument"]) {
+    const f = fine.packs[pack];
+    const c = coarse.packs[pack];
+    if (!f || !c) {
+      problems.push(`coarse-pointer: ${pack} 列里没有 .kits-grid`);
+      continue;
+    }
+    if (f.scale !== "1") {
+      problems.push(`coarse-pointer: 细指针下 ${pack} 的因子是 ${f.scale}（应为 1）`);
+    }
+    if (c.scale !== "1.5") {
+      problems.push(`coarse-pointer: 触屏下 ${pack} 的因子是 ${c.scale}（应为 1.5）`);
+    }
+    if (c.effectivePx !== Math.round(f.effectivePx * 1.5)) {
+      problems.push(
+        `coarse-pointer: ${pack} 的有效单元格 ${c.effectivePx}px ≠ 细指针 ${f.effectivePx}px × 1.5`,
+      );
+    }
+    /*
+     * 动效降级：只比较"细指针下本来有动画"的那些。
+     * playground 的样例里有的 pack 用 motion="none"（那是 pack 语义，不是缺陷），
+     * 所以不能断言"细指针下必须有动画"。
+     */
+    if (f.animationName !== "none" && c.animationName !== "none") {
+      problems.push(
+        `coarse-pointer: ${pack} 的网格动画在触屏下仍然开着（${c.animationName}）`,
+      );
+    }
+  }
+
+  if (coarse.packs.cinematic?.effectivePx !== 96) {
+    problems.push(
+      `coarse-pointer: cinematic 的有效单元格是 ${coarse.packs.cinematic?.effectivePx}px（应为 96 = 64 × 1.5）`,
+    );
+  }
+  if (fine.packs.cinematic?.effectivePx !== 64) {
+    problems.push(
+      `coarse-pointer: 细指针下 cinematic 的有效单元格是 ${fine.packs.cinematic?.effectivePx}px（应为 64）`,
+    );
+  }
+
+  return { fine, coarse };
+}
+
+/**
+ * K-05 · Effect 覆盖探针。
+ *
+ * 判据：在**祖先作用域**里改公开变量，效果的绘制结果真的跟着变。
+ * 如果默认值声明在效果自己的类上（而不是 :root），祖先覆盖会被
+ * 元素自身的声明压过去 —— 那正是要防的回归。
+ */
+async function checkEffectOverride(browser) {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await context.newPage();
+  await page.goto(`${BASE}/effects`, { waitUntil: "load" });
+  await page.waitForTimeout(400);
+
+  const result = await page.evaluate(() => {
+    const stage = document.querySelector("[data-effect-stage]");
+    if (!stage) return null;
+    const read = () => {
+      const before = getComputedStyle(stage, "::before");
+      return {
+        opacity: before.opacity,
+        backgroundImage: before.backgroundImage,
+        strength: getComputedStyle(stage).getPropertyValue("--kits-effect-ambient-strength").trim(),
+        primary: getComputedStyle(stage).getPropertyValue("--kits-effect-ambient-primary").trim(),
+      };
+    };
+
+    const base = read();
+
+    // 在**祖先**上覆盖（不是效果自己的类）—— 这是 K-05 的关键判据
+    const scope = stage.parentElement ?? document.documentElement;
+    scope.style.setProperty("--kits-effect-ambient-strength", "0.25");
+    scope.style.setProperty("--kits-effect-ambient-primary", "rgb(255 0 0 / 0.9)");
+    const overridden = read();
+
+    scope.style.removeProperty("--kits-effect-ambient-strength");
+    scope.style.removeProperty("--kits-effect-ambient-primary");
+    const restored = read();
+
+    return { base, overridden, restored };
+  });
+
+  if (!result) {
+    problems.push("effect: /effects 上找不到 [data-effect-stage]");
+    await context.close();
+    return null;
+  }
+
+  if (result.base.opacity !== "1") {
+    problems.push(`effect: 默认强度下 ::before 的 opacity 是 ${result.base.opacity}（应为 1）`);
+  }
+  if (result.overridden.opacity !== "0.25") {
+    problems.push(
+      `effect: 祖先覆盖强度后 opacity 是 ${result.overridden.opacity}（应为 0.25）—— 祖先覆盖不生效`,
+    );
+  }
+  if (!result.overridden.backgroundImage.includes("255, 0, 0")) {
+    problems.push("effect: 祖先覆盖主光颜色后 background-image 没有变化");
+  }
+  if (result.restored.opacity !== "1") {
+    problems.push(`effect: 移除覆盖后没有回到默认值（opacity=${result.restored.opacity}）`);
+  }
+
+  await context.close();
+  return result;
+}
+
 async function main() {
   await mkdir(OUT, { recursive: true });
   const browser = await chromium.launch();
@@ -307,6 +614,9 @@ async function main() {
   }
 
   report.reducedMotion = await checkReducedMotion(browser);
+  report.a11y = await checkInsightRevealA11y(browser);
+  report.coarsePointer = await checkCoarsePointer(browser);
+  report.effectOverride = await checkEffectOverride(browser);
   await browser.close();
 
   await writeFile(
@@ -321,7 +631,10 @@ async function main() {
     process.exit(1);
   }
   console.log(
-    "\nQA OK —— 3 个路由 × 2 个视口：无控制台报错 / 无页面异常 / 无横向溢出；三套 pack 计算样式确有差异；reduced-motion 下降级正确",
+    `\nQA OK —— ${ROUTES.length} 个路由 × ${VIEWPORTS.length} 个视口：无控制台报错 / 无页面异常 / 无横向溢出（三条判据）；` +
+      "三套 pack 计算样式确有差异；reduced-motion 降级正确；" +
+      "InsightReveal 无障碍树与 DOM 一致；coarse pointer 因子生效（64 → 96px）；" +
+      "effect 公开变量可在祖先作用域覆盖",
   );
 }
 

@@ -95,8 +95,25 @@ export function AnimatedGrid({
   const resolvedMotion = animated ? motion : "none";
 
   const style: CSSProperties = {
-    // 单元格尺寸 = pack 的基准 × 密度乘数。用 calc 相乘，避免组件写死 px。
-    ["--kits-grid-cell-size" as string]: `calc(var(--kits-grid-cell) * ${CELL_SCALE[cell]})`,
+    /*
+     * 密度只是一个**乘数**，不是一个尺寸。
+     *
+     * 这里曾经直接写 `--kits-grid-cell-size: calc(var(--kits-grid-cell) * 2)` ——
+     * 那是行内样式，**优先级高于样式表**，于是样式表里那条
+     * "基准 × 指针能力因子" 的组合被整个盖掉了。
+     *
+     * 后果很隐蔽：CSS 里看起来一切正确（`--kits-grid-cell-scale` 在触屏下
+     * 确实是 1.5），而真正画出来的单元格仍然是 64px —— 移动端反摩尔纹降级
+     * 依然失效。这正是 v0.1.1 第一次修复 K-02 时踩的坑：改对了 CSS，
+     * 却没发现组件自己在行内把同一个变量又算了一遍。
+     *
+     * 现在职责分开：
+     *   --kits-grid-cell        pack 给的基准（48 / 64 / 32）
+     *   --kits-grid-cell-scale  契约给的指针能力因子（触屏 1.5）
+     *   --kits-grid-density     ← 组件在这里贡献的密度乘数
+     * 三者由 animated-grid.css 在 `.kits-grid` 上相乘得到有效值。
+     */
+    ["--kits-grid-density" as string]: CELL_SCALE[cell],
     ["--kits-grid-mask-size" as string]: FADE_SIZE[fade],
   };
 

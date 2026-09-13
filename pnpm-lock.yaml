@@ -166,6 +166,9 @@ importers:
       '@kits/data-cursor':
         specifier: workspace:*
         version: link:../components/data-cursor
+      '@kits/effects':
+        specifier: workspace:*
+        version: link:../effects
       '@kits/insight-reveal':
         specifier: workspace:*
         version: link:../components/insight-reveal

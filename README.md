@@ -85,7 +85,7 @@ prototype-kits/
 ├── fixtures/                   standalone-product：Distribution 的验收装置
 ├── scripts/                    registry-audit · verify-standalone
 ├── docs/                       集成 / 分发 / 架构 / FAQ
-├── tests/                      契约与安装器审计（274 个断言）
+├── tests/                      契约与安装器审计（384 个断言）
 └── .qa/                        Browser QA（截图 + 溢出 + 报错 + 降级）
 ```
 
@@ -272,6 +272,37 @@ lib/kits/
 └── kits.lock.json   安装清单（逐文件 checksum + 来源 commit）
 ```
 
+### 产品代码只 import adapters/
+
+**产品代码 SHOULD NOT import `lib/kits/installed/*`。** 只有 installer / doctor /
+内部工具可以。`kits doctor` 的 `boundary` 检查会扫产品源码，越界直接 **fail**——
+因为那破坏的是"升级 Kits 不动产品代码"这个承诺本身。
+
+`kits add` 为三类资产各生成一条缝（v0.1.1 起补全）：
+
+| 资产 | CSS 缝 | TS 缝 |
+|---|---|---|
+| Style Pack | `style-<id>.css` | `style-<id>.ts` + `style-pack.ts`（稳定别名） |
+| Signature Component | （组件自己 import） | `<id>.tsx` |
+| Effect | `effect-<id>.css` | `effect-<id>.ts` |
+
+```ts
+// 产品侧——唯一的正确写法
+import { AnimatedGrid } from "@/lib/kits/adapters/animated-grid";
+import { stylePackMotionVars } from "@/lib/kits/adapters/style-pack";
+import { effectClass, effectVars } from "@/lib/kits/adapters/effect-ambient-glow";
+
+<html data-kits-pack="cinematic" style={stylePackMotionVars}>
+```
+
+`style-pack.ts` 是**稳定名字**：它 re-export 当前 pack 的 `<id>` 版本，
+所以换 pack 时产品代码的引用面不动。`motionToCssVars` 由 TS 缝从正式安装的
+契约层调用 —— 产品永远不需要手抄变量映射表。
+
+缝属于**产品**：`kits add` 只在文件不存在时生成，永不覆盖你改过的版本。
+代价是模板升级不会自动流过来 —— `kits doctor` 的 `adapters-template` 检查
+会告诉你模板已过期，并给出"删掉该文件再跑 `kits add`"的做法，而不是替你做主。
+
 ### 验收判据
 
 ```bash
@@ -296,15 +327,29 @@ pnpm dev          # Playground → http://localhost:3200
 ```bash
 pnpm lint         # ESLint（含 packages 与 playground）
 pnpm typecheck    # playground tsc + kits tsc --noEmit
-pnpm test         # vitest：契约 + 包边界 + 安装器（274 个断言）
+pnpm test         # vitest：契约 + 包边界 + 安装器 + 无障碍 + 边界（384 个断言）
 pnpm build        # Playground 生产构建
 pnpm check        # 以上四件
-pnpm qa           # Browser QA：双视口截图 + 溢出/报错/降级检查
+pnpm registry     # Asset Registry 审计（路径 / 状态 / 许可证 / 覆盖度）
+pnpm qa           # Browser QA：双视口截图 + 溢出 / 报错 / 降级 / 无障碍探针
 pnpm verify:standalone   # Distribution 验收（把 Kits 仓库移走后仍能 build）
 ```
 
 > `pnpm qa` 需要先起服务：`pnpm build && pnpm --filter @kits/playground start`。
-> 截图落在 `.qa/out/`（已 gitignore）。
+> 截图与报告落在 `.qa/out/`（已 gitignore）。
+
+`pnpm qa` 除了截图，还跑四组探针 —— 它们量的是**单元测试看不见**的东西：
+
+| 探针 | 量什么 |
+|---|---|
+| 移动端溢出（三条判据） | `innerWidth === 设备宽度`、`scrollWidth <= 设备宽度`、`scrollTo(9999,0)` 后 `scrollX ≈ 0` |
+| InsightReveal 无障碍 | **无障碍树与 DOM 逐项相等**（v0.1.0 的 `aria-hidden` 剪枝只在这里现形） |
+| coarse pointer | 有效单元格真的放大 1.5 倍（cinematic 64 → 96px），且触屏下动效关闭 |
+| effect 公开变量 | 在**祖先作用域**覆盖 `--kits-effect-ambient-*` 后绘制结果真的改变 |
+
+> K-02 的第一次修复就是在这里被否掉的：CSS 改对了、单元测试全绿，
+> 而 coarse pointer 探针量出来仍是 64px —— 因为组件自己在行内样式里
+> 把同一个变量又算了一遍。**能算的都要算过。**
 
 ---
 
@@ -316,6 +361,7 @@ pnpm verify:standalone   # Distribution 验收（把 Kits 仓库移走后仍能 
 |---|---|
 | `/` | 三套 Style Pack **并排**：同一份组件调用 × 三种 pack，逐组对比 |
 | `/components` | 五个组件的 API / 降级矩阵 / 三种 pack 下的同一份调用 |
+| `/effects` | Effect Contract：公开变量表 + 同一份调用的三种覆盖（默认 / 浅色 / 品牌） |
 | `/audit` | 十维对照表、motion 契约对照、Asset Registry、Incoming Workflow |
 
 外壳刻意**不使用任何 pack 变量**，`data-kits-pack` 只出现在每一列的舞台元素上 ——

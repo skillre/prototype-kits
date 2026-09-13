@@ -15,7 +15,63 @@
  *   - 一个页面最多一个容器级环境光；
  *   - 同屏发光元素 ≤ 1 个；
  *   - 光有方向（左上主光 + 右上辅光 + 底部补光），不是无方向的背景渐变。
+ *
+ * ============================================================================
+ * Effect Contract —— 公开变量（v0.1.1 新增）
+ * ============================================================================
+ * 这个效果的全部视觉定义都收敛到下面这组变量上。产品**只允许**改这些变量，
+ * 不需要、也不应该去碰 ::before 里那个 background-image 的实现细节。
+ *
+ *   --kits-effect-ambient-primary            主光颜色（含 alpha）
+ *   --kits-effect-ambient-primary-position   主光中心位置
+ *   --kits-effect-ambient-primary-size       主光椭圆尺寸
+ *   --kits-effect-ambient-primary-falloff    主光衰减半径（越大越柔）
+ *   --kits-effect-ambient-secondary*         辅光（右上），同上四个
+ *   --kits-effect-ambient-rim*               补光（底部），同上四个
+ *   --kits-effect-ambient-strength           整体强度（0..1），同时作用于呼吸
+ *
+ * 为什么 v0.1.0 是"硬编码 RGB"而 v0.1.1 改了：原来的理由是"光属于
+ * cinematic 的物理设定，不该被换色"。那在**深色单模式**下成立，但真实消费
+ * 立刻证明它不够 —— 浅色主题需要完全不同的光（深色光在浅底上只会显得脏），
+ * 品牌调色也需要参与。硬编码的结果是产品只能自己发明一套
+ * --finance-ambient-* 变量并**重写整个渐变**，等于把实现细节复制进了产品。
+ * 契约不成立的地方，产品就会绕过去。所以改成公开变量。
+ *
+ * 覆盖写法（三种都行，因为默认值声明在 :root，是所有人的祖先）：
+ *
+ *   :root[data-theme="light"] { --kits-effect-ambient-strength: 0.45; }
+ *   .my-banner             { --kits-effect-ambient-primary: rgb(0 92 175 / 0.12); }
+ *   .kits-effect-ambient-glow { --kits-effect-ambient-primary: …; }
+ *
+ * 变量在**最近的祖先**上生效：元素自己 > 更近的祖先 > :root。
+ *
+ * 注意这里没有 --kits-effect-ambient-blur：本效果当前**没有模糊**，
+ * 补一个 filter: blur() 会给每个使用者的 ::before 多加一个合成层，
+ * 而没人需要。柔度由 *-falloff 控制 —— 那才是这套光真正的手感旋钮。
  * ========================================================================== */
+
+:root {
+  /* 主光：左上，冷色，强度最高 —— 光的"方向来源" */
+  --kits-effect-ambient-primary: rgb(79 214 255 / 0.16);
+  --kits-effect-ambient-primary-position: 18% 8%;
+  --kits-effect-ambient-primary-size: 60% 50%;
+  --kits-effect-ambient-primary-falloff: 62%;
+
+  /* 辅光：右上，暖色，强度次之 —— 与主光形成色温对比 */
+  --kits-effect-ambient-secondary: rgb(255 182 79 / 0.1);
+  --kits-effect-ambient-secondary-position: 85% 20%;
+  --kits-effect-ambient-secondary-size: 50% 45%;
+  --kits-effect-ambient-secondary-falloff: 60%;
+
+  /* 补光：底部，紫调 —— 把容器从背景里"托"起来 */
+  --kits-effect-ambient-rim: rgb(139 123 255 / 0.12);
+  --kits-effect-ambient-rim-position: 50% 105%;
+  --kits-effect-ambient-rim-size: 70% 55%;
+  --kits-effect-ambient-rim-falloff: 65%;
+
+  /* 整体强度：浅色主题与品牌收敛都先动这一个数 */
+  --kits-effect-ambient-strength: 1;
+}
 
 .kits-effect-ambient-glow {
   position: relative;
@@ -29,21 +85,24 @@
   inset: 0;
   z-index: -1;
   pointer-events: none;
+  opacity: var(--kits-effect-ambient-strength);
   background-image:
     radial-gradient(
-      60% 50% at 18% 8%,
-      rgb(79 214 255 / 0.16) 0%,
-      transparent 62%
+      var(--kits-effect-ambient-primary-size)
+        at var(--kits-effect-ambient-primary-position),
+      var(--kits-effect-ambient-primary) 0%,
+      transparent var(--kits-effect-ambient-primary-falloff)
     ),
     radial-gradient(
-      50% 45% at 85% 20%,
-      rgb(255 182 79 / 0.1) 0%,
-      transparent 60%
+      var(--kits-effect-ambient-secondary-size)
+        at var(--kits-effect-ambient-secondary-position),
+      var(--kits-effect-ambient-secondary) 0%,
+      transparent var(--kits-effect-ambient-secondary-falloff)
     ),
     radial-gradient(
-      70% 55% at 50% 105%,
-      rgb(139 123 255 / 0.12) 0%,
-      transparent 65%
+      var(--kits-effect-ambient-rim-size) at var(--kits-effect-ambient-rim-position),
+      var(--kits-effect-ambient-rim) 0%,
+      transparent var(--kits-effect-ambient-rim-falloff)
     );
 }
 
@@ -53,13 +112,18 @@
     var(--kits-ease-inout, ease-in-out) infinite;
 }
 
+/*
+ * 呼吸的振幅是**相对的**（0.85 ↔ 1.0）而不是绝对值 ——
+ * 这样 --kits-effect-ambient-strength 无论调到哪里，呼吸都保持同样的比例，
+ * 不会把产品调低的光"提"回原强度。
+ */
 @keyframes kits-ambient-breathe {
   0%,
   100% {
-    opacity: 0.85;
+    opacity: calc(var(--kits-effect-ambient-strength) * 0.85);
   }
   50% {
-    opacity: 1;
+    opacity: var(--kits-effect-ambient-strength);
   }
 }
 

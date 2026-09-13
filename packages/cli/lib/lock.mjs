@@ -70,8 +70,20 @@ export function writeLock(productRoot, layout, lock) {
  * @param {typeof DEFAULT_LAYOUT} layout
  * @param {string} installedAt ISO 时间戳
  * @param {Array<{src:string,dest:string,checksum:string}>} written
+ * @param {{ declaredReactRange?: string, kitsTypesVersion?: string|null }} [compat]
+ *   安装时**声明**的兼容区间。它是 doctor 在独立（standalone）场景下唯一
+ *   能依靠的元数据 —— 那时读不到上游 Kits，只能拿产品实际版本与这里的
+ *   声明区间比对。见 lib/compat.mjs 的 K-03 说明。
  */
-export function buildLock({ plan, registry, source, layout, installedAt, written }) {
+export function buildLock({
+  plan,
+  registry,
+  source,
+  layout,
+  installedAt,
+  written,
+  compat = {},
+}) {
   const byAsset = new Map();
   for (const asset of plan.assets) {
     byAsset.set(asset.id, {
@@ -98,6 +110,14 @@ export function buildLock({ plan, registry, source, layout, installedAt, written
       dirty: source.dirty,
     },
     layout,
+    /**
+     * 兼容性声明 —— 安装时快照，而不是运行时再从别处读。
+     * standalone 的 doctor 拿不到上游，只能与这里的区间比对。
+     */
+    compat: {
+      declaredReactRange: compat.declaredReactRange ?? null,
+      kitsTypesVersion: compat.kitsTypesVersion ?? null,
+    },
     assets: [...byAsset.values()].sort((a, b) => a.id.localeCompare(b.id)),
     dependencies: plan.edges,
     /** 托管区内**全部**文件（含被依赖的 contracts / react-utils 包）。 */

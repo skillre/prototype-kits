@@ -28,10 +28,11 @@ export default function RootLayout({
           <nav className="pg-nav">
             <Link href="/">Style Packs 并排</Link>
             <Link href="/components">Signature Components</Link>
+            <Link href="/effects">Effect Contract</Link>
             <Link href="/audit">Asset Registry</Link>
           </nav>
           <div className="pg-header__note">
-            v0.1 · 验收台，不是业务产品
+            v0.1.1 · 验收台，不是业务产品
           </div>
         </header>
         <main className="pg-main">{children}</main>

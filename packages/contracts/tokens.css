@@ -220,6 +220,29 @@
 
   /* AnimatedGrid */
   --kits-grid-cell: 48px;
+  /*
+   * 指针能力因子（**契约自有，不是风格旋钮**）。
+   *
+   * 触屏上把单元格放大 1.5 倍：间隔太小 + 手指遮挡 = 摩尔纹与视觉噪音。
+   * 这是"移动端降级契约"的一部分，不是风格选择，因此它与
+   * --kits-pointer-factor / --kits-hero-parallax-depth 同类，
+   * 由本文件而非 pack 决定。
+   *
+   * 为什么是**独立变量**而不是直接改 --kits-grid-cell：
+   * v0.1.0 曾在 coarse pointer 块里写
+   *     --kits-grid-cell: calc(var(--kits-grid-cell) * 1.5);
+   * 这有两个错：
+   *   1. 自引用 → 该声明在 computed-value 阶段被判定为无效（循环依赖）；
+   *   2. 即便不循环，它和 pack 的 `[data-kits-pack] { --kits-grid-cell: 64px }`
+   *      特异性相同（0-1-0），而 pack 在源顺序上更晚 → pack 获胜，缩放被吃掉。
+   * 实测：期望 96px，得到 64px。
+   *
+   * 拆成两个名字之后，消费者（pack / 产品）声明的是 --kits-grid-cell，
+   * 契约声明的是 --kits-grid-cell-scale，**两者不可能再互相覆盖**。
+   * 有效值 = calc(基准 × 因子)，在组件自己身上合成（见 animated-grid.css），
+   * 因此无论产品把 pack 作用域放在 html 还是某个容器上都能取到正确的基准。
+   */
+  --kits-grid-cell-scale: 1;
   --kits-grid-line-color: var(--kits-color-rule);
   --kits-grid-line-width: 1px;
   --kits-grid-fade: 40%;
@@ -278,7 +301,19 @@
   [data-kits-pack] {
     --kits-pointer-factor: 0 !important;
     --kits-hero-parallax-depth: 0px !important;
-    --kits-grid-cell: calc(var(--kits-grid-cell) * 1.5);
+    /*
+     * 移动端网格降级：单元格 ×1.5（避免小屏摩尔纹 + 手指遮挡）。
+     *
+     * !important 是刻意的，理由与 reduced-motion 块相同：它保护的是
+     * **能力契约**，不是风格。有了独立变量名，pack 已经不可能"顺手"
+     * 覆盖它；!important 再挡一层 —— 防止有人把这个因子当成风格旋钮
+     * 在 [data-kits-pack] 作用域里重新声明，从而静默关掉移动端降级。
+     *
+     * 注意：元素**自己**的元素级声明仍然优先于这里继承下去的值。
+     * 也就是说产品在一个具体元素上刻意退出降级依然做得到 —— 被挡住的
+     * 只是"祖先作用域里的无意覆盖"。
+     */
+    --kits-grid-cell-scale: 1.5 !important;
   }
 
   [data-kits-pack] [data-kits-ambient] {

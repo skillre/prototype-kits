@@ -143,11 +143,26 @@ export function InsightReveal({
             <div
               key={index}
               /*
-               * aria-hidden：这一层是纯装饰的步进宿主，不承载语义。
-               * 子元素照常暴露给无障碍树（display:contents 不剪枝），
-               * 因此屏幕阅读器读到的结构与没有宿主时完全一致。
+               * role="presentation"：这一层是纯装饰的步进宿主，不承载语义。
+               *
+               * 这里**曾经**写的是 aria-hidden="true"，那是一个 P0 无障碍回归
+               * （v0.1.1 修复，见 CHANGELOG K-01）。区别在于：
+               *
+               *   aria-hidden="true"      → 把**整棵子树**从无障碍树剪掉。
+               *                             display:contents 只影响布局，不阻止剪枝。
+               *   role="presentation"     → 只声明"本元素无语义"，**不剪枝**，
+               *                             后代的 heading / button / link /
+               *                             listitem 照常暴露。
+               *
+               * 真实证据（第二次 Source Installation 实验）：DOM 里按钮存在，
+               * 但 getByRole("button") 命中 0 —— 屏幕阅读器读不到整个洞察层。
+               *
+               * 用 role="presentation" 而不是"什么都不写"：如果产品把
+               * display:contents 改掉（例如为了给每段做位移动画而改成 block），
+               * 这个 div 就会变成真实盒子；不带 role 时它会成为一个匿名节点，
+               * 破坏 ul/ol 与 listitem 之间的父子关系。显式声明更稳。
                */
-              aria-hidden="true"
+              role="presentation"
               className="kits-reveal__item"
               data-kits-reveal-item=""
               data-kits-reveal-index={index}
