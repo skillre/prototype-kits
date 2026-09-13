@@ -177,6 +177,29 @@ async function checkRoute(browser, route, viewport) {
     );
   }
 
+  /*
+   * ---- 布局视口扩张（上面那条检查**看不见**的一类溢出 ----
+   *
+   * 这是一个真实踩到的盲点（v0.1.0 发布验证时发现）：
+   *
+   * 移动端上下文（isMobile: true）里，若内容宽于设备宽度，Chromium 会**扩大
+   * 布局视口**去容纳它（于是页面被缩放显示，而不是出现横向滚动条）。
+   * 结果是 `window.innerWidth` 从 390 变成 679，而
+   * `scrollWidth - innerWidth` 恰好等于 0 —— 相对比较把问题抵消掉了。
+   *
+   * 实测案例：/audit 页的一张卡片里有约 130 字符的不含空格的 ASCII 长串，
+   * 在 390px 下把内容撑到 666px，`innerWidth` 悄悄变成 679，
+   * 上面那条检查一路绿灯，而页面在真机上是被缩小到看不清的。
+   *
+   * 修法：**绝对**比较 —— 布局视口必须等于请求的设备宽度。
+   */
+  if (Math.abs(overflow.innerWidth - viewport.width) > 1) {
+    problems.push(
+      `${viewport.name} ${route.path}: 布局视口被内容撑大 —— innerWidth ${overflow.innerWidth} ≠ 设备宽度 ${viewport.width}` +
+        `（页面在真机上会被缩放，内容宽 ${overflow.scrollWidth}px）`,
+    );
+  }
+
   if (consoleErrors.length) {
     problems.push(
       `${viewport.name} ${route.path}: 控制台报错 → ${consoleErrors.join(" | ")}`,

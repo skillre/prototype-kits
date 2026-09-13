@@ -460,6 +460,31 @@ a {
   border-radius: 8px;
   padding: 14px;
   background: var(--pg-panel);
+  /*
+   * 两道保险，缺一不可（这是一个真实踩到的坑，见下方注释）：
+   *
+   *   min-width: 0            网格子项默认 min-width: auto，无法收缩到
+   *                           内容的最小固有宽度以下 —— 长 token 会撑破列。
+   *   overflow-wrap: anywhere 让不含空格的超长 ASCII 串能够被折断
+   *                           （`anywhere` 而非 `break-word` 是刻意的：
+   *                            只有 anywhere 会影响 min-content 尺寸，
+   *                            因此它是唯一能真正阻止撑破的取值）。
+   *
+   * 背景：`registry/assets.json` 的 policy.approvalRequired 里有一条
+   * 约 130 字符、以 `/` 分隔的长串（manifest 字段清单）。
+   * 在 390px 视口下它把卡片内容撑到 666px（卡片盒宽只有 364px），
+   * 溢出穿透到 document，使整个 /audit 页横向可滚动 289px。
+   * 表格因为各自有 overflow-x 容器而没事，唯独这个卡片没有。
+   */
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* 承载长 ASCII 的其它文本块，同样的保险 */
+.pg-note,
+.pg-lede,
+.pg-flow li {
+  overflow-wrap: anywhere;
 }
 
 .pg-card h3 {
