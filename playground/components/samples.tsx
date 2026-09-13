@@ -119,7 +119,7 @@ export function CursorSample() {
 export function RevealSample() {
   return (
     <InsightReveal step="group" shift="medium" blur>
-      <div>
+      <div id="insight-01">
         <p className="kits-label">Insight 01</p>
         <h3 className="kits-title">读取路径被压缩了 4 倍</h3>
         <p className="kits-body">P99 从 720ms 降到 184ms。</p>
@@ -133,6 +133,22 @@ export function RevealSample() {
         <p className="kits-label">Insight 03</p>
         <h3 className="kits-title">下个周期的三个动作</h3>
         <p className="kits-body">调整窗口、增加只读副本、纳入发布门禁。</p>
+        {/*
+          这一条里刻意放了 button 与 link —— 它们是 v0.1.1 修复 K-01 的现场。
+          aria-hidden 曾经把整棵子树从无障碍树剪掉，表现就是
+          「DOM 里按钮在，getByRole("button") 命中 0」。
+          Browser QA 的 a11y 探针正是在这一组元素上做 DOM ↔ 无障碍树的对比；
+          只放标题是测不出这个缺陷的（标题与可交互元素的剪枝表现一样，
+          但真实产品里最先被发现的永远是按钮）。
+        */}
+        <p className="kits-body" style={{ marginTop: "var(--kits-space-sm)" }}>
+          <button type="button" className="kits-control">
+            查看该科目明细
+          </button>{" "}
+          <a className="kits-control" href="#insight-01">
+            回看第一条
+          </a>
+        </p>
       </div>
     </InsightReveal>
   );

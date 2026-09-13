@@ -77,7 +77,7 @@
     "behavior": [
       "drift / pulse 动画完全关闭（省电；小屏上网格本身就是噪音）",
       "静态网格保留 —— 它是背景结构，不是动效",
-      "pack 层同时把 --kits-grid-cell 放大 1.5 倍（见 @kits/contracts/tokens.css 的 coarse-pointer 段），避免小屏上过密的网格变成摩尔纹"
+      "pack 层与契约层分工：pack 定 --kits-grid-cell 基准，契约在 coarse pointer 下把 --kits-grid-cell-scale 置 1.5（见 @kits/contracts/tokens.css 的 coarse-pointer 段），避免小屏上过密的网格变成摩尔纹"
     ],
     "noContentLoss": true
   },

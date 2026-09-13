@@ -2,7 +2,8 @@
  * AnimatedGrid —— 结构样式
  *
  * 输入（全部来自 Style Pack）：
- *   --kits-grid-cell            单元格基准尺寸（48 / 64 / 32px）
+ *   --kits-grid-cell            单元格**基准**尺寸（48 / 64 / 32px）
+ *   --kits-grid-cell-scale      指针能力因子（契约自有：细指针 1，触屏 1.5）
  *   --kits-grid-line-color      线色（不透明度由 pack 控制）
  *   --kits-grid-line-width      线宽（editorial = 0px → 网格自动消失）
  *   --kits-grid-fade            淡出半径（editorial = 0% → 铺满硬边）
@@ -15,7 +16,25 @@
  * ========================================================================== */
 
 .kits-grid {
-  --kits-grid-cell-size: var(--kits-grid-cell);
+  /*
+   * 有效单元格 = 基准（pack）× 指针能力因子（契约）× 密度（组件）。
+   *
+   * 乘法**必须写在这里**，不能写进 `:root`：
+   * 自定义属性在**声明它的那个元素**上完成 var() 替换，然后才作为已计算的
+   * 值继承下去。若把 `--kits-grid-cell-size` 声明在 :root，它就只认 :root
+   * 自己的 --kits-grid-cell，产品在某个容器上覆盖 pack 作用域时会拿到过期值。
+   * 写在 .kits-grid 上，取到的永远是"本元素实际继承到的"两个输入。
+   *
+   * 也**不能**让组件在行内算好整个表达式：行内样式的优先级高于样式表，
+   * 那样会把契约的能力因子整个盖掉（v0.1.1 第一次修复就踩了这个坑 ——
+   * CSS 看起来全对，画出来还是 64px）。组件只贡献 `--kits-grid-density`。
+   *
+   * var() 的兜底值 1 让这条规则在缺少契约或密度时依然成立。
+   */
+  --kits-grid-cell-size: calc(
+    var(--kits-grid-cell) * var(--kits-grid-cell-scale, 1) *
+      var(--kits-grid-density, 1)
+  );
   --kits-grid-mask-size: 36%;
 
   position: absolute;

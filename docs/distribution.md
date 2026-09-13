@@ -77,13 +77,36 @@ lib/kits/
 - 升级 = 覆盖 `installed/`，产品的适配层与调用方一行不改
 - `kits add` 只在适配层文件**不存在**时生成它
 
+**触发条件是硬性的**：产品源码里出现指向 `installed/`（或 `.kits/`）的
+import，`kits doctor` 的 `boundary` 检查就报 **fail**。
+规则是「产品代码 SHOULD NOT import `lib/kits/installed/*`」，
+例外只有 installer / doctor / 内部工具 —— 因此 `installed/`、`.kits/`
+与 `adapters/` 自身都不在扫描范围内。
+
+#### 三类资产，三条缝
+
+| 资产 | CSS 缝 | TS 缝 |
+|---|---|---|
+| Style Pack | `style-<id>.css` | `style-<id>.ts` + `style-pack.ts`（稳定别名） |
+| Signature Component | （组件自己 import） | `<id>.tsx` |
+| Effect | `effect-<id>.css` | `effect-<id>.ts` |
+
+v0.1.0 只有 CSS 缝，于是产品要拿 `cinematicMotion` 去编译 CSS 变量时
+**无路可走**，只能 `import … from "../installed/cinematic/index"` ——
+第二次真实 Source Installation 里它就是这么写的。契约没被违反，
+是工具链没给合规的路；v0.1.1 把缝补上。
+
+`style-pack.ts` 是**稳定名字**（`export * from "./style-<id>"`）：
+产品关心的是"当前用哪套风格"，不是"cinematic 这个资产"。换 pack 时
+改一行 re-export 即可，产品代码的引用面不动。
+
 ### 3. `kits.lock.json`
 
 ```jsonc
 {
   "schemaVersion": 1,
-  "registryVersion": "0.1.0",
-  "generatedAt": "2026-09-12T14:34:58.181Z",
+  "registryVersion": "0.1.1",
+  "generatedAt": "2026-09-13T05:52:08.208Z",
   "source": {
     "kind": "source-installation",
     "repo": "prototype-kits",
@@ -91,6 +114,10 @@ lib/kits/
     "dirty": false              // 安装时 Kits 工作区是否干净
   },
   "layout": { "installedRoot": "lib/kits/installed", "adapterRoot": "lib/kits/adapters", … },
+  // 安装时**声明**的兼容区间 —— 独立安装下 doctor 唯一能依靠的元数据
+  "compat": { "declaredReactRange": "^18.0.0 || ^19.0.0", "kitsTypesVersion": "19.3.0" },
+  // 适配层的结果。模板版本让 standalone 的 doctor 能发现"缝是旧模板生成的"
+  "adapters": { "templateVersion": "0.1.1", "written": ["…"], "kept": ["…"] },
   "assets": [
     { "id": "cinematic", "type": "style", "version": "0.1.0",
       "status": "approved", "apiVersion": "1.0.0",
@@ -130,13 +157,38 @@ lib/kits/
 ```
 kits add     安装（唯一的写操作）
 kits list    查看 registry 里可安装的资产
-kits doctor  体检：lock / 完整性 / 依赖闭合 / React 兼容 / 适配层
+kits doctor  体检：lock / 完整性 / 依赖闭合 / 上游可见性 / React 兼容 / 适配层 / 引用边界
 kits diff    已安装 vs 当前 Kits
 ```
 
 `doctor` 与 `diff` 不需要 Kits 仓库 —— 因为 Installer 自身被装在
 产品的 `lib/kits/.kits/`。（`diff` 的语义是"与上游比"，因此它需要一个
 `--kits` 指向；这是唯一的例外。）
+
+#### doctor 的 `state` 列：结论是靠什么得到的
+
+「读不到上游」和「与上游一致」是两件事。v0.1.0 把它们打印成了同一句话
+（K-03）。从 v0.1.1 起每个检查都带一个 `state`：
+
+| state | 含义 |
+|---|---|
+| `verified` | 直接读到了实际解析出的版本并据此判定 |
+| `compatible` | 未读到上游；依据**声明的支持区间**判定 |
+| `upstream-unavailable` | 两者都没有 → 无法判定（warn，不静默） |
+| `not-applicable` | 本次安装不涉及该检查 |
+
+```
+✓ upstream-kits             [verified] Kits 仓库 /path/to/prototype-kits · @types/react 19.3.0
+✓ react-types-major-parity  [verified] @types/react 19.3.0，与上游 Kits 解析到的 19.3.0 同 major（19）
+
+! upstream-kits             [upstream-unavailable] 未找到 Kits 仓库（独立安装模式）
+✓ react-types-major-parity  [compatible] @types/react 19.3.0（major 19）落在 Kits 声明的
+                            ^18.0.0 || ^19.0.0 内 —— 未读到上游，未做上游比对
+```
+
+独立安装不是在"降级"：Source Installation 之后模块图里只有产品这一份
+`@types/react`，Development Mode 那种"两份类型身份打架"在结构上不可能发生。
+所以独立下的判据是"产品 major ∈ 安装时声明的区间"，而不是上游比对。
 
 ### 6. 升级路径
 
@@ -192,15 +244,34 @@ v0.2 再考虑带迁移脚本的 upgrade。
 
 ## 版本策略
 
-当前所有资产都是 `0.1.0`。三条约定：
+当前 `registryVersion` 是 `0.1.1`；**资产的版本号各自独立** ——
+v0.1.1 只让真正变了的 5 个资产升到了 0.1.1（`contracts` / `cli` /
+`insight-reveal` / `animated-grid` / `ambient-glow`），其余仍是 0.1.0。
+这样 `kits diff` 说出的才是实话：它只报真有差异的资产。
+
+三条约定：
 
 1. **`apiVersion` 与 `version` 分开**：`apiVersion` 是组件/契约的接口版本
    （破坏性变更升 major），`version` 是资产自身的迭代版本。
    产品只依赖 `apiVersion` 的 major。
 2. **`lock.schemaVersion`** 独立演进。Installer 遇到不认识的版本会明确报错。
+   新增字段（v0.1.1 的 `compat` / `adapters`）不算破坏性变更。
 3. **状态而不是版本表达成熟度**：`incoming → experimental → approved → deprecated`。
    安装器只接受 `approved`。状态流转的判据见
    [registry/README.md](../registry/README.md)。
+
+### 升级 = 重新 `kits add`
+
+```bash
+kits diff --kits ../prototype-kits    # 哪些资产有新版本
+kits add  --kits ../prototype-kits --style cinematic --components … --effects …
+kits doctor
+```
+
+**不要手工改 `lib/kits/installed/` 下的文件。** 那是 Kits 托管区：
+手工改动会被 `doctor` 的 `integrity` 检查按 checksum 抓出来（并判为失败），
+而且下次安装会整体覆盖。要改行为就改 `adapters/` —— 那是产品的地盘，
+Kits 永不覆盖。
 
 ---
 
@@ -216,8 +287,9 @@ node scripts/verify-standalone.mjs
 
 - 产品 `package.json` 里没有任何 `@kits/*`
 - 产品源码里没有指向 Kits 仓库的路径
-- `tsc --noEmit` 通过
+- `tsc --noEmit` 通过（含 v0.1.1 新增的 TS 缝）
 - `next build` 通过
-- 产品自己的 `lib/kits/.kits/kits.mjs doctor` 通过
+- 产品自己的 `lib/kits/.kits/kits.mjs doctor` 通过 —— 包括
+  `boundary`（产品源码没有绕过适配层）与 `adapters-template`
 
 **这条不过，就不算能交付。**

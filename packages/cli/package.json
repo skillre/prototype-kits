@@ -1,6 +1,6 @@
 {
   "name": "@kits/cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Prototype Kits · Installer Runtime —— kits add / list / doctor / diff。安装后落在产品的 lib/kits/.kits/，此后不再需要 Kits 仓库存在。",
   "type": "module",

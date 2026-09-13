@@ -1,6 +1,6 @@
 {
   "name": "@kits/contracts",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Prototype Kits · 契约层 —— Style Pack / Component / Manifest 的类型、枚举、校验与编译函数。纯 TypeScript，零 React 依赖。",
   "type": "module",

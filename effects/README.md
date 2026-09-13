@@ -36,8 +36,54 @@ import "@kits/effects/paper-grain.css";
 ```
 
 三种效果都**只读 `--kits-*` 变量**，因此它们会自动适配所属 pack。
-（`ambient-glow` 的光色是硬编码 RGB —— 那是刻意的：光属于 cinematic 的物理设定，
-不该被换色。若产品要改光色，应改的是 pack 的光源定义，不是效果本身。）
+
+---
+
+## Effect Contract —— 公开变量
+
+效果的视觉参数必须通过 `--kits-effect-<id>-*` 公开，并在 `effects/manifest.json`
+的 `variables[]` 里登记。产品只 override 这些变量，**不重写实现细节**。
+
+### `ambient-glow`（v0.1.1 起）
+
+| 变量 | 默认值 | 作用 |
+|---|---|---|
+| `--kits-effect-ambient-primary` | `rgb(79 214 255 / 0.16)` | 主光颜色（左上，冷色），含 alpha |
+| `--kits-effect-ambient-primary-position` | `18% 8%` | 主光中心位置 |
+| `--kits-effect-ambient-primary-size` | `60% 50%` | 主光椭圆尺寸 |
+| `--kits-effect-ambient-primary-falloff` | `62%` | 主光衰减半径（越大越柔） |
+| `--kits-effect-ambient-secondary` | `rgb(255 182 79 / 0.1)` | 辅光颜色（右上，暖色） |
+| `--kits-effect-ambient-secondary-position` | `85% 20%` | 辅光中心位置 |
+| `--kits-effect-ambient-secondary-size` | `50% 45%` | 辅光椭圆尺寸 |
+| `--kits-effect-ambient-secondary-falloff` | `60%` | 辅光衰减半径 |
+| `--kits-effect-ambient-rim` | `rgb(139 123 255 / 0.12)` | 补光颜色（底部，紫调） |
+| `--kits-effect-ambient-rim-position` | `50% 105%` | 补光中心位置 |
+| `--kits-effect-ambient-rim-size` | `70% 55%` | 补光椭圆尺寸 |
+| `--kits-effect-ambient-rim-falloff` | `65%` | 补光衰减半径 |
+| `--kits-effect-ambient-strength` | `1` | 整体强度 0..1（呼吸按比例跟随） |
+
+```css
+/* 浅色主题：光要弱得多，而且要换成冷灰蓝，否则深色光在浅底上只会显得脏 */
+:root[data-theme="light"] {
+  --kits-effect-ambient-strength: 0.45;
+  --kits-effect-ambient-primary: rgb(0 92 175 / 0.1);
+}
+```
+
+**为什么默认值声明在 `:root`**：如果声明在 `.kits-effect-ambient-glow` 自己身上，
+元素自身的声明会压过继承 —— 产品在 `body` 或 `[data-theme]` 上写的覆盖将**永远
+不生效**。放在 `:root`（所有人的祖先）之后，"元素自己 > 更近的祖先 > `:root`"
+这个覆盖链才是你预期的那个。
+
+**为什么没有 `--kits-effect-ambient-blur`**：本效果当前没有模糊，柔度由
+`*-falloff` 控制。补一个 `filter: blur()` 会给每个使用者的 `::before` 多加一个
+合成层，而没人需要 —— 那是新增能力，不是补契约。
+
+> **v0.1.0 的做法（已改）**：光色曾经是硬编码 RGB，理由写的是"光属于 cinematic
+> 的物理设定，不该被换色"。深色单模式下成立，但真实消费立刻证明它不够：浅色
+> 主题需要另一套光。硬编码的结果是产品只能自己发明 `--finance-ambient-*` 并
+> **把整个渐变抄一遍** —— 契约不成立的地方，产品就会绕过去。
+> 见 CHANGELOG K-05。
 
 ---
 

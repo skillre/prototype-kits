@@ -107,7 +107,8 @@
       "服务端 HTML 中内容可见 → 屏幕阅读器、爬虫、read-it-later 服务都能读到完整内容",
       "reduced-motion 下仍保留 opacity 淡入：避免「看起来像加载失败」的突兀出现",
       "揭示是纯视觉增强：不承载信息，也不改变 DOM 顺序或语义",
-      "as 属性保证语义元素正确（列表内容用 ol/ul 时揭示不破坏列表语义）"
+      "as 属性保证语义元素正确（列表内容用 ol/ul 时揭示不破坏列表语义）",
+      "step=group 的宿主带 role=presentation 而非 aria-hidden：宿主包的是真实内容，aria-hidden 会剪掉整棵子树（v0.1.0 的真实回归，见 CHANGELOG K-01）"
     ],
     "keyboard": "揭示不改变 Tab 顺序；尚未揭示的元素仍可聚焦（不设 visibility:hidden / display:none）",
     "focusNote": "不要对未揭示元素使用 display:none —— 那会把键盘用户困在看不见的元素上。本实现只动 opacity/transform/filter"

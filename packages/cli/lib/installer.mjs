@@ -66,11 +66,48 @@ export const LOCK_SCHEMA_VERSION = 1;
  *   import type { T } from "s"                     export ... from "s"
  *   @import "s";              @import url("s");
  */
+/**
+ * 去掉注释后的正文 —— **只用于发现说明符**，不用于输出。
+ *
+ * 为什么必须去注释（v0.1.1 修 K-06）：
+ * 说明符扫描是纯正则的，它分不清代码与注释。于是一段解释性的注释
+ *
+ *     //   packages/cli/README.md:  import { X } from "@kits/insight-reveal";
+ *
+ * 会被当成真实依赖，安装器随即因为"引用了未安装的包"而失败 ——
+ * 注释里的示例反过来把安装本身弄挂了。
+ *
+ * 注意两点：
+ *   1. 返回值**绝不**用于写盘。重写仍然作用于原文（split/join），
+ *      否则会破坏文件内容。这里只是"清单"。
+ *   2. **行注释必须先剥**。反过来会出事：一句行注释里如果出现 `/*`
+ *      （例如「从不 import lib/kits/installed 里的东西」写成路径通配），
+ *      块注释剥离会把从这里一直到下一个注释结尾之间的**真实 import**
+ *      一起吃掉 —— 那些说明符就不会被发现，也就不会被重写。
+ *      行注释先走，`/*` 就随整行一起消失了。
+ *   3. 行注释用 `(^|[^:])` 保护 `http://` 这类 URL，避免把
+ *      `xmlns='http://www.w3.org/2000/svg'` 之后的内容整行吃掉。
+ *
+ * @param {string} content
+ */
+export function stripComments(content) {
+  return content
+    .replace(/(^|[^:])\/\/[^\n]*/g, "$1")
+    .replace(/\/\*[\s\S]*?\*\//g, "");
+}
+
 const SPECIFIER_PATTERNS = [
   // import / export ... from "spec"
   /(?<head>\b(?:import|export)\b[\s\S]*?\bfrom\s*)(?<q>["'])(?<spec>[^"']+)\k<q>/g,
-  // 副作用导入：import "spec"
-  /(?<head>\bimport\s*)(?<q>["'])(?<spec>[^"']+)\k<q>/g,
+  /*
+   * 副作用导入：import "spec"
+   *
+   * `(?<!@)` 是必需的：没有它，CSS 的 `@import "x"` 会**同时**被这一条和
+   * 下一条匹配，同一个说明符被收集两次。对安装器无害（重写是 split/join，
+   * 幂等），但任何基于 scanSpecifiers 逐条报告的消费者都会看到重复项
+   * —— v0.1.1 的边界检查（boundary.mjs）第一次跑就撞上了这个。
+   */
+  /(?<!@)(?<head>\bimport\s*)(?<q>["'])(?<spec>[^"']+)\k<q>/g,
   // CSS：@import "spec" / @import url("spec")
   /(?<head>@import\s+(?:url\(\s*)?)(?<q>["'])(?<spec>[^"']+)\k<q>/g,
 ];
@@ -86,10 +123,11 @@ const SPECIFIER_PATTERNS = [
 export function scanSpecifiers(content) {
   /** @type {Array<{spec:string, kind:"kits"|"relative"|"other"}>} */
   const found = [];
+  const body = stripComments(content);
   for (const pattern of SPECIFIER_PATTERNS) {
     pattern.lastIndex = 0;
     let match;
-    while ((match = pattern.exec(content)) !== null) {
+    while ((match = pattern.exec(body)) !== null) {
       const spec = match.groups?.spec;
       if (!spec) continue;
       if (spec.startsWith("@kits/")) found.push({ spec, kind: "kits" });
@@ -103,6 +141,39 @@ export function scanSpecifiers(content) {
 /** 只收集 Kits 包说明符（用于依赖解析）。 */
 export function collectKitsSpecifiers(content) {
   return [...new Set(scanSpecifiers(content).filter((s) => s.kind === "kits").map((s) => s.spec))];
+}
+
+/**
+ * 文档文件不参与依赖解析。
+ *
+ * ===========================================================================
+ * 为什么（v0.1.1 修 K-06）
+ * ===========================================================================
+ * 说明符扫描原本一视同仁地扫**所有**被安装的文件，包括 README.md。
+ * 而 README 里到处是代码示例：
+ *
+ *     packages/contracts/README.md:  import { cinematicMotion } from "@kits/style-cinematic";
+ *     packages/cli/README.md:        import { InsightReveal } from "@kits/insight-reveal";
+ *
+ * 这些是**文档**，不是运行时依赖。但安装器把它们当成了"文件引用了某个
+ * 未安装的包"，于是直接 DEPENDENCY_UNRESOLVED 失败：
+ *
+ *     kits add --style editorial        → ✗ contracts/README.md 引用了 @kits/style-cinematic
+ *     kits add --style cinematic        → ✗ .kits/README.md 引用了 @kits/react-utils
+ *     （不带 --components 时）
+ *
+ * 也就是说 v0.1.0 的 `kits add` 只有"cinematic + 组件 + 效果"这一个组合能跑通 ——
+ * 换一套 pack、或者只装样式不装组件，都会失败。这不是"依赖没登记"，
+ * 是扫描把文档读成了代码。
+ *
+ * 文档照常安装进产品（它们是有用的），只是不再被当作依赖载体。
+ * 文档里的示例也**不应该**被改写成相对路径 —— 示例要展示的是规范的
+ * 包说明符。
+ */
+const DOCUMENTATION_EXT = /\.(?:md|mdx|txt)$/i;
+
+export function isDocumentationFile(name) {
+  return DOCUMENTATION_EXT.test(name);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -202,7 +273,7 @@ export function plan({ kitsRoot, assetsById, ids }) {
           src: abs,
           dest,
           kind: "asset",
-          specifiers: collectKitsSpecifiers(content),
+          specifiers: isDocumentationFile(rel) ? [] : collectKitsSpecifiers(content),
         });
       }
       continue;
@@ -226,7 +297,8 @@ export function plan({ kitsRoot, assetsById, ids }) {
           src: abs,
           dest,
           kind: "asset",
-          specifiers: collectKitsSpecifiers(content),
+          // 文档不参与依赖解析，理由见 isDocumentationFile 的注释（K-06）。
+          specifiers: isDocumentationFile(entry) ? [] : collectKitsSpecifiers(content),
         });
       }
     };

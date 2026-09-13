@@ -95,13 +95,23 @@ describe("InsightReveal · step=group 的序号必须落到 DOM", () => {
     expect(html).not.toContain("--kits-reveal-index:3");
   });
 
-  it("宿主带 aria-hidden，不产生多余的匿名无障碍节点", () => {
+  it("宿主带 role=presentation，且**绝不**带 aria-hidden", () => {
+    /*
+     * v0.1.0 的这条测试断言的是 `aria-hidden="true"` —— 它把 bug 写进了
+     * 期望值里，于是一整轮真实消费之后，测试仍然是绿的，而屏幕阅读器
+     * 读不到整个揭示区。见 CHANGELOG K-01。
+     *
+     * 正确的判据是**否定的**：宿主可以声明"我不承载语义"（presentation），
+     * 但不允许剪枝（aria-hidden），因为宿主里包的是真实内容。
+     */
     const html = render({
       step: "group",
       children: [h(StubbornRow, { key: 0 }, "a"), h(StubbornRow, { key: 1 }, "b")],
     });
-    const hosts = html.match(/<div aria-hidden="true" class="kits-reveal__item"/g) ?? [];
+    const hosts = html.match(/<div role="presentation" class="kits-reveal__item"/g) ?? [];
     expect(hosts.length).toBe(2);
+    // 这一条是本次修复的核心：宿主里包的是内容，不是装饰
+    expect(html).not.toContain("aria-hidden");
   });
 
   it("group 模式在根元素上标记 kits-reveal--group（CSS 据此切选择器）", () => {

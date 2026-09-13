@@ -52,9 +52,14 @@
  *   - 位移与模糊作用在宿主的**子树根**（`.kits-reveal__item > *`）上
  * 这与 step="one" 的行为一致（那也是作用在子元素本身）。
  *
- * 无障碍：display:contents 不改变无障碍树，子元素照常暴露；
- * 宿主自带 aria-hidden="true"（它是纯装饰的步进容器，不承载语义），
+ * 无障碍：display:contents 让宿主不生成盒子，后代照常暴露；
+ * 宿主另带 role="presentation"（它是纯装饰的步进容器，不承载语义），
  * 因此不会多出一个匿名节点，也不会让屏幕阅读器多读一层。
+ *
+ * ⚠️ 宿主**不得**使用 aria-hidden。aria-hidden 会剪掉整棵子树，
+ * 而宿主里包的是真实内容（heading / button / link / listitem）。
+ * v0.1.0 用过 aria-hidden="true"，代价是整个洞察层从无障碍树消失：
+ * getByRole("button") 命中 0，而 DOM 里按钮明明在。见 CHANGELOG K-01。
  * -------------------------------------------------------------------------- */
 
 .kits-reveal--group > .kits-reveal__item {

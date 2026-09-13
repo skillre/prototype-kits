@@ -40,3 +40,21 @@ body {
   padding: var(--kits-space-xs) var(--kits-space-sm);
   border-bottom: var(--kits-border-width-strong) solid var(--kits-color-rule);
 }
+
+.fixture-note {
+  margin-top: var(--kits-space-md);
+  font-size: var(--kits-label-size);
+  letter-spacing: var(--kits-label-tracking);
+  color: var(--kits-color-ink-muted);
+}
+
+/*
+ * 浅色主题下的一处**产品侧**覆盖示例 —— 只动效果的公开变量。
+ *
+ * 刻意不写在 fixture 里：真正的覆盖发生在 app/page.tsx 的 inline style 上
+ * （那样它才不依赖额外文件）。这一段只展示"从祖先作用域覆盖"也成立：
+ * 因为默认值声明在 :root，任何更近的祖先都能赢过它。
+ */
+:root[data-fixture-theme="light"] {
+  --kits-effect-ambient-strength: 0.45;
+}

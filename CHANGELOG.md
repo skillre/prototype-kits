@@ -1,5 +1,241 @@
 # Changelog
 
+## v0.1.1 · Patch Hardening
+
+`v0.1.0` → `v0.1.1`。第二次真实消费（AI Finance × Source Installation）
+证明了 Source Installation 架构成立，也暴露出五个 Kits 缺陷。本次把它们修回 Kits。
+
+**这是 PATCH**：没有新 Style Pack、没有新 Signature Component、没有视觉 redesign。
+资产 id、组件 API、Visual Manifest 全部保持兼容；`cinematic` 的默认渲染逐字等价。
+
+只有 5 个资产的**分发内容**变了（`contracts` / `cli` / `insight-reveal` /
+`animated-grid` / `ambient-glow`），它们的版本号随之升到 0.1.1；
+其余资产仍是 0.1.0 —— 独立版本号让 `kits diff` 说出实话。
+
+### 修复 · K-01 InsightReveal 无障碍回归（P0）
+
+`step="group"` 的自建宿主带了 `aria-hidden="true"`。`display: contents` 只影响
+布局、**拦不住剪枝**，于是整个内容子树从无障碍树消失：
+
+```
+DOM 里按钮存在          → getByRole("button") 命中 0
+屏幕阅读器读到的洞察层   → 空白
+```
+
+→ 宿主改用 `role="presentation"`：同样声明"本元素无语义"，但**不剪枝**。
+后代 heading / button / link / listitem 全部照常暴露。
+
+用 `role="presentation"` 而不是"什么都不写"：产品若把 `display: contents` 改成
+`block`（例如为了给每段做位移动画），不带 role 的 div 会变成匿名节点，
+破坏 `ul` 与 `listitem` 之间的父子关系。
+
+> 附带一条教训：`tests/insight-reveal-group.spec.ts` 里原来有一条测试
+> **断言了 `aria-hidden="true"`** —— 它把 bug 写进了期望值，所以一整轮真实消费之后
+> 测试仍然是绿的。现在那条测试断言的是反面（"绝不带 aria-hidden"）。
+
+### 修复 · K-02 coarse-pointer 契约被 pack 覆盖
+
+移动端把网格单元格放大 1.5 倍的反摩尔纹降级**静默失效**。两处错叠在一起：
+
+```css
+/* v0.1.0 */
+--kits-grid-cell: calc(var(--kits-grid-cell) * 1.5);
+```
+
+1. **自引用** → 该声明在 computed-value 阶段被判无效（依赖环）；
+2. 即便不循环，`[data-kits-pack]` 与 pack 的 `[data-kits-pack="cinematic"]`
+   特异性相同（0-1-0）而 pack 源顺序更晚 → pack 的 `64px` 获胜。
+
+实测：期望 96px，得到 64px。
+
+→ 拆成两个名字，乘法写在消费点上：
+
+| 变量 | 归属 | 值 |
+|---|---|---|
+| `--kits-grid-cell` | pack | 基准尺寸（48 / 64 / 32） |
+| `--kits-grid-cell-scale` | **契约** | 指针能力因子（细指针 1 / 触屏 1.5，`!important`） |
+| `--kits-grid-density` | **组件** | 密度乘数（none 0 / dense 0.5 / normal 1 / wide 2） |
+
+三者由 `animated-grid.css` 在 `.kits-grid` 上相乘得到有效值。
+两个名字不可能互相覆盖 —— 这比加 `!important` 更根本；`!important` 只是
+再挡一层"有人把因子当风格旋钮"的情况。乘法写在 `.kits-grid` 自己身上
+（自定义属性在**声明它的元素**上完成 var() 替换；写在 `:root` 会认死
+`:root` 的值，产品把 pack 作用域放到容器上时会拿到过期基准）。
+
+> **这一条第一次没修对，值得记下来。**
+> 第一版只改了 CSS，单元测试全绿，而浏览器里量出来仍然是 64px。
+> 原因不在 CSS：`AnimatedGrid` 自己在**行内样式**里写了
+> `"--kits-grid-cell-size": calc(var(--kits-grid-cell) * 2)`，
+> 行内样式优先级高于样式表，把契约的能力因子整个盖掉了。
+>
+> 修法是把密度降级成一个**乘数输入**（`--kits-grid-density`），
+> 组合权收回到样式表。同时在组件侧立了一条测试
+> （"组件不得出现 `--kits-grid-cell-size` / `--kits-grid-cell-scale`"）——
+> 只断言 CSS 是查不出这个缺陷的。
+>
+> 这也是本节唯一一处**必须靠浏览器量**才发现的修复：playground 的 coarse-pointer
+> 探针给出 64 → 96 之后，才算真的修好了。
+
+### 修复 · K-03 doctor 在独立安装下把"没查"说成"查过了"
+
+```js
+// v0.1.0
+const sameMajor = kitsTypesMajor === null || targetMajor === kitsTypesMajor;
+```
+
+Kits 仓库不可见时 `kitsTypesMajor` 是 `null`，这一条**恒为真**；而 detail 文案
+照写"与 Kits 解析到同一 major（19）"。
+
+→ 每个检查新增 `state`，明确说明结论是靠什么得到的：
+
+| state | 含义 |
+|---|---|
+| `verified` | 直接读到了实际解析出的版本并据此判定 |
+| `compatible` | 未读到上游；依据**声明的支持区间**判定 |
+| `upstream-unavailable` | 两者都没有 → 无法判定（warn，不静默） |
+| `not-applicable` | 本次安装不涉及该检查 |
+
+安装时把声明区间写进 lock（`compat.declaredReactRange`），独立安装据此判定。
+doctor 输出多一列 `[state]`，并新增 `upstream-kits` 检查说明当前处于哪种模式。
+
+### 修复 · K-04 Style / Effect 缺 TS 缝（最重要的结构性改进）
+
+v0.1.0 只给 style pack 生成了 CSS 缝，没有 TS 缝。产品要拿 `cinematicMotion`
+去做 `motionToCssVars()`，**没有合规的路可走**，只能：
+
+```ts
+import { cinematicMotion } from "../installed/cinematic/index";   // ← 越过适配层
+```
+
+第二次真实 Source Installation 里产品就是这么写的。契约说"产品不得依赖托管区"，
+但工具链没给合规的路 —— 那就不是产品的错。
+
+→ 三条缝补全：
+
+| 资产 | CSS 缝 | TS 缝 |
+|---|---|---|
+| style pack | `style-<id>.css` | `style-<id>.ts` + `style-pack.ts`（稳定别名） |
+| component | （组件自己 import） | `<id>.tsx` |
+| effect | `effect-<id>.css` | `effect-<id>.ts` |
+
+产品现在可以只写：
+
+```ts
+import { stylePackMotion, stylePackMotionVars, stylePackMeta } from "@/lib/kits/adapters/style-pack";
+import { effectClass, effectVars } from "@/lib/kits/adapters/effect-ambient-glow";
+```
+
+`motionToCssVars` 由 TS 缝从**正式安装的契约层**调用，不是手抄的映射表。
+`style-pack.ts` 是稳定别名（`export * from "./style-cinematic"`），
+因此换 pack 时产品代码引用面不动。
+
+effect 的 TS 缝导出的是**标识符**（类名 + 公开变量名）—— 效果是纯 CSS，
+托管区里没有可 import 的模块，但产品不该在 JSX 里硬编码
+`"kits-effect-ambient-glow"` 这样的实现细节。
+
+缝仍然遵守"**已存在则保留**"：Kits 永不覆盖产品文件。代价是模板升级不会
+自动流到已存在的适配层 —— 这件事由 `kits doctor` 的 `adapters-template`
+检查报出来（lock 里记录了生成时的模板版本），并告诉产品"删掉该文件再跑
+`kits add`"，而不是替它覆盖。
+
+### 修复 · K-05 Effect 没有公开变量
+
+`ambient-glow` 的三个光源色是硬编码 RGB。v0.1.0 的理由是"光属于 cinematic 的
+物理设定，不该被换色"—— 深色单模式下成立，但真实消费立刻证明它不够：
+浅色主题需要完全不同的光。硬编码的结果是产品只能自己发明
+`--finance-ambient-*` 并**把整个渐变抄一遍**。
+
+→ 收敛为 13 个 `--kits-effect-ambient-*` 公开变量（三个光的颜色 / 位置 / 尺寸 /
+衰减 + 整体强度）。默认值与 v0.1.0 **逐字等价**（`tests/effects.spec.ts` 核对
+清单里的默认值与 CSS 字面量一致）。
+
+两个设计决定：
+
+- **默认值声明在 `:root`，不是效果自己的类上**。元素自身的声明会压过继承 ——
+  声明在类上，产品在 `body` / `[data-theme]` 上的覆盖将永远不生效。
+- **不加 `--kits-effect-ambient-blur`**。本效果没有模糊，柔度由 `*-falloff`
+  控制；补一个 `filter: blur()` 会给每个使用者的 `::before` 多加一个合成层，
+  而没人需要 —— 那是新增能力，不是补契约。
+
+呼吸的振幅改成**相对**的（`calc(var(--…-strength) * 0.85)`），否则产品把强度
+调低之后，动画会把光"提"回原强度。
+
+### 新增 · §7 引用边界检查（doctor 报 fail）
+
+正式确立：**产品代码 SHOULD NOT import `lib/kits/installed/*`**，
+只有 installer / doctor / 内部工具可以。
+
+`kits doctor` 新增 `boundary` 检查，扫描产品源码（.ts/.tsx/.js/.jsx/.mjs/.css）：
+
+- 不扫描托管区、CLI 副本与 `adapters/`（从适配层指向 installed/ 正是设计）
+- 识别三种越界：相对路径、`@/` 别名、残留的 `@kits/*` 裸说明符
+- 报 **fail** 而不是 warn —— 它破坏的是"升级 Kits 不动产品代码"这个承诺本身
+
+### 修复 · K-06 `kits add` 只有在一种组合下能跑通（本次期间发现）
+
+**这个缺陷不在最初的五个之列**，但它在 v0.1.0 上是致命的，只是没人试过
+"cinematic + 三个组件 + 一个效果"之外的组合：
+
+```
+kits add --style editorial           → ✗ contracts/README.md 引用了 @kits/style-cinematic
+kits add --style cinematic           → ✗ .kits/README.md 引用了 @kits/react-utils
+（不带 --components 时）
+```
+
+两个独立原因叠在一起：
+
+1. 安装器扫描**所有**被安装的文件，包括 `README.md`，而 README 里到处是
+   代码示例（`import … from "@kits/style-cinematic"`）；
+2. 扫描是纯正则、**不看注释** —— 修好第 1 条之后，`installer.mjs` 自己的注释
+   又把安装弄挂了一次。
+
+→ 文档文件不参与依赖解析（照常安装进产品）；扫描前先剥注释，
+且**行注释必须先剥**：反过来时，行注释里的 `/*` 会开启一个区间，
+把夹在中间的真实 import 一起吃掉，那些说明符就不会被重写。
+
+### 新增 · 验收装置
+
+- `tests/insight-reveal-a11y.spec.ts`（13）—— K-01 的无障碍回归
+- `tests/pointer-fallback.spec.ts`（17）—— K-02 的级联契约 + "组件不得重算变量"
+- `tests/doctor-standalone.spec.ts`（25）—— K-03 的状态词汇 + §7 的边界检查
+- `tests/adapter-seam.spec.ts`（21）—— K-04 的缝生成、所有权、生成物语法合法性
+- `tests/effects.spec.ts`（16）—— K-05 的 Effect Contract
+- `tests/specifier-scan.spec.ts`（18）—— K-06 的说明符扫描
+- Playground 新增 `/effects` 页：同一份调用、三种覆盖（默认 / 浅色 / 品牌）
+- `.qa/kits-shots.mjs` 新增四组探针（无障碍树 / coarse pointer / effect 覆盖 /
+  第三条移动端判据），路由从 3 个增加到 4 个
+- `fixtures/standalone-product` 改用新的 TS 缝，并演示只覆盖公开变量的浅色主题
+
+### 测试
+
+| | v0.1.0 | v0.1.1 |
+|---|---|---|
+| 断言总数 | 274 | **384** |
+| spec 文件 | 7 | 13 |
+
+**原 274 条全部保留。** 其中 1 条被改写（它断言的是 K-01 的 bug 本身），
+改写后的断言方向相反且更强。
+
+### 兼容性
+
+- 资产 id / 组件 API（`apiVersion 1.0.0`）/ Visual Manifest / `data-kits-pack`
+  选择器全部不变
+- `contractVersion` 仍是 `1.0.0`：契约是**追加**变量，没有改语义
+- lock 的 `schemaVersion` 仍是 1（新增 `compat` / `adapters` 两个字段）
+- 默认视觉与 v0.1.0 逐字等价（K-05 的 13 个变量默认值、K-02 的因子默认 1）
+- **升级方式：重新 `kits add`**，不要手工改 `lib/kits/installed/` 下的文件
+  （那是托管区，手工修改会被 `doctor` 判为篡改）
+
+### 已知限制
+
+- `kits upgrade` 仍然没有；本版只有 `doctor` / `diff` 报告 + 重新 `add`
+- 适配层模板升级不会自动流到已存在的产品文件（刻意的所有权设计），
+  只由 `doctor` 的 `adapters-template` 提示
+- K-05 只覆盖 `ambient-glow`。`scanline-sweep` 的扫描线颜色同样是硬编码字面量
+  （同一类缺陷），但没有真实消费撞上它，本次**刻意不改** —— patch 不该顺手扩面
+
+---
+
 ## v0.1 · Integration Hardening（未发布，feature/kits-v0.1）
 
 第一次真实产品集成（`prototype-ai-finance` × cinematic Style Migration）

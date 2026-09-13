@@ -44,9 +44,18 @@ import { fileURLToPath } from "node:url";
 import { CODES, KitsError } from "./lib/errors.mjs";
 import { loadRegistry, isInstallableType } from "./lib/registry.mjs";
 import { plan, apply, verify } from "./lib/installer.mjs";
-import { auditCompatibility } from "./lib/compat.mjs";
+import {
+  auditCompatibility,
+  describeUpstream,
+  SUPPORTED_REACT_RANGE,
+} from "./lib/compat.mjs";
 import { DEFAULT_LAYOUT, readLock, writeLock, buildLock } from "./lib/lock.mjs";
-import { writeAdapters } from "./lib/adapters.mjs";
+import {
+  writeAdapters,
+  expectedAdapterFiles,
+  ADAPTER_TEMPLATE_VERSION,
+} from "./lib/adapters.mjs";
+import { findManagedImports } from "./lib/boundary.mjs";
 
 /* -------------------------------------------------------------------------- */
 /* 参数解析                                                                    */
@@ -181,6 +190,26 @@ function readKitsTypesVersion(kitsRoot) {
   return null;
 }
 
+/**
+ * 一次性判定"上游是否可读"，并把理由带回来。
+ *
+ * doctor 需要区分三件事（v0.1.1 修 K-03）：
+ *   1. 读到了上游的 @types/react  → 可以做真正的同 major 比对（verified）
+ *   2. 找不到 Kits 仓库但库内声明可读 → 只能按声明区间判定（compatible）
+ *   3. 两者都没有 → 明确报"无法判定"，**不许**静默通过
+ */
+function probeUpstream({ flags, discovered }) {
+  const kitsRoot = flags.kits ? path.resolve(String(flags.kits)) : discovered;
+  const exists = kitsRoot ? existsSync(path.join(kitsRoot, "registry", "assets.json")) : false;
+  const version = exists ? readKitsTypesVersion(kitsRoot) : null;
+  const described = describeUpstream({
+    kitsRoot: exists ? kitsRoot : null,
+    kitsTypesVersion: version,
+    discovered: exists,
+  });
+  return { ...described, kitsRoot: exists ? kitsRoot : null, kitsTypesVersion: version };
+}
+
 const majorOf = (v) => {
   const m = String(v ?? "").match(/(\d+)/);
   return m ? Number(m[1]) : null;
@@ -276,6 +305,11 @@ function cmdAdd({ flags }) {
   const compat = auditCompatibility(productRoot, {
     kitsReactTypesVersion: kitsTypesVersion,
     kitsTypesMajor: majorOf(kitsTypesVersion),
+    supportedReactRange: SUPPORTED_REACT_RANGE,
+    rangeSource: "Kits 当前版本声明的 peer 区间",
+    // 安装时尚未写 lock，因此还不知道最终会装哪些组件 —— 传 null 表示"未知"，
+    // 让 react-types-major-parity 走正常的比对分支而不是 not-applicable。
+    installedComponents: null,
   });
   if (!compat.ok) {
     const failed = compat.checks.filter((x) => x.status === "fail");
@@ -345,6 +379,10 @@ function cmdAdd({ flags }) {
         layout,
         installedAt: new Date().toISOString(),
         written,
+        compat: {
+          declaredReactRange: SUPPORTED_REACT_RANGE,
+          kitsTypesVersion,
+        },
       });
       writeLock(productRoot, layout, lock);
     },
@@ -354,7 +392,19 @@ function cmdAdd({ flags }) {
     productRoot,
     layout,
     assets: installPlan.assets,
+    kitsRoot,
   });
+
+  /*
+   * 适配层的结果要写回 lock：doctor 在**独立**状态下（Kits 仓库不存在）
+   * 无法重新生成适配层来比对，只能靠这两个字段判断"模板是不是旧版本的"。
+   */
+  lock.adapters = {
+    templateVersion: adapterResult.templateVersion,
+    written: adapterResult.written,
+    kept: adapterResult.kept,
+  };
+  writeLock(productRoot, layout, lock);
 
   header("  写入完成");
   console.log(`    Kits 托管区   ${c.dim(`${layout.installedRoot}/`)}  ${installPlan.files.length} 个文件`);
@@ -370,15 +420,27 @@ function cmdAdd({ flags }) {
 
   console.log(c.bold("  下一步"));
   const styleAdapter = styles.length ? `${layout.adapterRoot}/style-${styles[0]}.css` : null;
-  console.log(`    1. 在全局样式里引入 pack：${c.cyan(`@import "@/${styleAdapter}";`)}`);
+  if (styleAdapter) {
+    console.log(`    1. 在全局样式里引入 pack：${c.cyan(`@import "@/${styleAdapter}";`)}`);
+  }
   if (components.length) {
     console.log(`    2. 产品代码只 import 适配层：`);
     for (const id of components) {
       console.log(c.cyan(`         import { ${pascal(id)} } from "@/lib/kits/adapters/${id}";`));
     }
   }
-  console.log(`    3. 声明 pack 作用域：${c.cyan(`<html data-kits-pack="${styles[0] ?? "cinematic"}">`)}`);
-  console.log(`    4. 体检：${c.cyan("kits doctor")}`);
+  if (styles.length) {
+    console.log(
+      `    3. 注入 pack 的动效变量：${c.cyan(`import { stylePackMotionVars } from "@/lib/kits/adapters/style-pack";`)}`,
+    );
+    console.log(
+      c.dim(`       <html data-kits-pack="${styles[0]}" style={stylePackMotionVars}>`),
+    );
+  }
+  console.log(
+    `    4. 声明 pack 作用域：${c.cyan(`<html data-kits-pack="${styles[0] ?? "cinematic"}">`)}`,
+  );
+  console.log(`    5. 体检：${c.cyan("kits doctor")}`);
   console.log();
 
   return { code: 0 };
@@ -405,7 +467,8 @@ function cmdDoctor({ flags }) {
   console.log();
 
   const checks = [];
-  const push = (id, status, detail, hint) => checks.push({ id, status, detail, hint });
+  const push = (id, status, detail, hint, state) =>
+    checks.push({ id, status, detail, hint, state: state ?? null });
 
   // --- 1. 安装清单 --------------------------------------------------------
   if (!lock) {
@@ -463,34 +526,116 @@ function cmdDoctor({ flags }) {
     }
   }
 
-  // --- 4. React / TypeScript 兼容性 --------------------------------------
-  const kitsRoot = flags.kits ? path.resolve(String(flags.kits)) : tryKitsRoot();
-  const kitsTypesVersion = kitsRoot ? readKitsTypesVersion(kitsRoot) : null;
-  const compat = auditCompatibility(productRoot, {
-    kitsReactTypesVersion: kitsTypesVersion,
-    kitsTypesMajor: majorOf(kitsTypesVersion),
-  });
-  for (const check of compat.checks) push(check.id, check.status, check.detail, check.hint);
+  // --- 4. 上游可见性 ------------------------------------------------------
+  /*
+   * 先把"能不能读到上游"这件事本身报出来。它决定了后面 React 兼容性检查
+   * 走哪套判据，也决定了那些检查的结论强度（state）。
+   *
+   * 独立安装（Kits 仓库不存在）**不是错误** —— 那正是 Source Installation
+   * 的目标状态。但它必须被说出来，因为"读不到上游"和"与上游一致"是两件事，
+   * v0.1.0 把它们打印成了同一句话（K-03）。
+   */
+  const upstream = probeUpstream({ flags, discovered: tryKitsRoot() });
+  push(
+    "upstream-kits",
+    upstream.available ? "pass" : "warn",
+    upstream.note,
+    upstream.available
+      ? undefined
+      : "独立安装是 Source Installation 的正常状态。此状态下 doctor 不与上游比对，只校验「产品实际版本 ∈ 安装时声明的区间」。要真的比对，用 --kits <路径>。",
+    upstream.available ? "verified" : "upstream-unavailable",
+  );
 
-  // --- 5. 适配层存在性 ----------------------------------------------------
+  // --- 5. React / TypeScript 兼容性 --------------------------------------
+  const declaredRange = lock?.compat?.declaredReactRange ?? null;
+  const compat = auditCompatibility(productRoot, {
+    kitsReactTypesVersion: upstream.kitsTypesVersion,
+    kitsTypesMajor: majorOf(upstream.kitsTypesVersion),
+    upstreamAvailable: upstream.available,
+    supportedReactRange: declaredRange ?? SUPPORTED_REACT_RANGE,
+    rangeSource: declaredRange
+      ? `${layout.lockFile} 里安装时声明的区间`
+      : "Kits 当前版本内置的 peer 区间（这份 lock 是 v0.1.0 装的，没有记录区间）",
+    installedComponents: lock
+      ? lock.assets.filter((a) => a.type === "component").length
+      : null,
+  });
+  for (const check of compat.checks) {
+    push(check.id, check.status, check.detail, check.hint, check.state);
+  }
+
+  // --- 6. 适配层存在性 + 模板版本 ----------------------------------------
   if (lock) {
     const adapterRoot = path.join(productRoot, layout.adapterRoot);
-    const expected = lock.assets
-      .filter((a) => a.type === "component" || a.type === "style" || a.type === "effect")
-      .map((a) =>
-        a.type === "style" ? `style-${a.id}.css` : a.type === "effect" ? `effect-${a.id}.css` : `${a.id}.tsx`,
-      );
+    const expected = expectedAdapterFiles(lock.assets);
     const missingAdapters = expected.filter((f) => !existsSync(path.join(adapterRoot, f)));
     if (missingAdapters.length) {
-      push("adapters", "warn", `缺少 ${missingAdapters.length} 个适配层文件`, `跑 \`kits add\` 会补齐（它只补不存在的文件）：${missingAdapters.join(", ")}`);
+      push(
+        "adapters",
+        "warn",
+        `缺少 ${missingAdapters.length} 个适配层文件`,
+        `跑 \`kits add\` 会补齐（它只补不存在的文件）：${missingAdapters.join(", ")}`,
+      );
     } else {
       push("adapters", "pass", `${expected.length} 个适配层文件都在`);
     }
+
+    /*
+     * 模板版本：适配层永远不被覆盖，因此"Kits 升级带来的新模板"不会自动
+     * 流到产品的 adapters/。这是刻意的（那些文件属于产品），但必须被说出来。
+     * standalone 下没法重新生成来比对 —— lock 里记的模板版本是唯一信号。
+     */
+    const recorded = lock.adapters?.templateVersion ?? null;
+    if (recorded === ADAPTER_TEMPLATE_VERSION) {
+      push("adapters-template", "pass", `适配层模板版本 ${recorded}`);
+    } else {
+      push(
+        "adapters-template",
+        "warn",
+        recorded
+          ? `适配层由旧模板 v${recorded} 生成，当前 Installer 是 v${ADAPTER_TEMPLATE_VERSION}`
+          : "lock 里没有适配层模板版本（v0.1.0 装的）",
+        `Kits 不会覆盖你改过的适配层。想要新模板：删掉该文件再跑 \`kits add\`（只补不存在的），或比对 \`kits diff\`。`,
+      );
+    }
+  }
+
+  // --- 7. 边界：产品源码不得直接引用托管区 --------------------------------
+  /*
+   * 这条是整条 Distribution 设计的承重点，因此失败而不是警告：
+   * 产品一旦直接 import installed/，适配层就成了装饰品，
+   * "升级 Kits 不动产品代码"这个承诺当场变假。
+   */
+  const boundary = findManagedImports({ productRoot, layout });
+  if (boundary.violations.length) {
+    const shown = boundary.violations
+      .slice(0, 3)
+      .map((v) => `${v.file}${v.line ? `:${v.line}` : ""} → ${v.spec}`)
+      .join(" · ");
+    push(
+      "boundary",
+      "fail",
+      `${boundary.violations.length} 处产品源码绕过适配层直接引用托管区`,
+      `从 adapters/ 走。Kits 托管区会被下次安装覆盖：${shown}`,
+    );
+  } else {
+    push(
+      "boundary",
+      "pass",
+      `扫过 ${boundary.scanned} 个产品源文件，没有绕过适配层的引用`,
+    );
   }
 
   // --- 输出 ---------------------------------------------------------------
+  /*
+   * state 是本版（v0.1.1）新增的一列：它说明**这个结论是靠什么得到的**。
+   * 之所以要显式打印，是因为最危险的失败不是"检查失败"，而是
+   * "检查没查到却报告为通过" —— v0.1.0 的 doctor 就在独立安装下
+   * 打印过一句它其实无法验证的"与 Kits 解析到同一 major"（K-03）。
+   */
   for (const check of checks) {
-    console.log(`  ${MARK[check.status]} ${check.id.padEnd(24)} ${check.detail}`);
+    const state = check.state ? c.dim(`[${check.state}]`) : "";
+    console.log(`  ${MARK[check.status]} ${check.id.padEnd(24)} ${state} ${check.detail}`);
     if (check.hint && check.status !== "pass") {
       console.log(`    ${c.dim("→")} ${c.dim(check.hint)}`);
     }
@@ -641,7 +786,7 @@ function main() {
   const { command, flags, positional } = parseArgs(argv);
 
   if (flags.version || flags.v) {
-    console.log("kits 0.1.0");
+    console.log("kits 0.1.1");
     return 0;
   }
   if (!COMMANDS.has(command) || command === "help" || command === "--help" || command === "-h") {
