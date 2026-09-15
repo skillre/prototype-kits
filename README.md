@@ -79,13 +79,15 @@ prototype-kits/
 │   ├── components/  styles/  effects/  skills/
 ├── registry/                   Asset Registry
 │   ├── assets.json             登记表（唯一权威）
-│   ├── assets.schema.json      结构契约
-│   └── README.md               状态语义与准入门槛
+│   ├── assets.schema.json      登记表结构契约 + 全部枚举词汇表的唯一来源
+│   ├── manifest.schema.json    pack / component manifest 的结构契约
+│   └── README.md               状态语义 · 适配维度 · 移动端语义 · 暗色方向
 ├── playground/                 轻量 Next.js 验收台（不是业务产品）
 ├── fixtures/                   standalone-product：Distribution 的验收装置
-├── scripts/                    registry-audit · verify-standalone
+├── scripts/                    registry-audit（门）· verify-standalone
+│   └── lib/                    manifest-contract（判定唯一实现）· fit-semantics（纯语义）
 ├── docs/                       集成 / 分发 / 架构 / FAQ
-├── tests/                      契约与安装器审计（384 个断言）
+├── tests/                      契约与安装器审计（474 个用例：473 通过 / 1 skip）
 └── .qa/                        Browser QA（截图 + 溢出 + 报错 + 降级）
 ```
 
@@ -372,10 +374,11 @@ pnpm dev          # Playground → http://localhost:3200
 ```bash
 pnpm lint         # ESLint（含 packages 与 playground）
 pnpm typecheck    # playground tsc + kits tsc --noEmit
-pnpm test         # vitest：契约 + 包边界 + 安装器 + 无障碍 + 边界（384 个断言）
+pnpm test         # vitest：契约 + 包边界 + 安装器 + 无障碍 + 边界（474 个用例：473 通过 / 1 skip）
 pnpm build        # Playground 生产构建
 pnpm check        # 以上四件
-pnpm registry     # Asset Registry 审计（路径 / 状态 / 许可证 / 覆盖度）
+pnpm registry     # Asset Registry 门：引用 / 标签 / 移动端 / 暗色方向一致性 + 覆盖度
+                  # （有 error 退出码非 0，并逐项说明这次检查了什么）
 pnpm qa           # Browser QA：双视口截图 + 溢出 / 报错 / 降级 / 无障碍探针
 pnpm verify:standalone   # Distribution 验收（把 Kits 仓库移走后仍能 build）
 ```
