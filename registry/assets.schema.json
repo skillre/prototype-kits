@@ -254,10 +254,7 @@
           ]
         },
         "mobileCompatible": {
-          "type": [
-            "boolean",
-            "string"
-          ]
+          "$ref": "#/$defs/mobileCompatibility"
         },
         "reducedMotion": {
           "enum": [
@@ -284,6 +281,39 @@
         },
         "source": {
           "$ref": "#/$defs/source"
+        },
+        "recommendedFor": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/fitTag"
+          },
+          "description": "适配维度标签（枚举）。人读的散文见 recommendedForNotes。"
+        },
+        "avoidFor": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/fitTag"
+          },
+          "description": "适配维度标签（枚举）。人读的散文见 avoidForNotes。同一个值不允许同时出现在 recommendedFor 与 avoidFor。"
+        },
+        "recommendedForNotes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "recommendedFor 对应的人读散文（迁移自 v0.1.1 的自由文本），与标签一一对应。"
+        },
+        "avoidForNotes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "avoidFor 对应的人读散文（迁移自 v0.1.1 的自由文本），与标签一一对应。"
+        },
+        "darkDirection": {
+          "$ref": "#/$defs/darkDirection"
         }
       },
       "allOf": [
@@ -325,6 +355,181 @@
               "manifest",
               "demo",
               "readme"
+            ]
+          }
+        }
+      ]
+    },
+    "fitTag": {
+      "description": "产品适配维度（有限枚举）。recommendedFor / avoidFor 只接受这里的值，或 x- 前缀的扩展命名空间 —— 不允许自由字符串（typo 必须失败）。每个值的定义见 registry/README.md 的「适配维度」表。",
+      "oneOf": [
+        {
+          "enum": [
+            "mobile",
+            "desktop",
+            "touch",
+            "pointer",
+            "high-density",
+            "low-density",
+            "data-heavy",
+            "text-heavy",
+            "motion-sensitive",
+            "accessibility-critical"
+          ]
+        },
+        {
+          "type": "string",
+          "pattern": "^x-[a-z0-9]+(-[a-z0-9]+)*$"
+        }
+      ]
+    },
+    "packRole": {
+      "description": "组件在某套 Style Pack 里的角色。与 pack manifest 的 signatureComponents / optionalComponents / discouragedComponents **一一对应**：角色词写 signature，就必须出现在那套 pack 的 signatureComponents 里。这不是审美标签 —— 两边不一致时，产品按哪一边决策都是错的。",
+      "enum": [
+        "signature",
+        "optional",
+        "discouraged"
+      ]
+    },
+    "usedByStylePacks": {
+      "description": "组件自己声明的「我在哪几套 pack 里担任什么角色」。key = pack id，value = 角色词开头（后面可以跟括号里的说明文字，例如 `signature（64px + 55% 淡出）`）—— **只有开头那个词是契约**。",
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^(signature|optional|discouraged)(\\s|\\(|（|$)"
+      }
+    },
+    "mobileFallback": {
+      "description": "mobileCompatible = \"fallback-only\" 时**必须**存在：触屏上到底发生什么，以及为什么不是内容损失。trigger 是触发条件，behavior 是逐条可核对的降级行为（不是形容词），noContentLoss 必须为 true。",
+      "type": "object",
+      "required": [
+        "trigger",
+        "behavior",
+        "noContentLoss"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "trigger": {
+          "type": "string",
+          "minLength": 1
+        },
+        "behavior": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "noContentLoss": {
+          "const": true,
+          "description": "必须为 true：降级不等于丢信息。false 的组件不得声明 fallback-only"
+        }
+      }
+    },
+    "mobileCompatibility": {
+      "description": "**兼容性，不是推荐。** true = 在它自己声明的支持条件下允许在移动 viewport 使用，不会因为 API / layout 假设而天然失效；它**不**表示 recommended for mobile、ideal for high density、should appear on mobile 或 no adaptation needed。false = 不得在移动 viewport 使用。\"fallback-only\" = 只能在它声明的 mobileFallback 行为下使用（能力本身在触屏上不激活，但没有内容损失）。\"not-applicable\" = 非视觉资产（skill / package）。推荐与否请看 recommendedFor / avoidFor，两者是不同维度。",
+      "enum": [
+        true,
+        false,
+        "fallback-only",
+        "not-applicable"
+      ]
+    },
+    "darkStrategy": {
+      "description": "这套 pack 的暗色方向从哪来。single-theme = pack 原生就是单一主题（例如原生深色），暗色等于原生；pack-authored = pack 自己带暗色取值；product-authored = pack 不带，产品按 approach + contrastTarget 自己写覆盖 —— 这是被契约明确允许的（颜色是唯一允许覆盖的维度）。",
+      "enum": [
+        "single-theme",
+        "pack-authored",
+        "product-authored"
+      ]
+    },
+    "darkApproach": {
+      "description": "strategy = product-authored 时的覆盖方向。preserve-hue = 保留色相、只反转明度（颜色承担语义的 pack 必须走这条：反转色相会毁掉语义）；invert-contrast = 画布/墨色角色对调（近灰阶的 pack 适用）。",
+      "enum": [
+        "preserve-hue",
+        "invert-contrast"
+      ]
+    },
+    "contrastTarget": {
+      "description": "Product 写暗色覆盖时必须达到的对比度目标（可执行，不是审美形容词）。",
+      "type": "object",
+      "required": [
+        "standard",
+        "normalText",
+        "largeText"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "standard": {
+          "enum": [
+            "WCAG-AA",
+            "WCAG-AAA"
+          ],
+          "description": "WCAG-AA = 正文 4.5:1 / 大字 3:1；WCAG-AAA = 7:1 / 4.5:1"
+        },
+        "normalText": {
+          "type": "number",
+          "minimum": 4.5,
+          "maximum": 21,
+          "description": "正文对比度下限；AA 为 4.5，低于它一律非法"
+        },
+        "largeText": {
+          "type": "number",
+          "minimum": 3,
+          "maximum": 21,
+          "description": "大字（≥24px 或 ≥19px bold）对比度下限；AA 为 3"
+        }
+      }
+    },
+    "darkDirection": {
+      "description": "Style Pack 的暗色方向指引。**可选**：没有它就是「未声明」，是合法的旧状态（audit 会说出来，而不是静默当作没有暗色问题）。Kits 不强制每个 pack 都产出第二套完整调色板 —— 它要求「如果声明了，就要能被校验」。",
+      "type": "object",
+      "required": [
+        "strategy"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "strategy": {
+          "$ref": "#/$defs/darkStrategy"
+        },
+        "approach": {
+          "$ref": "#/$defs/darkApproach"
+        },
+        "contrastTarget": {
+          "$ref": "#/$defs/contrastTarget"
+        },
+        "slots": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^--kits-[a-z0-9-]+$"
+          },
+          "description": "允许产品覆盖的槽位（CSS 自定义属性名）。必须是该 pack 的 tokens.css 里真实声明的变量 —— typo 一律失败。"
+        },
+        "notes": {
+          "type": "string"
+        }
+      },
+      "allOf": [
+        {
+          "comment": "product-authored 必须给出 approach + contrastTarget + slots —— 否则产品没有可执行的方向",
+          "if": {
+            "properties": {
+              "strategy": {
+                "const": "product-authored"
+              }
+            },
+            "required": [
+              "strategy"
+            ]
+          },
+          "then": {
+            "required": [
+              "approach",
+              "contrastTarget",
+              "slots"
             ]
           }
         }

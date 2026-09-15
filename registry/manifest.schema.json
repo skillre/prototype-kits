@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://prototype-kits.local/schemas/manifest.schema.json",
+  "title": "Prototype Kits · Style Pack / Signature Component Manifest",
+  "description": "manifest.json（styles/<pack>/ 与 components/<name>/）的结构契约。**\n\n覆盖面（刻意的）**：这里只声明 v0.2 为此清单**新增或收紧**的字段 —— 适配标签与它们的人读散文、移动端兼容与降级、暗色方向、引用列表、角色表。其余既存字段（typography / profile / motion / tokens / performance / a11y …）由它们自己的契约声明与校验（例如 `packages/contracts` 的 `assertStylePackMotion`、`tests/contracts.spec.ts`），在这里重复声明只会造出第二份真相，所以 `additionalProperties` 是 true。",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "version",
+    "status",
+    "mobileCompatible"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "id": {
+      "$ref": "assets.schema.json#/$defs/assetId"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "status": {
+      "$ref": "assets.schema.json#/$defs/status"
+    },
+    "mobileCompatible": {
+      "$ref": "assets.schema.json#/$defs/mobileCompatibility"
+    },
+    "mobileFallback": {
+      "$ref": "assets.schema.json#/$defs/mobileFallback"
+    },
+    "recommendedFor": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "assets.schema.json#/$defs/fitTag"
+      },
+      "description": "适配维度标签（枚举）。必须与 registry/assets.json 里同一条资产的 recommendedFor **逐字一致**（scripts/lib/manifest-contract.mjs 的 fit/registry-manifest-drift 会判错）。"
+    },
+    "recommendedForNotes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      },
+      "description": "标签背后的人读原话（迁移自 v0.1.1 的自由文本，逐条保留）。**散文只住在 manifest**：registry 是索引，不放叙述。条数不必与标签数相同 —— 标签是粗粒度的机器可读投影，散文是完整理由。"
+    },
+    "avoidFor": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "assets.schema.json#/$defs/fitTag"
+      },
+      "description": "同上；同一个标签不得同时出现在 recommendedFor 与 avoidFor。"
+    },
+    "avoidForNotes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "darkDirection": {
+      "$ref": "assets.schema.json#/$defs/darkDirection"
+    },
+    "signatureComponents": {
+      "type": "array",
+      "items": {
+        "$ref": "assets.schema.json#/$defs/assetId"
+      },
+      "description": "必须是 registry 里 type = component 的资产；且与 registry 同名字段完全一致。"
+    },
+    "optionalComponents": {
+      "type": "array",
+      "items": {
+        "$ref": "assets.schema.json#/$defs/assetId"
+      }
+    },
+    "discouragedComponents": {
+      "type": "array",
+      "items": {
+        "$ref": "assets.schema.json#/$defs/assetId"
+      }
+    },
+    "effects": {
+      "type": "array",
+      "items": {
+        "$ref": "assets.schema.json#/$defs/assetId"
+      },
+      "description": "必须是 registry 里 type = effect 的资产 —— 字段名写 effect 不等于目标真是 effect。"
+    },
+    "usedByStylePacks": {
+      "$ref": "assets.schema.json#/$defs/usedByStylePacks"
+    }
+  }
+}
