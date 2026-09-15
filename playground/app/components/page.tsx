@@ -4,7 +4,14 @@ import gridManifest from "@kits/animated-grid/manifest.json";
 import cursorManifest from "@kits/data-cursor/manifest.json";
 import revealManifest from "@kits/insight-reveal/manifest.json";
 
+// 移动端状态词与 CLI 的 registry-audit 共用同一份语义（见 components/registry-view）：
+// 「兼容」不等于「推荐」，所以这里显示派生状态，而不是 mobileCompatible 的真假值。
 import { PackColumn } from "../../components/pack-stage";
+import {
+  MOBILE_STATE_LABEL,
+  mobileStateOf,
+  type FitFields,
+} from "../../components/registry-view";
 import {
   CursorSample,
   GridSample,
@@ -12,6 +19,9 @@ import {
   RevealSample,
   SpotlightSample,
 } from "../../components/samples";
+
+const mobileStateOfManifest = (manifest: Manifest) =>
+  MOBILE_STATE_LABEL[mobileStateOf(manifest as unknown as FitFields)];
 
 /**
  * /components —— 五个 Signature Component 的验收页。
@@ -97,7 +107,7 @@ export default function ComponentsPage() {
                   </td>
                   <td>{manifest.performance.classification}</td>
                   <td>{manifest.ssrCompatible ? "✅" : "—"}</td>
-                  <td>{manifest.mobileCompatible ? "✅ 内建" : "—"}</td>
+                  <td>{mobileStateOfManifest(manifest)}</td>
                   <td>
                     {manifest.reducedMotion ? manifest.reducedMotion.mechanism.slice(0, 22) : "—"}
                   </td>
@@ -155,15 +165,17 @@ export default function ComponentsPage() {
                 </dd>
                 <dt>ssr</dt>
                 <dd>{manifest.ssrCompatible ? "兼容" : "—"}</dd>
+                <dt>mobile 状态</dt>
+                <dd>{mobileStateOfManifest(manifest)}</dd>
                 <dt>mobile fallback</dt>
                 <dd>
-                  {manifest.mobileCompatible && manifest.mobileFallback
+                  {manifest.mobileFallback
                     ? manifest.mobileFallback.trigger
                     : "—"}
                 </dd>
                 <dt>no content loss</dt>
                 <dd>
-                  {manifest.mobileCompatible && manifest.mobileFallback
+                  {manifest.mobileFallback
                     ? String(manifest.mobileFallback.noContentLoss)
                     : "—"}
                 </dd>

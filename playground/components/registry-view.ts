@@ -11,6 +11,11 @@ import {
   instrumentProfile,
 } from "@kits/style-instrument";
 
+// 状态词的唯一实现（与 CLI 审计共用）。刻意从 fit-semantics 进：
+// 那是纯模块，不 import node:fs —— manifest-contract.mjs 会用 fs 核对文件，
+// 在 Server Component 里 import 它会让 Turbopack 追踪整个项目。
+import { deriveMobileState } from "../../scripts/lib/fit-semantics.mjs";
+
 /**
  * Registry 视图数据。
  *
@@ -76,3 +81,40 @@ export const PROFILE_DIMENSIONS: Array<{
   { key: "motionLanguage", label: "motion language", hint: "动效语言" },
   { key: "hierarchyMethod", label: "visual hierarchy", hint: "层级建立方式" },
 ];
+
+/* -------------------------------------------------------------------------- */
+/* 移动端状态（K2）                                                            */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * 兼容 ≠ 推荐。这一层**不自己发明状态词**：它调用 CLI 审计用的同一个函数
+ * （`scripts/lib/manifest-contract.mjs` 的 `deriveMobileState`），
+ * 所以「instrument 可用但不推荐」「data-cursor 仅降级形态」在 CLI、审计页、
+ * 组件验收页上是同一句话。
+ */
+export interface FitFields {
+  mobileCompatible: boolean | string;
+  recommendedFor?: string[];
+  avoidFor?: string[];
+}
+
+export const mobileStateOf = (asset: FitFields): string =>
+  deriveMobileState(asset);
+
+export const MOBILE_STATE_LABEL: Record<string, string> = {
+  recommended: "推荐",
+  discouraged: "可用但不推荐",
+  compatible: "允许（需适配）",
+  "fallback-only": "仅降级形态",
+  unsupported: "不支持",
+  "not-applicable": "不适用",
+};
+
+export const MOBILE_STATE_CLASS: Record<string, string> = {
+  recommended: "pg-pill--approved",
+  compatible: "pg-pill--approved",
+  discouraged: "pg-pill--experimental",
+  "fallback-only": "pg-pill--experimental",
+  unsupported: "pg-pill--deprecated",
+  "not-applicable": "pg-pill--incoming",
+};

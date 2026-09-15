@@ -1,7 +1,11 @@
 import assets from "../../../registry/assets.json";
 import {
+  MOBILE_STATE_CLASS,
+  MOBILE_STATE_LABEL,
+  mobileStateOf,
   PACK_VIEWS,
   PROFILE_DIMENSIONS,
+  type FitFields,
 } from "../../components/registry-view";
 
 /**
@@ -157,6 +161,12 @@ export default function AuditPage() {
         <h2 className="pg-section__title">
           03 · registry/assets.json（{assets.assets.length} 条）
         </h2>
+        <p className="pg-note">
+          <strong>mobile 一列是状态词，不是 yes/no。</strong>{" "}
+          「允许（需适配）」只说明它不会被移动端的 API / 布局假设天然弄坏，
+          不表示推荐在手机上用 —— 推荐与否由 recommendedFor / avoidFor 决定
+          （「可用但不推荐」= instrument，「仅降级形态」= data-cursor）。
+        </p>
         <div className="pg-matrix" style={{ marginBottom: 20 }}>
           {(["style", "component", "effect", "skill"] as const).map((type) => (
             <div className="pg-card" key={type}>
@@ -218,9 +228,14 @@ export default function AuditPage() {
                   <td>{String(asset.performance)}</td>
                   <td>{asset.ssrCompatible === true ? "✅" : String(asset.ssrCompatible)}</td>
                   <td>
-                    {asset.mobileCompatible === true
-                      ? "✅"
-                      : String(asset.mobileCompatible)}
+                    {(() => {
+                      const state = mobileStateOf(asset as FitFields);
+                      return (
+                        <span className={`pg-pill ${MOBILE_STATE_CLASS[state]}`}>
+                          {MOBILE_STATE_LABEL[state]}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td>{asset.reducedMotion}</td>
                   <td>

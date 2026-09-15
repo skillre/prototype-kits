@@ -176,10 +176,12 @@ describe("mobile fallback", () => {
 
   it.each(COMPONENTS)("%s 的 manifest 声明了 mobileFallback 且不丢内容", (id) => {
     const manifest = JSON.parse(read(`components/${id}/manifest.json`)) as {
-      mobileCompatible: boolean;
+      mobileCompatible: true | "fallback-only";
       mobileFallback?: { trigger?: string; behavior?: string[]; noContentLoss?: boolean };
     };
-    expect(manifest.mobileCompatible).toBe(true);
+    // K2：`true` = 允许在移动端用（仍需适配）；`"fallback-only"` = 只能用降级形态。
+    // 两种都必须给出可核对的降级行为 —— 「兼容」从不等于「推荐」。
+    expect([true, "fallback-only"]).toContain(manifest.mobileCompatible);
     expect(manifest.mobileFallback?.trigger).toBeTruthy();
     expect(manifest.mobileFallback?.behavior?.length).toBeGreaterThan(0);
     expect(
