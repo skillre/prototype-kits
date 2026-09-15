@@ -166,7 +166,7 @@ const CHECKED = [
   ["适配标签枚举（K7）", `registry ${stats.registryTagValues} 个标签值 + manifest ${stats.manifestTagValues} 个标签值，逐值对枚举校验；并核对两侧完全相等`],
   ["人读散文（K7）", `manifest 里保留了 ${stats.notes} 条 recommendedForNotes / avoidForNotes`],
   ["mobileCompatible 取值与一致性（K2）", `${stats.assets} 条 registry 取值 + ${stats.mobileMirrors} 份 manifest 的镜像值`],
-  ["fallback-only 的可执行性（K2）", "声明 fallback-only 的资产必须给出 mobileFallback.trigger / behavior / noContentLoss=true"],
+  ["fallback-only 的可执行性（K2）", "声明 fallback-only 的资产必须给出 mobileFallback.trigger / behavior / noContentLoss=true；false 的资产不得被推荐用于 mobile（mobile/unsupported-recommended）"],
   ["darkDirection 可执行性（K1）", `已声明 ${stats.darkDeclared} 套 pack（未声明 ${stats.darkUndeclared} 套 = 合法旧状态）、${stats.darkSlots} 个槽位逐个对照 tokens.css`],
   ["effect 聚合清单（K6）", `${stats.effectsInAggregate} 个 effect 条目 + ${stats.reservedIds} 个 reserved 占位 id（占位不得已在册）`],
   ["package.json 版本与包名（K6）", `${stats.packagesChecked} 个包的 name / version 与 registry 比对`],

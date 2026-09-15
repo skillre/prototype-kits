@@ -587,6 +587,14 @@ describe("K2 · 移动端语义", () => {
     expect(codes(checkRegistry({ root }).findings)).toContain("mobile/unknown-value");
   });
 
+  it("false（不得在移动端使用）与 recommendedFor 含 mobile 互斥", () => {
+    const root = scenario("k2-unsupported-recommended", {
+      pack: { mobileCompatible: false, recommendedFor: ["mobile"], avoidFor: undefined },
+    });
+    const findings = codes(checkRegistry({ root }).findings);
+    expect(findings).toContain("mobile/unsupported-recommended");
+  });
+
   it("真实仓库里五个组件都仍然给出降级行为（K2 没有放宽任何东西）", () => {
     for (const id of ["interactive-hero", "spotlight-surface", "animated-grid", "data-cursor", "insight-reveal"]) {
       const manifest = JSON.parse(readFileSync(path.join(ROOT, `components/${id}/manifest.json`), "utf8"));

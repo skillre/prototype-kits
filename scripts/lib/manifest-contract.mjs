@@ -203,6 +203,20 @@ export function checkRegistry({ root, registry = loadRegistry(root) }) {
       );
     }
 
+    // 不含糊的互斥：一边说"不得在移动端用"，一边说"推荐在移动端用"
+    if (
+      asset.mobileCompatible === false &&
+      Array.isArray(asset.recommendedFor) &&
+      asset.recommendedFor.includes("mobile")
+    ) {
+      push(
+        "error",
+        "mobile/unsupported-recommended",
+        `${asset.id}`,
+        "mobileCompatible = false（不得在移动 viewport 使用）却把 mobile 写进 recommendedFor —— 两处语义互斥",
+      );
+    }
+
     if (asset.mobileCompatible === "fallback-only") {
       const fallback = place.node?.mobileFallback;
       if (!fallback || typeof fallback !== "object") {
@@ -758,7 +772,10 @@ function checkMaterialDirection({ root, asset, manifest, vocab, byId, push }) {
   if (tokensCss === null) {
     push("warn", "material/unverifiable", where, "读不到 tokens.css，无法核对环境光与发光声明（不当作通过）");
   } else {
-    const definesAmbient = /(^|[^a-z-])\.kits-ambient\b/.test(tokensCss.replace(/\/\*[\s\S]*?\*\//g, ""));
+    // 必须是**完整的类名**：`.kits-ambient-x` 之类的改名不算"带了环境光能力"（mutation suite 抓到的）
+    const definesAmbient = /(^|[^a-z-])\.kits-ambient(?![\w-])/.test(
+      tokensCss.replace(/\/\*[\s\S]*?\*\//g, ""),
+    );
     if (material.ambient === "pack-authored" && !definesAmbient) {
       push(
         "error",

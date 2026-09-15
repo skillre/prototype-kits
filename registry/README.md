@@ -116,7 +116,7 @@ pnpm registry        # 审计脚本：把登记表与一致性检查打印成人
 | `usedby/unknown-role` · `usedby/unknown-pack` · `usedby/pack-does-not-list` · `usedby/role-mismatch` · `usedby/missing-pack` | 组件自报的角色词不在枚举里 / pack 不存在 / 说了角色但 pack 没列 / 两边角色不同 / pack 列了但组件没写 |
 | `fit/unknown-tag` · `fit/not-array` · `fit/conflict` · `fit/registry-manifest-drift` | 标签不在枚举（且非 `x-` 扩展）/ 不是数组 / 同一维度既推荐又回避 / 两侧标签不一致 |
 | `fit/notes-missing`（warn） | 有标签但人读散文丢失 |
-| `mobile/unknown-value` · `mobile/registry-manifest-drift` · `mobile/fallback-missing` · `mobile/fallback-lossy` · `mobile/tag-conflict` | 取值非法 / 两处声明不一致 / `fallback-only` 却没有降级行为 / 降级会丢内容 / `fallback-only` 却把 mobile 写进 recommendedFor |
+| `mobile/unknown-value` · `mobile/registry-manifest-drift` · `mobile/fallback-missing` · `mobile/fallback-lossy` · `mobile/tag-conflict` · `mobile/unsupported-recommended` | 取值非法 / 两处声明不一致 / `fallback-only` 却没有降级行为 / 降级会丢内容 / `fallback-only` 却把 mobile 写进 recommendedFor / `false`（不得使用）却推荐 mobile |
 | `dark/unknown-strategy` · `dark/unknown-approach` · `dark/approach-required` · `dark/target-required` · `dark/slots-required` · `dark/target-invalid` · `dark/target-too-low` · `dark/unknown-slot` · `dark/not-object` | 暗色方向不可执行（见下） |
 | `dark/undeclared`（info） | 合法旧状态：没声明暗色方向 |
 | `effect/not-in-aggregate` · `effect/id-mismatch` · `effect/unknown-pack` · `effect/pack-wrong-type` · `effect/required-field` · `effect/reserved-registered` | effect 与聚合清单 `effects/manifest.json` 不一致 |
