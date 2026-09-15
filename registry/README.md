@@ -122,6 +122,12 @@ pnpm registry        # 审计脚本：把登记表与一致性检查打印成人
 | `effect/not-in-aggregate` · `effect/id-mismatch` · `effect/unknown-pack` · `effect/pack-wrong-type` · `effect/required-field` · `effect/reserved-registered` | effect 与聚合清单 `effects/manifest.json` 不一致 |
 | `package/name-drift` · `package/version-drift` | `package.json` 的 name / version 与 registry 不一致 |
 | `coverage/styles` · `coverage/components` | approved 数量低于本仓库承诺的下限（3 套 pack / 5 个组件） |
+| `material/unknown-value` · `material/unknown-key` · `material/missing-field` · `material/not-object` | 材质语言取值不在枚举 / 出现未知字段（例如偷偷塞 mobile）/ 缺必填字段 |
+| `material/ambient-claim-unbacked` · `material/ambient-leak` · `material/glow-claim-conflict` · `material/glow-unused` | 环境光归属或发光预算与自己的 `tokens.css` 不一致 |
+| `material/light-effect-forbidden` | 声明「没有环境光 / 禁止发光」的 pack 却把 `light` 类 effect 列进自己的 `effects[]` |
+| `material/unknown-kind` · `material/effect-undeclared`（info） | effect 的 `material.kind` 不在枚举 / 未声明 |
+| `material/paint-out-of-scope` | pack / effect 的样式表**在作用域之外作画**（安装即污染）—— 见 `docs/material-handoff.md` |
+| `material/dark-authoring-gap`（warn） · `material/undeclared`（info） · `material/unverifiable`（warn） | 暗色由产品写但环境光写死在 pack 里 / 未声明材质语言 / 读不到 tokens.css 无法核对 |
 
 ---
 
@@ -151,6 +157,25 @@ pnpm registry        # 审计脚本：把登记表与一致性检查打印成人
   `recommendedForNotes` / `avoidForNotes` 里（条数不必与标签数相同）；
 - **registry 与 manifest 两处都有标签，且必须逐字相等**（`fit/registry-manifest-drift`）。
   registry 是索引（CLI / Playground 直接读它），manifest 是上下文（人在这里读理由）。
+
+---
+
+## 材质语言：`materialDirection`（v0.2 · K8）
+
+Style Pack 用三个字段说明自己的**材质语言**（可选；不声明 = 合法旧状态）：
+
+| 字段 | 取值 | 可否核对 |
+|---|---|---|
+| `hierarchy` | `light` / `rule` / `space` / `texture` | 声明（给人与 agent 读） |
+| `ambient` | `pack-authored` / `effect-only` / `none` | **可以** —— 与 `tokens.css` 里有没有 `.kits-ambient` 核对 |
+| `glow` | `budgeted` / `forbidden` | **可以** —— 与 `--kits-color-glow` 是不是 `transparent` 核对 |
+
+Effect Pack 在自己的聚合清单节点上声明 `material.kind`（`light` / `texture` / `line`），
+用于与 pack 的材质预算交叉核对。归谁、为什么、怎么消费见
+[`docs/material-handoff.md`](../docs/material-handoff.md)。
+
+**它不会自动生效**：材质元数据只用于 agent 理解、推荐、交叉核对与文档 ——
+用哪个 effect、挂在哪里，仍然由 Human Art Direction + Visual Manifest 决定。
 
 ---
 

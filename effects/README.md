@@ -19,11 +19,19 @@
 
 ## 现有的三个效果
 
-| id | pack | class | 性能 | 是什么 |
-|---|---|---|---|---|
-| `paper-grain` | editorial | `.kits-effect-paper-grain` | A | 纸纹（内联 SVG 噪声，0.035 不透明度） |
-| `ambient-glow` | cinematic | `.kits-effect-ambient-glow` | B | 环境光（三个有方向的径向光源） |
-| `scanline-sweep` | instrument | `.kits-effect-scanlines` | A / B | 扫描线 + 单次扫掠 |
+| id | pack | class | 材质类别 | 性能 | 是什么 |
+|---|---|---|---|---|---|
+| `paper-grain` | editorial | `.kits-effect-paper-grain` | `texture` | A | 纸纹（内联 SVG 噪声，0.035 不透明度） |
+| `ambient-glow` | cinematic | `.kits-effect-ambient-glow` | `light` | B | 环境光（三个有方向的径向光源） |
+| `scanline-sweep` | instrument | `.kits-effect-scanlines` | `line` | A / B | 扫描线 + 单次扫掠 |
+
+`material.kind`（K8）只有这三个值，用途是**与 pack 的材质预算交叉核对**：
+声明 `ambient: none` 或 `glow: forbidden` 的 pack 不允许把 `light` 类 effect 列进
+自己的 `effects[]`。它不描述移动端（那是 K2 的 `mobile` 字段），也不启动任何东西。
+
+> **Effect 永远不会自己生效。** 装 effect 只是把能力放到
+> `lib/kits/installed/<asset-id>/` 并生成一个适配层文件；产品不 import、不挂 class，
+> 就没有任何像素变化。`pnpm registry` 会逐条扫描确认这一点（`material/paint-out-of-scope`）。
 
 ### 用法
 

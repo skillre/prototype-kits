@@ -133,6 +133,16 @@ import "@kits/style-cinematic/tokens.css";
 
 ---
 
+## 6.5 材质语言（v0.2 · K8）
+
+| 项 | 值 |
+|---|---|
+| 材质语言 | `light` / `ambient: pack-authored` / `glow: budgeted` —— 用光分层；pack 自带 `.kits-ambient`，发光有预算 |
+| 谁决定用不用 | **产品** —— Effect Pack 必须显式安装（`kits add --effects …`）并显式消费；Kits 不会自动打开任何材质 |
+
+`.kits-ambient` 是 pack 自带的一层环境光（**挂上这个 class 才出现**，装 pack 不会自动加）；发光预算由 `--kits-color-glow` 兑现。
+归属四层（Core / Style Pack / Effect Pack / Product）与 Reference Sample 的对照见 [`docs/material-handoff.md`](../../docs/material-handoff.md)。
+
 ## 7. 相关资产
 
 - 组件：`spotlight-surface`（必配）、`data-cursor`（必配）、`animated-grid`（必配）、`interactive-hero` / `insight-reveal`（可选）

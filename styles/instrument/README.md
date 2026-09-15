@@ -126,6 +126,16 @@ import "@kits/style-instrument/tokens.css";
 
 ---
 
+## 6.5 材质语言（v0.2 · K8）
+
+| 项 | 值 |
+|---|---|
+| 材质语言 | `rule` / `ambient: none` / `glow: forbidden` —— 刻度与边界：1px 实线分格，不用光建立层级 |
+| 谁决定用不用 | **产品** —— Effect Pack 必须显式安装（`kits add --effects …`）并显式消费；Kits 不会自动打开任何材质 |
+
+没有环境光、不允许发光，因此这个 pack 的 `effects[]` 里不会有 `light` 类效果（audit 交叉核对）。
+归属四层（Core / Style Pack / Effect Pack / Product）与 Reference Sample 的对照见 [`docs/material-handoff.md`](../../docs/material-handoff.md)。
+
 ## 7. 相关资产
 
 - 组件：`animated-grid`（必配）、`insight-reveal`（必配）、`data-cursor`（可选）

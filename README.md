@@ -86,7 +86,7 @@ prototype-kits/
 ├── fixtures/                   standalone-product：Distribution 的验收装置
 ├── scripts/                    registry-audit（门）· verify-standalone
 │   └── lib/                    manifest-contract（判定唯一实现）· fit-semantics（纯语义）
-├── docs/                       集成 / 分发 / 架构 / FAQ
+├── docs/                       集成 / 分发 / 架构 / 材质归属 / FAQ
 ├── tests/                      契约与安装器审计（474 个用例：473 通过 / 1 skip）
 └── .qa/                        Browser QA（截图 + 溢出 + 报错 + 降级）
 ```
@@ -426,6 +426,7 @@ pnpm verify:standalone   # Distribution 验收（把 Kits 仓库移走后仍能 
 | [`docs/architecture.md`](docs/architecture.md) | 契约分层、目录归属、与 Factory Core 的边界 |
 | [`docs/faq.md`](docs/faq.md) | 常见问题（为什么不用 Tailwind / 为什么源码分发 / 为什么不做 Storybook） |
 | [`docs/visual-inventory.md`](docs/visual-inventory.md) | prototype-starter 现状盘点与剥离计划（回答题面 C 问题） |
+| [`docs/material-handoff.md`](docs/material-handoff.md) | 材质归属：Core / Style Pack / Effect Pack / Product 各管什么，Reference Sample 的 personality 谁吸收了、谁留给自己（K8） |
 | [`registry/README.md`](registry/README.md) | 资产状态语义与准入门槛 |
 | [`references/README.md`](references/README.md) | Reference Board 纪律（只提取语言，不复制布局） |
 

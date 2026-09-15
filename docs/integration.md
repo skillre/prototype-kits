@@ -102,6 +102,27 @@ import { DataCursor } from "@/lib/kits/adapters/data-cursor";
 </DataCursor>
 ```
 
+**4. 要不要 effect：显式决定（v0.2 · K8）**
+
+Effect Pack 不是 pack 的附属品，也不会自动生效。装的时候就要说清楚，
+用的时候要显式 import 适配层并挂 class（[`docs/material-handoff.md`](material-handoff.md)）：
+
+```bash
+kits add --style cinematic --effects ambient-glow     # 不要就整个 --effects 省略
+```
+
+```tsx
+import "@/lib/kits/adapters/effect-ambient-glow.css";
+
+<section data-kits-pack="cinematic">
+  <div className="kits-effect-ambient-glow">…</div>
+</section>
+```
+
+`effects: []` 是完全合法的一等用法（第三 Prototype 就是 `instrument + effects: []`）——
+装 Kits **不会**替任何页面打开环境光、光晕或发光。之后去掉 `--effects` 重装即可移除，
+托管区与 lock 会同步，产品自己的文件不动（`doctor` 会提示清理上一次生成的适配层文件）。
+
 ### 装完之后
 
 ```bash

@@ -62,6 +62,7 @@
 | `registry/assets.schema.json` | 资产登记表的结构契约，**同时是全部枚举词汇表的唯一来源** | 慢 |
 | `registry/manifest.schema.json` | style / component manifest 的结构契约（v0.2 起只覆盖新增/收紧的字段） | 慢 |
 | `scripts/lib/manifest-contract.mjs` | 把上面两份 schema 的声明翻译成**具名判定**；`pnpm registry`、Kits 测试、Playground 审计页共用它 | 中 |
+| `scripts/lib/material-scope.mjs` | 材质边界扫描：pack / effect 的样式表**只能在属于自己的选择器里作画**（K8 的「安装不会自动污染页面」判据） | 中 |
 
 ---
 
@@ -122,6 +123,17 @@ transform: translate3d(calc(var(--kits-layer-dx, 0) * 1px * var(--kits-pointer-f
 就是这么躺了两个版本 —— 自由散文、typo 与真值一样通过。v0.2（K1 / K2 / K6 / K7）
 把适配标签、移动端语义、引用一致性与暗色方向全部变成具名判定，判据与词汇表见
 [`registry/README.md`](../registry/README.md)。
+
+### 3.5 材质归谁（K8）
+
+Factory v1.2 把 personality 从 Core 移出去之后，归属由 K8 补齐：
+**Style Pack 提供材质语言**（`materialDirection`：层级 / 环境光 / 发光预算）、
+**Effect Pack 提供可独立启停的视觉行为**（`material.kind`：light / texture / line）、
+**产品决定在哪里用**。`ambient` 与 `glow` 两个字段与 pack 自己的 `tokens.css`
+逐条核对（`.kits-ambient`、`--kits-color-glow`），并与 `effects[]` 的材质类别交叉；
+「装 Kits 不会自动改变页面外观」由 `scripts/lib/material-scope.mjs` 扫描证明。
+完整归属表、Reference Sample 的 absorbed / product-only 分类与消费方式见
+[`docs/material-handoff.md`](material-handoff.md)。
 
 ---
 

@@ -34,6 +34,15 @@ starter 目前的视觉资产分四类：
 | `@keyframes` | `skeleton-sheen`、`ambient-drift`、`live-halo` | **效果 → 提炼** |
 | `@layer base` | 全局 reset 与基础排版 | **外壳机制，留 starter** |
 
+> **v0.2 · K8 的落地结果**（这一页写于 v0.1，判断是方向性的；
+> 逐条结论见 [`docs/material-handoff.md`](material-handoff.md)）：
+> `.ambient-wash` → 由 `ambient-glow` 承接（变量化）；
+> `ambient-drift` → 由 `ambient-glow` 的 `--breathing` 承接；
+> hero 光源 → 同一个 effect 的容器级实例；
+> `.ambient-grid` → `animated-grid`；
+> `live-halo` / `skeleton-sheen` / chart glow → **仍属产品**（composition），
+> 不作为 Kits 资产 —— "提炼"不等于"全部搬走"。
+
 ### 1.2 `lib/motion-presets.ts`（170 行）—— 动效契约的雏形
 
 `durations` / `easings` / `cssEasings` / `softSpring` / `snappySpring` /

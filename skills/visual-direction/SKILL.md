@@ -123,12 +123,40 @@ generous-whitespace    多色图表（multi-hue-charts）
 3. **如果页面上有 40 个字段，会发生什么？** editorial 会崩（留白不够）；
    cinematic 会糊（光把注意力分散）；instrument 刚好。
 
+### 材质语言（选 pack 时一起读）
+
+每套 pack 的 `manifest.json` 里有一个可选字段 `materialDirection`，
+说明它的**材质性格**（v0.2 · K8）：
+
+```jsonc
+{ "hierarchy": "light", "ambient": "pack-authored", "glow": "budgeted" }
+```
+
+| 字段 | 意思 |
+|---|---|
+| `hierarchy` | 用什么建立层级：`light`（光）/ `rule`（线）/ `space`（留白）/ `texture`（表面材质） |
+| `ambient` | 环境光归谁：`pack-authored`（pack 自带 `.kits-ambient`）/ `effect-only`（只能来自 Effect Pack）/ `none` |
+| `glow` | 发光预算：`budgeted`（有真实发光颜色）/ `forbidden`（`--kits-color-glow: transparent`） |
+
+当前：cinematic = `light / pack-authored / budgeted`；editorial = `space / none / forbidden`；
+instrument = `rule / none / forbidden`。
+
+**选 pack 时读它，然后自己决定用不用**：装 editorial 或 instrument 不会给你任何环境光，
+装 cinematic 给你一层 pack 自带的环境光**但只有挂上 `.kits-ambient` 才出现**。
+Effect Pack 一定要显式安装（`kits add --effects …`）并显式消费
+（import 适配层 + 挂 class），Kits 不会替你打开任何东西。
+
 ### 不要做的事
 
 - **不要混搭两个 pack 的变量体系。** 一个 `data-kits-pack` 容器只对应一套风格。
   需要两种性格 → 用两个容器分区。
 - **不要因为"好看"选 pack。** pack 是产品语义的一部分：
   一个财务合规界面用 cinematic 会显得不可信。
+- **不要把 effect 当成 pack 的附属品。** `effects: []` 是完全合法的一等用法
+  （第三 Prototype 就是 instrument + `effects: []`，并且它把 "ambient-animation"
+  写进了 `avoid`）。反过来，装了 cinematic 也不等于必须开环境光。
+- **不要指望 effect 自动生效，也不要指望 ZERO effect 就没有设计。**
+  材质语言在 pack 的变量里（层级、间距、线、表面处理），effect 只是可选的加法。
 
 ---
 

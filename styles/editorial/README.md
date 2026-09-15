@@ -121,6 +121,16 @@ const style = motionToCssVars(editorialMotion); // { "--kits-dur-quick": "140ms"
 
 ---
 
+## 6.5 材质语言（v0.2 · K8）
+
+| 项 | 值 |
+|---|---|
+| 材质语言 | `space` / `ambient: none` / `glow: forbidden` —— 纸与墨：层级靠留白与字号，不发光 |
+| 谁决定用不用 | **产品** —— Effect Pack 必须显式安装（`kits add --effects …`）并显式消费；Kits 不会自动打开任何材质 |
+
+环境光的归属与发光预算**可以从 CSS 核对**（没有 `.kits-ambient`、`--kits-color-glow: transparent`），`hierarchy` 是声明。
+归属四层（Core / Style Pack / Effect Pack / Product）与 Reference Sample 的对照见 [`docs/material-handoff.md`](../../docs/material-handoff.md)。
+
 ## 7. 相关资产
 
 - 组件：`insight-reveal`（必配）、`interactive-hero`（必配）、`spotlight-surface`（可选）
