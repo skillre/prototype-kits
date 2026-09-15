@@ -1,0 +1,49 @@
+{
+  "$schema": "./lib/factory-policy.schema.json",
+  "schemaVersion": 1,
+  "policyVersion": "1.3.0",
+  "managedBlock": {
+    "document": "AGENTS.md",
+    "marker": "factory-core-policy",
+    "version": "1.3.0",
+    "begin": "<!-- BEGIN:factory-core-policy v1.3.0 -->",
+    "end": "<!-- END:factory-core-policy -->"
+  },
+  "agentOrchestration": {
+    "host": "dsh",
+    "dshSubagents": "required",
+    "productAppFrameworks": "forbidden",
+    "allowedScope": "在 DSH 宿主内拆分/并行只读或彼此独立的任务（含本仓的 registry 审计、打包面核对、跨 pack 一致性检查）；宿主的 Subagent 调用不属于被交付的资产代码。",
+    "forbiddenScope": "本仓的对外交付面与运行时依赖（packages/、components/、effects/、playground/、styles/、scripts/、registry/ 产物）里出现 agent framework / orchestrator runtime / 多 agent 调度依赖。Kits 会被产品以 source install 方式装进对方仓库，一旦这些目录依赖编排运行时，污染会顺着安装边界扩散到产品。"
+  },
+  "modelRouting": {
+    "provider": "opencode-go-dsv41",
+    "model": "deepseek-flash",
+    "reasoningEffort": "max",
+    "verifiedOn": "2026-09-15"
+  },
+  "concurrency": {
+    "worktree": "single-writer",
+    "sharedPaths": "single-owner",
+    "testAndQa": "serial",
+    "qaPort": 3300
+  },
+  "authorization": {
+    "humanVisualAcceptance": "required-before-release",
+    "deployment": "explicit-user-authorization"
+  },
+  "kitsRegistry": {
+    "role": "registry-source",
+    "assetRegistryPath": "registry/assets.json",
+    "authority": "single-source",
+    "sourceInstall": "supported",
+    "consumerInstallPath": "lib/kits/installed",
+    "portSurfaces": [
+      ".qa/qa.config.mjs",
+      ".qa/kits-shots.mjs",
+      ".qa/reveal-probe.mjs",
+      "playground/package.json",
+      "README.md"
+    ]
+  }
+}

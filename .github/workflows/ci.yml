@@ -1,0 +1,147 @@
+# Prototype Kits · CI
+#
+# WHAT THIS IS
+# ------------
+# A **quality gate only**. CI answers "is this tree still internally consistent
+# and green?", and nothing else. It does not build a preview environment, it does
+# not promote anything, and it holds no deployment credentials:
+#
+#   - 部署仍由 **Vercel Git Integration** 负责 —— push / tag 触发平台自己的构建，
+#     Vercel 是部署的一方，CI 不是。
+#   - 本 workflow **不调用任何部署 CLI、不读取任何部署 token 或 bypass secret**，
+#     也不创建 Preview / Production。判断依据不是「作者没说」，而是 workflow 文本
+#     里根本没有这类调用 —— `pnpm factory:agents` 会逐行扫这个文件并对此断言。
+#   - 部署授权是**独立的一次人工决定**（见 AGENTS.md 管理块的「部署授权」一条）。
+#     让 CI 顺手部署会把「人的决定」变成构建的副作用，这正是要避免的。
+#
+# WHY IT IS SELF-CONTAINED (and how to switch later)
+# -------------------------------------------------
+# The intended end state is to call the shared workflow from the root control repo:
+#
+#     # uses: skillre/prototype-factory-control/.github/workflows/reusable-prototype-ci.yml@v1
+#
+# That call is **not** enabled here. Verified on 2026-09-15: the GitHub API and the
+# web URL for `skillre/prototype-factory-control` both return 404; the path does
+# not exist locally; `grep prototype-factory-control` over the whole workspace has
+# 0 hits. The real control plane is the workspace root itself, and it is not
+# published either — it has no remote and no `.github/` directory.
+#
+# A `uses:` pointing at a repository that does not exist makes the workflow file
+# invalid, so *every* run fails before any job starts — CI would be dead, not
+# merely degraded. A gate that never runs is worse than a local one that does, and
+# hard-coding an unverifiable `@v1` would look pinned while nobody had resolved it.
+#
+# The state above is recorded as `upstream/control-repo` (value: null) in
+# `factory.lock.json`, and `pnpm factory:agents` enforces the pairing: the moment a
+# real `uses:` line is added, the lock must stop calling it unknown. So the switch
+# is a two-line change plus a lock update — deliberate, and impossible to do by
+# accident.
+#
+# Note also that this repository's own remote (`skillre/prototype-kits`) is
+# unpublished too, so this workflow has no runtime yet. It is written now so the
+# contract is reviewable, not because it is already running.
+#
+# SERIALIZATION (non-negotiable)
+# ------------------------------
+# The test gate and the QA sweep must never run concurrently. Next 16's dev server
+# locks per *project* (`.next/dev/lock`), not per port, so two of them in one
+# checkout fight over the same tree — and the QA sweep starts a real Playground
+# server on port 3300. `browser-qa` therefore `needs:` the gate job: serial by
+# construction, not by ordering luck. `pnpm factory:agents` checks that this stays
+# true, and that the two commands are not collapsed into one job.
+
+name: CI
+
+on:
+  push:
+    branches: ["main", "feature/**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality-gate:
+    name: Quality gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      # Reads the pinned version from `packageManager` in package.json — the same
+      # field the local toolchain uses. No second place to update.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      # First gate, on purpose: the governance policy must hold before anything
+      # else is allowed to be called green. It covers the agent-orchestration
+      # boundary, the managed block, the registry role, the port facts, and the
+      # contract of this very file.
+      - name: Factory governance gate
+        run: pnpm factory:agents
+
+      # Registry authority: audit registry/assets.json and every manifest it
+      # points at. Errors exit non-zero; warnings are reported, not hidden.
+      - name: Registry audit
+        run: pnpm registry
+
+      # Source install is a first-class delivery path, and this is its only real
+      # evidence: the fixture product must install, typecheck and build while the
+      # prototype-kits repository does not exist. No other step proves that.
+      - name: Standalone source-install verification
+        run: pnpm verify:standalone
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit and contract tests
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+  browser-qa:
+    name: Browser QA (serial)
+    needs: quality-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      # Never runs at the same time as the gate job above (`needs:`), and never
+      # touches a deployed URL: the sweep refuses to attach to a server it did not
+      # spawn, starts its own Playground on port 3300, verifies the page is really
+      # this Playground, and stops only the process group it created.
+      - name: Browser QA sweep
+        run: pnpm qa

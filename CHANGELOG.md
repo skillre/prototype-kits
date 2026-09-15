@@ -1,5 +1,58 @@
 # Changelog
 
+## Unreleased · Factory Governance v1.3（治理采纳 + 端口迁移）
+
+本次**不改资产、不改 registry 内容、不改组件 API、不改已安装产品的任何东西**。
+变的是这个仓怎么被管、以及 Playground / QA 用哪个端口。
+
+### 治理采纳（policy 1.3.0）
+
+- 新增 `AGENTS.md`（含 `factory-core-policy v1.3.0` 管理块）、`factory-policy.json`、
+  `lib/factory-policy.schema.json`、`factory.lock.json`、`lib/factory-lock.schema.json`。
+- 新增 `scripts/guard-agent-policy.mjs` + `scripts/lib/agent-policy.mjs`，命令是
+  `pnpm factory:agents`，并且是 `pnpm check` 的**第一项**门禁。它核：编排边界、管理块逐字一致、
+  schema 关键值、锁的身份与受管面、registry 角色、端口事实、以及 CI 契约（无部署调用、
+  test/qa 串行）。
+- 治理锁的 `kind` 写作 **`kits-registry`**，**不是 `product`**。Kits 是 registry 的**来源仓**，
+  不是从 Factory 基线派生的产品（本仓没有 `init-contract.json`，也不该有）。把 `kind` 写成
+  `product` 只会让「这个仓是什么」变成一句假话。
+- **跨仓缺口（已知、已留档、未解决）**：根控制面 `contracts/factory-lock.schema.json` 目前用
+  `oneOf` 只描述两种形态 —— `factory-baseline`（基线自己）与 product lock；后者的
+  `additionalProperties: false` 里**没有 `kind` 字段**。因此一份如实写着 `kits-registry` 的锁
+  两个分支都不匹配，控制面一侧会报 `factory-lock-off-contract`（UNKNOWN）。这不是本仓能自决的：
+  正确顺序是**根契约扩 schema**，本仓据此收敛。缺口记录在 `factory.lock.json` 的
+  `unresolved[]` 里，条目 id 为 `upstream/contract-kits-registry-shape`（`value: null`）。
+- 新增 `.github/workflows/ci.yml`：**只做质量门** —— `factory:agents` → `registry` →
+  `verify:standalone` → lint / typecheck / test / build，然后一个用 `needs:` 串行的 browser QA job。
+  workflow 文本里没有任何部署 CLI 调用、没有任何部署 token；这不是靠约定，而是 `pnpm factory:agents`
+  逐行扫这个文件并对此断言。
+- `pnpm check` 现在是 `pnpm factory:agents && pnpm lint && pnpm typecheck && pnpm test && pnpm build`。
+
+### 端口迁移：Playground / QA 迁到独立槽位 3300
+
+- **原端口是 3200，由 starter / s1 / kits 三个仓共用。** 三个仓都自管 server，任意两个同时运行
+  就会互相把对方的页面当成被测应用 —— 而且不报错。Kits 是 Playground、不是业务原型，
+  按根控制面 `catalog/ports.json` 的 advisory 让到独立槽位 **3300**，从此不与任何原型互撞。
+- 迁移覆盖面：`playground/package.json` 的 `dev` / `start`、`.qa/kits-shots.mjs` 与
+  `.qa/reveal-probe.mjs` 的默认地址、`README.md`、以及端口守卫的提示文案。旧端口号
+  **不再出现在任何声明面**上（`pnpm factory:agents` 的 `port/retired-fact` 会核）。
+  本节是**历史记录**，所以这里保留旧端口号；声明面只写当前值，一个事实一个答案。
+- 新增 `.qa/qa.config.mjs` 作为端口与 Playground server 的**唯一来源**：在此之前端口散落在四处，
+  四处各写一遍就必然有一处先过期，而过期的那一处恰好是「QA 打谁」。
+- 新增 `scripts/check-qa-port.mjs` 预检守卫：端口被占用时 fail loudly 并给出 `lsof` 定位命令，
+  不 adopt、不猜、不替人杀进程。
+- **QA 不再复用未知 server。** 原先 `.qa/*.mjs` 直接 `page.goto` 一个默认地址 —— 那等于
+  「这个端口上有谁就算谁」。现在新增 `.qa/qa-server.mjs`：server 由本次 run 启动（独立**进程组**，
+  结束只杀自己那一组），起完先做**身份检查**（页面必须带着 Kits 自己的标记 `data-kits-pack` /
+  `data-kits-component`），通过之后才跑断言。设了 `KITS_BASE` 时走 EXTERNAL 模式：不起也不停
+  server，但身份检查照跑。**就绪 ≠ 身份**：前者任何 server 都能满足。
+- 新增 `tests/qa-port.spec.ts`，把上面这些钉成静态断言（端口单来源、无旧端口残留、
+  入口必须走受管 server、只杀自己的进程组）。
+
+> 已知未验证项：本次改动**没有在真实 GitHub Actions runner 上跑过** —— 本仓远端
+> `skillre/prototype-kits` 尚未发布（2026-09-15 探测返回 404），workflow 因此还没有运行场所。
+> 记录在 `factory.lock.json` 的 `unresolved[]`，条目 id 为 `upstream/kits-remote`。
+
 ## v0.2.0 · Contract Hardening
 
 `v0.1.1` → `v0.2.0`。两次独立消费之间（AI Finance 的 Source Installation 与

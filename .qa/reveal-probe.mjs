@@ -1,9 +1,14 @@
 import { chromium } from "@playwright/test";
 
+import { QA_ORIGIN } from "./qa.config.mjs";
+import { withQaServer } from "./qa-server.mjs";
+
 /**
  * QA · 步进链路的活体检查。
  *
- *   node .qa/reveal-probe.mjs          (需要 Playground 已在 3200 起服务)
+ *   node .qa/reveal-probe.mjs          # 自己起 Playground（端口 3300）并自己停
+ *   KITS_BASE=http://host:port node .qa/reveal-probe.mjs
+ *                                      # EXTERNAL：不起也不停 server，但身份检查照跑
  *
  * 为什么需要它 —— 一个只有浏览器能量出来的 bug：
  *
@@ -18,95 +23,111 @@ import { chromium } from "@playwright/test";
  *
  * 静态审计（vitest 的 insight-reveal-group.spec.ts）覆盖了第一跳与第二跳；
  * 这里补上第三跳：**浏览器实际算出来的 transition-delay 是否递增**。
+ *
+ * server 归本次运行管，且**先验身份再断言**：见 `.qa/qa-server.mjs`。
+ * 不复用未知 server —— 打到别的页面上，这里所有测量都会没有意义。
  */
 
-const BASE = process.env.KITS_BASE ?? "http://localhost:3200";
+/**
+ * `let`，不是 `const`：真正的值在身份检查通过之后由 `withQaServer` 写入。
+ * 模块级默认值只是「没被赋值时该打哪里」的兜底，不是事实来源。
+ */
+let BASE = process.env.KITS_BASE ?? QA_ORIGIN;
 const ROUTES = ["/components", "/"];
 
-const browser = await chromium.launch();
-const problems = [];
+const run = await withQaServer(async (origin) => {
+  BASE = origin;
+  const problems = [];
+  const browser = await chromium.launch();
 
-for (const route of ROUTES) {
-  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-  const page = await context.newPage();
-  await page.goto(`${BASE}${route}`, { waitUntil: "networkidle" });
+  try {
+    for (const route of ROUTES) {
+      const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      const page = await context.newPage();
+      await page.goto(`${BASE}${route}`, { waitUntil: "networkidle" });
 
-  const reveals = page.locator("[data-kits-component='insight-reveal']");
-  const count = await reveals.count();
+      const reveals = page.locator("[data-kits-component='insight-reveal']");
+      const count = await reveals.count();
 
-  if (count === 0) {
-    problems.push(`${route}：没有找到 InsightReveal 实例（样张是否还在？）`);
-    await context.close();
-    continue;
-  }
+      if (count === 0) {
+        problems.push(`${route}：没有找到 InsightReveal 实例（样张是否还在？）`);
+        await context.close();
+        continue;
+      }
 
-  for (let i = 0; i < count; i += 1) {
-    const element = reveals.nth(i);
-    await element.scrollIntoViewIfNeeded();
-    await page.waitForTimeout(700);
+      for (let i = 0; i < count; i += 1) {
+        const element = reveals.nth(i);
+        await element.scrollIntoViewIfNeeded();
+        await page.waitForTimeout(700);
 
-    const probe = await element.evaluate((root) => {
-      const hosts = [...root.querySelectorAll("[data-kits-reveal-item]")];
-      const step = root.getAttribute("data-kits-step");
-      return {
-        step,
-        visible: root.getAttribute("data-kits-visible"),
-        hostCount: hosts.length,
-        rows: hosts.map((host) => {
-          const child = host.firstElementChild ?? host;
-          const style = getComputedStyle(child);
+        const probe = await element.evaluate((root) => {
+          const hosts = [...root.querySelectorAll("[data-kits-reveal-item]")];
+          const step = root.getAttribute("data-kits-step");
           return {
-            index: host.style.getPropertyValue("--kits-reveal-index"),
-            delay: style.transitionDelay,
-            display: getComputedStyle(host).display,
+            step,
+            visible: root.getAttribute("data-kits-visible"),
+            hostCount: hosts.length,
+            rows: hosts.map((host) => {
+              const child = host.firstElementChild ?? host;
+              const style = getComputedStyle(child);
+              return {
+                index: host.style.getPropertyValue("--kits-reveal-index"),
+                delay: style.transitionDelay,
+                display: getComputedStyle(host).display,
+              };
+            }),
           };
-        }),
-      };
-    });
+        });
 
-    if (probe.step !== "group") continue;
+        if (probe.step !== "group") continue;
 
-    // ① 每个直接子元素都必须有宿主
-    const directChildren = await element.evaluate((root) => root.children.length);
-    if (probe.hostCount !== directChildren) {
-      problems.push(
-        `${route} [${i}]：宿主数量 ${probe.hostCount} ≠ 直接子元素 ${directChildren}`,
-      );
+        // ① 每个直接子元素都必须有宿主
+        const directChildren = await element.evaluate((root) => root.children.length);
+        if (probe.hostCount !== directChildren) {
+          problems.push(
+            `${route} [${i}]：宿主数量 ${probe.hostCount} ≠ 直接子元素 ${directChildren}`,
+          );
+        }
+
+        // ② 序号必须真的存在
+        const missingIndex = probe.rows.filter((r) => r.index === "").length;
+        if (missingIndex > 0) {
+          problems.push(`${route} [${i}]：${missingIndex} 个宿主没有 --kits-reveal-index`);
+        }
+
+        // ③ 宿主必须对布局不可见（否则会改变产品的间距/列数）
+        const wrongDisplay = probe.rows.filter((r) => r.display !== "contents").length;
+        if (wrongDisplay > 0) {
+          problems.push(`${route} [${i}]：${wrongDisplay} 个宿主的 display 不是 contents`);
+        }
+
+        // ④ 第三跳：transition-delay 必须随序号递增，否则步进等于没装
+        const delays = probe.rows
+          .map((r) => r.delay)
+          .map((d) => (d.includes(",") ? d.split(",")[0].trim() : d))
+          .map((d) => (d.endsWith("ms") ? Number.parseFloat(d) : Number.parseFloat(d) * 1000));
+        const strictlyIncreasing = delays.every(
+          (value, index) => index === 0 || value > delays[index - 1],
+        );
+        if (!strictlyIncreasing) {
+          problems.push(
+            `${route} [${i}]：transition-delay 没有随序号递增 → [${probe.rows
+              .map((r) => `${r.index}→${r.delay}`)
+              .join(", ")}]`,
+          );
+        }
+      }
+
+      await context.close();
     }
-
-    // ② 序号必须真的存在
-    const missingIndex = probe.rows.filter((r) => r.index === "").length;
-    if (missingIndex > 0) {
-      problems.push(`${route} [${i}]：${missingIndex} 个宿主没有 --kits-reveal-index`);
-    }
-
-    // ③ 宿主必须对布局不可见（否则会改变产品的间距/列数）
-    const wrongDisplay = probe.rows.filter((r) => r.display !== "contents").length;
-    if (wrongDisplay > 0) {
-      problems.push(`${route} [${i}]：${wrongDisplay} 个宿主的 display 不是 contents`);
-    }
-
-    // ④ 第三跳：transition-delay 必须随序号递增，否则步进等于没装
-    const delays = probe.rows
-      .map((r) => r.delay)
-      .map((d) => (d.includes(",") ? d.split(",")[0].trim() : d))
-      .map((d) => (d.endsWith("ms") ? Number.parseFloat(d) : Number.parseFloat(d) * 1000));
-    const strictlyIncreasing = delays.every(
-      (value, index) => index === 0 || value > delays[index - 1],
-    );
-    if (!strictlyIncreasing) {
-      problems.push(
-        `${route} [${i}]：transition-delay 没有随序号递增 → [${probe.rows
-          .map((r) => `${r.index}→${r.delay}`)
-          .join(", ")}]`,
-      );
-    }
+  } finally {
+    await browser.close();
   }
 
-  await context.close();
-}
+  return problems;
+});
 
-await browser.close();
+const problems = run.result;
 
 if (problems.length) {
   console.log("步进链路有问题：");
@@ -114,5 +135,6 @@ if (problems.length) {
   process.exit(1);
 }
 console.log(
-  "步进链路 OK —— 宿主存在 · 序号落到 DOM · display:contents 不破坏布局 · transition-delay 随序号递增",
+  `步进链路 OK（mode ${run.mode} · ${run.origin}，身份检查已通过）—— ` +
+    "宿主存在 · 序号落到 DOM · display:contents 不破坏布局 · transition-delay 随序号递增",
 );

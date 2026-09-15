@@ -9,8 +9,12 @@
  *   4. 降级路径是否生效（例如 reduced-motion 下 InsightReveal 内容必须可见）。
  *
  * 用法：
- *   node .qa/kits-shots.mjs                 # 默认打生产预览 http://localhost:3200
- *   KITS_BASE=http://localhost:3000 node .qa/kits-shots.mjs
+ *   node .qa/kits-shots.mjs                 # 自己起 Playground（端口 3300）并自己停
+ *   KITS_BASE=http://host:port node .qa/kits-shots.mjs
+ *                                           # EXTERNAL：不起也不停 server，但身份检查照跑
+ *
+ * server 归本次运行管：端口取自 .qa/qa.config.mjs 的 QA_PORT，起完先验身份
+ * （页面必须带着 Kits 自己的标记），再跑断言。不复用未知 server —— 见 .qa/qa-server.mjs。
  *
  * 截图落在 .qa/out/（已在 .gitignore 中忽略），末尾打印 QA OK 或问题清单。
  */
@@ -18,7 +22,14 @@ import { chromium } from "@playwright/test";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-const BASE = process.env.KITS_BASE ?? "http://localhost:3200";
+import { QA_ORIGIN } from "./qa.config.mjs";
+import { withQaServer } from "./qa-server.mjs";
+
+/**
+ * `let`，不是 `const`：真正的值在身份检查通过之后由 `main()` 写入。
+ * 模块级默认值只是「没被赋值时该打哪里」的兜底，不是事实来源。
+ */
+let BASE = process.env.KITS_BASE ?? QA_ORIGIN;
 const OUT = path.join(process.cwd(), ".qa", "out");
 
 const VIEWPORTS = [
@@ -603,22 +614,37 @@ async function checkEffectOverride(browser) {
 
 async function main() {
   await mkdir(OUT, { recursive: true });
-  const browser = await chromium.launch();
-  const report = { base: BASE, routes: {}, reducedMotion: null };
 
-  for (const viewport of VIEWPORTS) {
-    for (const route of ROUTES) {
-      const key = `${viewport.name} ${route.path}`;
-      report.routes[key] = await checkRoute(browser, route, viewport);
+  /*
+   * server 由本次运行自己起、自己停、并**验身份**（`.qa/qa-server.mjs`）。
+   *
+   * 不复用任何已存在的 server：就绪探针只判断「有东西应答」，不判断「是不是这个
+   * 应用」。同机跑着多个原型，一旦复用命中别的 server，下面全套断言会在**错误的
+   * 页面**上变绿而且不报错。端口被占用时 fail loudly —— 不 adopt、不猜、不替人杀进程。
+   */
+  const run = await withQaServer(async (origin, info) => {
+    BASE = origin;
+    const browser = await chromium.launch();
+    const report = { base: BASE, mode: info.mode, routes: {}, reducedMotion: null };
+    try {
+      for (const viewport of VIEWPORTS) {
+        for (const route of ROUTES) {
+          const key = `${viewport.name} ${route.path}`;
+          report.routes[key] = await checkRoute(browser, route, viewport);
+        }
+      }
+
+      report.reducedMotion = await checkReducedMotion(browser);
+      report.a11y = await checkInsightRevealA11y(browser);
+      report.coarsePointer = await checkCoarsePointer(browser);
+      report.effectOverride = await checkEffectOverride(browser);
+    } finally {
+      await browser.close();
     }
-  }
+    return report;
+  });
 
-  report.reducedMotion = await checkReducedMotion(browser);
-  report.a11y = await checkInsightRevealA11y(browser);
-  report.coarsePointer = await checkCoarsePointer(browser);
-  report.effectOverride = await checkEffectOverride(browser);
-  await browser.close();
-
+  const report = run.result;
   await writeFile(
     path.join(OUT, "report.json"),
     `${JSON.stringify(report, null, 2)}\n`,
@@ -631,7 +657,8 @@ async function main() {
     process.exit(1);
   }
   console.log(
-    `\nQA OK —— ${ROUTES.length} 个路由 × ${VIEWPORTS.length} 个视口：无控制台报错 / 无页面异常 / 无横向溢出（三条判据）；` +
+    `\nQA OK —— mode ${run.mode} · origin ${run.origin}（身份检查已通过）\n` +
+      `  ${ROUTES.length} 个路由 × ${VIEWPORTS.length} 个视口：无控制台报错 / 无页面异常 / 无横向溢出（三条判据）；` +
       "三套 pack 计算样式确有差异；reduced-motion 降级正确；" +
       "InsightReveal 无障碍树与 DOM 一致；coarse pointer 因子生效（64 → 96px）；" +
       "effect 公开变量可在祖先作用域覆盖",

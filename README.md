@@ -371,22 +371,33 @@ node scripts/verify-standalone.mjs
 ```bash
 git clone <repo> && cd prototype-kits
 pnpm install
-pnpm dev          # Playground → http://localhost:3200
+pnpm dev          # Playground → http://localhost:3300
 ```
+
+> **端口是 3300，唯一来源是 `.qa/qa.config.mjs`。** Kits 作为 Playground 已按根控制面
+> catalog 的建议从与其它原型共用的槽位让到独立槽位 3300（迁移记录见 `CHANGELOG.md`）。
+> 改动端口时改 `.qa/qa.config.mjs`，并同步 `factory-policy.json` 的 `concurrency.qaPort`
+> —— `pnpm factory:agents` 会核这次不一致，也会核旧端口没有残留在声明面上。
 
 ### 质量门（提交前必须全绿）
 
 ```bash
+pnpm factory:agents  # 治理门禁：编排边界 / 管理块 / 锁 / registry 角色 / 端口事实 / CI 契约
 pnpm lint         # ESLint（含 packages 与 playground）
 pnpm typecheck    # playground tsc + kits tsc --noEmit
 pnpm test         # vitest：契约 + 包边界 + 安装器 + 无障碍 + 边界（474 个用例：473 通过 / 1 skip）
 pnpm build        # Playground 生产构建
-pnpm check        # 以上四件
+pnpm check        # factory:agents + lint + typecheck + test + build
 pnpm registry     # Asset Registry 门：引用 / 标签 / 移动端 / 暗色方向一致性 + 覆盖度
                   # （有 error 退出码非 0，并逐项说明这次检查了什么）
-pnpm qa           # Browser QA：双视口截图 + 溢出 / 报错 / 降级 / 无障碍探针
+pnpm qa           # Browser QA：端口守卫 + 自管 Playground server（3300，验身份）
+                  # + 双视口截图 + 溢出 / 报错 / 降级 / 无障碍探针
 pnpm verify:standalone   # Distribution 验收（把 Kits 仓库移走后仍能 build）
 ```
+
+> `pnpm qa` **不复用未知 server**：它自己起 Playground、先验身份（页面必须带着 Kits 自己的
+> 标记）再断言，结束只杀自己启动的进程组。端口被占用时 `scripts/check-qa-port.mjs` 会
+> fail loudly 并给出定位命令，不会 adopt、不会替你杀进程。
 
 > `pnpm qa` 需要先起服务：`pnpm build && pnpm --filter @kits/playground start`。
 > 截图与报告落在 `.qa/out/`（已 gitignore）。

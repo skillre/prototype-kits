@@ -12,11 +12,12 @@
     "test": "vitest run",
     "build": "pnpm --filter @kits/playground build",
     "dev": "pnpm --filter @kits/playground dev",
-    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
-    "qa": "node .qa/kits-shots.mjs",
+    "check": "pnpm factory:agents && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "factory:agents": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/guard-agent-policy.mjs",
+    "qa": "node scripts/check-qa-port.mjs && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON .qa/kits-shots.mjs",
     "registry": "node scripts/registry-audit.mjs",
     "verify:standalone": "node scripts/verify-standalone.mjs",
-    "qa:reveal": "node .qa/reveal-probe.mjs"
+    "qa:reveal": "node scripts/check-qa-port.mjs && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON .qa/reveal-probe.mjs"
   },
   "devDependencies": {
     "@kits/contracts": "workspace:*",

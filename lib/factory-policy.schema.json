@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://prototype-kits.local/schemas/factory-policy.schema.json",
+  "title": "Prototype Kits · Factory Governance Policy",
+  "description": "机器可读的工厂治理策略（v1.3.0），适配 Prototype Kits 这一 **platform / registry 仓**。它是 AGENTS.md 里 `<!-- BEGIN:factory-core-policy v1.3.0 -->` 管理块的唯一来源：`pnpm factory:agents --print-block` 由本文件渲染块，`pnpm factory:agents` 逐字校验块与它一致。这里的 `const` 就是「关键值」——校验器不另外抄一份常量，改策略必须改这里。\n\n**它与 starter 的策略同源但不同身份。** Kits 不是从 Factory 基线派生出来的产品（没有 init-contract.json，也没有 baseline 身份），它是资产与 registry 的来源仓。所以本策略上保留 starter v1.3 的四条通用约束（编排边界 / 路由 / 并发 / 人工闸门），并把 Kits 特有的三条写进 `kitsRegistry`：registry 是唯一权威、source install 是一等交付方式、消费端安装路径不属于本仓。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "policyVersion",
+    "managedBlock",
+    "agentOrchestration",
+    "modelRouting",
+    "concurrency",
+    "authorization",
+    "kitsRegistry"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": {
+      "const": 1,
+      "description": "本契约的版本。"
+    },
+    "policyVersion": {
+      "const": "1.3.0",
+      "description": "管理策略版本。与管理块的 BEGIN 标记中的版本号必须一致。"
+    },
+    "managedBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["document", "marker", "version", "begin", "end"],
+      "description": "AGENTS.md 里由本策略拥有的块。块内文本可同步（`--print-block`），块外是人类写的文档。",
+      "properties": {
+        "document": { "const": "AGENTS.md" },
+        "marker": { "const": "factory-core-policy" },
+        "version": { "const": "1.3.0" },
+        "begin": { "const": "<!-- BEGIN:factory-core-policy v1.3.0 -->" },
+        "end": { "const": "<!-- END:factory-core-policy -->" }
+      }
+    },
+    "agentOrchestration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["host", "dshSubagents", "productAppFrameworks", "allowedScope", "forbiddenScope"],
+      "description": "v1.3.0 替换掉 v1.2 的「禁止 Multi-agent orchestration」。那是一条过宽的禁令：它同时ban掉了宿主侧的 agent 拆分与本该ban掉的东西，于是规则要么被违反、要么把合法的编排也一起掐死。边界改成两条并存的事实。",
+      "properties": {
+        "host": {
+          "const": "dsh",
+          "description": "编排发生在宿主（DeepSeek Harness）侧，不在被交付的代码里。"
+        },
+        "dshSubagents": {
+          "const": "required",
+          "description": "在 DSH 宿主内使用多 Subagent 拆分/并行任务是被允许、且被要求的。"
+        },
+        "productAppFrameworks": {
+          "const": "forbidden",
+          "description": "交付面代码里禁止引入编排框架/编排运行时。Kits 的交付面会被 source install 进产品仓库，所以这条在本仓比在普通产品仓更硬：污染会跨仓扩散。"
+        },
+        "allowedScope": {
+          "minLength": 1,
+          "type": "string",
+          "description": "许可范围的边界描述，必须与 AGENTS.md 管理块表述一致。"
+        },
+        "forbiddenScope": {
+          "minLength": 1,
+          "type": "string",
+          "description": "禁止范围的边界描述，必须与 AGENTS.md 管理块表述一致。"
+        }
+      }
+    },
+    "modelRouting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "model", "reasoningEffort", "verifiedOn"],
+      "description": "Subagent 与协作任务的默认路由。三个值不是抄来的约定，是 2026-09-15 用 DSH 模型目录核出来的：provider `opencode-go-dsv41` 广告 model `deepseek-flash`，该 model 的 reasoning efforts 为 low/medium/high/max。",
+      "properties": {
+        "provider": { "const": "opencode-go-dsv41" },
+        "model": { "const": "deepseek-flash" },
+        "reasoningEffort": {
+          "const": "max",
+          "description": "该 provider 广告 low/medium/high/max；策略钉住 max。"
+        },
+        "verifiedOn": {
+          "const": "2026-09-15",
+          "description": "路由值与 DSH 模型目录比对的日期。路由变了要重新核，而不是让这里慢慢过期。"
+        }
+      }
+    },
+    "concurrency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["worktree", "sharedPaths", "testAndQa", "qaPort"],
+      "description": "并行是手段，不是目标。这三条约束的是「怎么写」；`qaPort` 是 Kits 自己的独占资源声明。",
+      "properties": {
+        "worktree": {
+          "const": "single-writer",
+          "description": "单 worktree 单写者：同一棵工作副本同一时间只有一个写者。要并行写就各自独立 worktree。"
+        },
+        "sharedPaths": {
+          "const": "single-owner",
+          "description": "共享路径单 owner：AGENTS.md、package.json、factory-policy.json、factory.lock.json、registry/assets.json、契约 schema 与门禁脚本这类共享面，同一时间只有一个 owner。"
+        },
+        "testAndQa": {
+          "const": "serial",
+          "description": "test 与 qa 串行：永不并发。CI 里同样不得拆成两个并行 job。"
+        },
+        "qaPort": {
+          "const": 3300,
+          "description": "Kits 的 QA / Playground 独占端口。原为 3200，与 starter 和 s1 三仓共用；根控制面 catalog/ports.json 的 advisory 建议 Kits 让到 3300（kits 是 playground，不是业务原型）。本仓据此迁移，并把该事实在这里钉死——.qa/qa.config.mjs、playground/package.json 与文档必须与它一致，且不得再出现 3200。"
+        }
+      }
+    },
+    "authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["humanVisualAcceptance", "deployment"],
+      "description": "两道人工闸门。Agent 可以准备证据，不能代替人按按钮。",
+      "properties": {
+        "humanVisualAcceptance": {
+          "const": "required-before-release",
+          "description": "HVA（人工视觉验收）先于发布。未完成时状态只能是 READY FOR HUMAN VISUAL ACCEPTANCE。"
+        },
+        "deployment": {
+          "const": "explicit-user-authorization",
+          "description": "部署是独立的一次人工授权：源码发布 ≠ Production 部署。Vercel 是部署的一方，CI 不是。"
+        }
+      }
+    },
+    "kitsRegistry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "assetRegistryPath",
+        "authority",
+        "sourceInstall",
+        "consumerInstallPath",
+        "portSurfaces"
+      ],
+      "description": "Kits 作为 platform / registry 仓的专有约束。这三条是「谁说了算」的问题，不是流程问题：资产清单只有一个权威来源，跨仓交付只走 source install，消费端的安装产物不属于本仓。",
+      "properties": {
+        "role": {
+          "const": "registry-source",
+          "description": "本仓是 registry 的**来源**，不是消费者。因此它没有 lib/kits/kits.lock.json，也不该有——那是产品侧的安装状态凭据。"
+        },
+        "assetRegistryPath": {
+          "const": "registry/assets.json",
+          "description": "资产准入的唯一权威清单。Gate 会核它真实存在，并与 registry/assets.schema.json 并存。"
+        },
+        "authority": {
+          "const": "single-source",
+          "description": "唯一权威：任何资产的存在性、状态与适用范围都以 registry/assets.json 为准。README、文档、Playground 页面都只是它的视图——视图可以过期，权威不能有第二份。"
+        },
+        "sourceInstall": {
+          "const": "supported",
+          "description": "source install 是一等交付方式：产品在自己的仓库里安装 Kits，且必须在 prototype-kits 仓库不存在的情况下仍可 build。`pnpm verify:standalone` 是这条的唯一证据。"
+        },
+        "consumerInstallPath": {
+          "const": "lib/kits/installed",
+          "description": "消费端（产品）的安装路径。它属于产品，不属于本仓：本仓若出现这个目录，说明 registry 仓被当成了消费者，Gate 直接失败。"
+        },
+        "portSurfaces": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "声明 QA 端口事实的文件清单。Gate 会逐个读它们：既要求其中至少一处写出 policy 钉住的端口，也要求任何一处都不再出现被淘汰的旧端口。范围是**声明的**，不是全仓 grep——README 与 docs 里的历史叙述、CHANGELOG 里的迁移记录都属于历史，历史允许是历史的。",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}
