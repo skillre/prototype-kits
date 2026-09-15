@@ -102,6 +102,10 @@ import { DataCursor } from "@/lib/kits/adapters/data-cursor";
 </DataCursor>
 ```
 
+> 上面是**直连资产名**的兼容写法（一直合法）。v0.2（K4）起更推荐走角色文件：
+> `adapters/<角色>.ts(x)` 里 `export * from "./<资产名>"`，产品只 import 角色名 ——
+> 换资产时产品代码不动，Factory v1.2 的 Tier 3 也只接受这种形状。
+
 **4. 要不要 effect：显式决定（v0.2 · K8）**
 
 Effect Pack 不是 pack 的附属品，也不会自动生效。装的时候就要说清楚，

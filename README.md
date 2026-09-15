@@ -290,13 +290,18 @@ lib/kits/
 | Effect | `effect-<id>.css` | `effect-<id>.ts` |
 
 ```ts
-// 产品侧——唯一直接引用资产的正确写法
+// 兼容写法（v0.1.x 起一直合法）：直接 import 资产名适配层
 import { AnimatedGrid } from "@/lib/kits/adapters/animated-grid";
 import { stylePackMotionVars } from "@/lib/kits/adapters/style-pack";
 import { effectClass, effectVars } from "@/lib/kits/adapters/effect-ambient-glow";
 
 <html data-kits-pack="cinematic" style={stylePackMotionVars}>
 ```
+
+> **v0.2（K4）起推荐更好的写法**：产品只 import 自己命名的角色文件
+> （`adapters/pointer.tsx` → 内部指向 `adapters/data-cursor.tsx`），
+> 于是"换资产不动产品代码"才真的成立。两种写法都合法；
+> 区别是 Factory v1.2 的 Tier 3 会把**直连资产名**判红（那是产品代码里出现了资产身份）。
 
 `style-pack.ts` 是**稳定名字**：它 re-export 当前 pack 的 `<id>` 版本，
 所以换 pack 时产品代码的引用面不动。`motionToCssVars` 由 TS 缝从正式安装的
