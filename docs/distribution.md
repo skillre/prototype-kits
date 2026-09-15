@@ -268,7 +268,8 @@ v0.2 再考虑带迁移脚本的 upgrade。
 
 ## 版本策略
 
-当前 `registryVersion` 是 `0.1.1`；**资产的版本号各自独立** ——
+当前 `registryVersion` 是 `0.2.0`（v0.2 把 pack / component 的适配标签与 darkDirection
+写进 registry，属于**新增字段**，产品侧无破坏性变更）；**资产的版本号各自独立** ——
 v0.1.1 只让真正变了的 5 个资产升到了 0.1.1（`contracts` / `cli` /
 `insight-reveal` / `animated-grid` / `ambient-glow`），其余仍是 0.1.0。
 这样 `kits diff` 说出的才是实话：它只报真有差异的资产。

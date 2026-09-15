@@ -7,7 +7,23 @@
 | 文件 | 作用 |
 |---|---|
 | `assets.json` | 资产登记表 —— Kits 里每一个 style / component / effect / skill 都必须在这里有一条记录 |
-| `assets.schema.json` | 登记表的结构契约（JSON Schema 2020-12），由 `tests/registry.spec.ts` 校验 |
+| `assets.schema.json` | 登记表的结构契约（JSON Schema 2020-12）。**同时是全部枚举词汇表的唯一来源**（`$defs.fitTag` / `mobileCompatibility` / `darkStrategy` / `darkApproach` / `contrastTarget` / `packRole` / `mobileFallback`） |
+| `manifest.schema.json` | style / component manifest 的结构契约。只声明 v0.2 **新增或收紧**的字段（适配标签、移动端降级、暗色方向、引用列表、角色表），其余既存字段由各自的契约负责 —— 重复声明就是第二份真相 |
+
+### schema 与执行的关系（重要）
+
+**仓库里没有通用 JSON-Schema validator，这是刻意的**：Kits CLI 零依赖，测试也不引第三方校验器。
+所以 schema 不是"跑一遍就完事"的文件，它分两个角色被使用：
+
+| 角色 | 谁 | 做什么 |
+|---|---|---|
+| **词汇表** | `scripts/lib/manifest-contract.mjs` | 从 schema 的 `$defs` **读枚举**（标签、取值、上下限），自己的判定里不写第二份字面量 |
+| **执行** | 同一个模块 | 把 schema 声明的约束翻译成具名判定（`fit/unknown-tag`、`dark/target-too-low` …） |
+| **消费者** | `pnpm registry` · `tests/manifest-contract.spec.ts` · Playground 审计页 | 全部调用同一个模块，不再各写一套规则 |
+| **等价性** | `tests/manifest-contract.spec.ts` | 逐个枚举值钉住"schema 说的"与"执行做的"一致（含对比度下限 4.5 / 3） |
+
+**schema 里写了、但没有对应判定的字段，不算契约** —— 那只是文档。这一条是本仓库
+v0.1.1 的教训：`avoidFor` 在 schema 里躺了两个版本，而没有任何东西会因为它写错而变红。
 
 ## 为什么需要 Registry
 
@@ -70,13 +86,17 @@
 ## 自动化检查
 
 ```bash
-pnpm test            # vitest：schema 校验 + 一致性 + 覆盖度
-pnpm registry        # 审计脚本：把登记表打印成人类可读的清单
+pnpm test            # vitest：结构一致性 + 契约门禁 + 覆盖度
+pnpm registry        # 审计脚本：把登记表与一致性检查打印成人类可读的清单
 ```
 
-测试会强制以下规则：
+`pnpm registry` **是一个门，不是一段打印**：有 error 时退出码非 0，同时它会逐项列出
+「这次检查了什么、每个检查覆盖了多少个对象」——「0 处问题」在「全部通过」和
+「其实什么都没查」这两个世界里长得一样，所以必须说清楚是哪一种。
 
-- `assets.json` 必须能被解析，且通过 `assets.schema.json` 校验；
+登记表层面的规则（`tests/registry.spec.ts`）：
+
+- `assets.json` 必须能被解析，字段必须满足 `assets.schema.json` 的 `required` 与类型声明；
 - 每个 `asset.path` 指向的目录/文件必须真实存在；
 - `manifest` 指向的文件必须存在且能被解析；
 - style 资产必须覆盖 `editorial` / `cinematic` / `instrument` 三个 id；
@@ -84,6 +104,110 @@ pnpm registry        # 审计脚本：把登记表打印成人类可读的清单
 - `status=approved` 的资产不得出现 `reducedMotion: "unsupported"`；
 - 声明 `containsThirdPartyCode: false` 的资产目录里不得出现第三方源码痕迹
   （检查是否存在 `LICENSE-*` / `vendor/` / `raw/` 等目录）。
+
+跨字段一致性规则（`tests/manifest-contract.spec.ts`，判定实现见
+`scripts/lib/manifest-contract.mjs`）：
+
+| 判定 | 什么时候红 |
+|---|---|
+| `manifest/missing-file` | registry 指向的清单读不到 |
+| `ref/missing` · `ref/wrong-type` · `ref/duplicate` | 引用未登记资产 / 引用类型与字段语义不符 / 同一字段重复 |
+| `ref/registry-manifest-drift` | registry 与 manifest 的 `signatureComponents` 不一致 |
+| `usedby/unknown-role` · `usedby/unknown-pack` · `usedby/pack-does-not-list` · `usedby/role-mismatch` · `usedby/missing-pack` | 组件自报的角色词不在枚举里 / pack 不存在 / 说了角色但 pack 没列 / 两边角色不同 / pack 列了但组件没写 |
+| `fit/unknown-tag` · `fit/not-array` · `fit/conflict` · `fit/registry-manifest-drift` | 标签不在枚举（且非 `x-` 扩展）/ 不是数组 / 同一维度既推荐又回避 / 两侧标签不一致 |
+| `fit/notes-missing`（warn） | 有标签但人读散文丢失 |
+| `mobile/unknown-value` · `mobile/registry-manifest-drift` · `mobile/fallback-missing` · `mobile/fallback-lossy` · `mobile/tag-conflict` | 取值非法 / 两处声明不一致 / `fallback-only` 却没有降级行为 / 降级会丢内容 / `fallback-only` 却把 mobile 写进 recommendedFor |
+| `dark/unknown-strategy` · `dark/unknown-approach` · `dark/approach-required` · `dark/target-required` · `dark/slots-required` · `dark/target-invalid` · `dark/target-too-low` · `dark/unknown-slot` · `dark/not-object` | 暗色方向不可执行（见下） |
+| `dark/undeclared`（info） | 合法旧状态：没声明暗色方向 |
+| `effect/not-in-aggregate` · `effect/id-mismatch` · `effect/unknown-pack` · `effect/pack-wrong-type` · `effect/required-field` · `effect/reserved-registered` | effect 与聚合清单 `effects/manifest.json` 不一致 |
+| `package/name-drift` · `package/version-drift` | `package.json` 的 name / version 与 registry 不一致 |
+| `coverage/styles` · `coverage/components` | approved 数量低于本仓库承诺的下限（3 套 pack / 5 个组件） |
+
+---
+
+## 适配维度：`recommendedFor` / `avoidFor`（v0.2 · K7）
+
+这两个字段以前是**自由散文**（"移动端为主的产品"），typo 与真值一样通过。v0.2 起它们
+是**有限枚举的标签数组**：
+
+| 标签 | 意思 |
+|---|---|
+| `mobile` | 以移动 viewport 为主要使用场景 |
+| `desktop` | 以大屏多列布局为主要场景 |
+| `touch` | 触控是主要输入方式 |
+| `pointer` | 精确指针（鼠标 / 触控板 / 手写笔）是主要输入方式 |
+| `high-density` | 一屏承载大量高密度读数或字段 |
+| `low-density` | 一屏只讲一件事、留白是主要手段 |
+| `data-heavy` | 内容主体是数据 / 指标 / 表格 |
+| `text-heavy` | 内容主体是长文本 / 阅读 |
+| `motion-sensitive` | 场景对动效敏感（合规、审阅、长时间注视） |
+| `accessibility-critical` | 无障碍是硬性要求（政务、医疗、金融合规） |
+
+- **扩展**只有一条合法路径：`x-` 前缀（`x-internal-console`），必须小写 kebab。
+  自由字符串一律 `fit/unknown-tag`；
+- **同一个标签不能同时出现在两个列表里**（`fit/conflict`）——
+  「推荐」与「回避」同一件事没有可操作意义；
+- 标签是**机器可读投影**；人读的原话逐条保留在同名 manifest 的
+  `recommendedForNotes` / `avoidForNotes` 里（条数不必与标签数相同）；
+- **registry 与 manifest 两处都有标签，且必须逐字相等**（`fit/registry-manifest-drift`）。
+  registry 是索引（CLI / Playground 直接读它），manifest 是上下文（人在这里读理由）。
+
+---
+
+## 移动端语义：`mobileCompatible`（v0.2 · K2）
+
+**兼容 ≠ 推荐。** 这两个维度分开之后，取值与派生状态是：
+
+| 取值 | 意思 |
+|---|---|
+| `true` | 在它自己声明的支持条件下**允许**在移动 viewport 使用，不会因 API / 布局假设而天然失效。**不表示** recommended for mobile、ideal for high density 或 no adaptation needed |
+| `false` | 不得在移动 viewport 使用 |
+| `"fallback-only"` | 只能在声明的 `mobileFallback` 行为下使用（能力本身在触屏上不激活，但零内容损失） |
+| `"not-applicable"` | 非视觉资产（skill / package） |
+
+推荐与否由 `recommendedFor` / `avoidFor` 决定，于是审计输出的是**状态词**：
+
+| 派生状态 | 条件 | 当前例子 |
+|---|---|---|
+| `recommended` | `true` 且 `recommendedFor` 含 `mobile` | （暂无） |
+| `discouraged` | `true` 但 `avoidFor` 含 `mobile` | `instrument`（高密度在 390px 下不再可读） |
+| `compatible` | `true`，两边都没说 | 其余 pack 与组件 |
+| `fallback-only` | 取值即 `"fallback-only"` | `data-cursor`（触屏上组件完全不激活） |
+| `unsupported` | `false` | （暂无） |
+| `not-applicable` | 非视觉资产 | 两个 skill、`cli` |
+
+`mobileFallback` 是 `fallback-only` 的**执行条件**：`trigger` / `behavior[]` / `noContentLoss: true`
+三者缺一不可（`mobile/fallback-missing`、`mobile/fallback-lossy`）。
+
+---
+
+## 暗色方向：`darkDirection`（v0.2 · K1）
+
+v0.1.1 的产品只知道"颜色可以覆盖"，不知道往哪个方向覆盖、底线在哪里。`darkDirection`
+把这件事变成可执行的声明，并且**它是可选的** —— 不声明是合法的旧状态（audit 报 info，
+而不是静默当作"没有暗色问题"）。
+
+```jsonc
+"darkDirection": {
+  "strategy": "product-authored",        // single-theme | pack-authored | product-authored
+  "approach": "preserve-hue",            // product-authored 必填：preserve-hue | invert-contrast
+  "contrastTarget": {                    // product-authored 必填
+    "standard": "WCAG-AA",               // WCAG-AA | WCAG-AAA
+    "normalText": 4.5,                   // ≥ 4.5，低于它一律非法
+    "largeText": 3                       // ≥ 3
+  },
+  "slots": ["--kits-color-canvas"],      // product-authored 必填：必须是该 pack tokens.css 里真实声明的变量
+  "notes": "为什么是这个方向"
+}
+```
+
+- `single-theme`：pack 原生就是单一主题（例如原生深色），暗色等于默认值，不需要第二套；
+- `pack-authored`：pack 自带暗色取值；
+- `product-authored`：pack 不带，产品按 `approach` + `contrastTarget` 自己写覆盖 ——
+  这是被契约明确允许的（颜色是唯一允许覆盖的维度）。
+
+`slots` 会与 `tokens.css` **逐个变量核对**：写错一个字母就是 `dark/unknown-slot`。
+"允许覆盖"这句话因此是可检查的，而不是一句邀请。
 
 
 ---

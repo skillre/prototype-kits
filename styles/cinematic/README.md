@@ -100,7 +100,7 @@ import "@kits/style-cinematic/tokens.css";
 - 医院、政务、财务合规类正式界面——这套风格的情绪太"发布会"。
 - 同时显示 40+ 行数据的表格页（深色表格的横线会消失）。
 
-更多见 `manifest.json` 的 `recommendedFor` / `avoidFor`。
+更多见 `manifest.json` 的 `recommendedFor` / `avoidFor`（枚举标签）与 `recommendedForNotes` / `avoidForNotes`（人读的完整理由）。
 
 ---
 

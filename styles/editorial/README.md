@@ -94,7 +94,7 @@ const style = motionToCssVars(editorialMotion); // { "--kits-dur-quick": "140ms"
 - 强实时反馈工具：140ms 起步的动效在这里显得迟钝。
 - 需要并列对比大量卡片的目录页。
 
-更多用例见 `manifest.json` 的 `recommendedFor` / `avoidFor`。
+更多用例见 `manifest.json` 的 `recommendedFor` / `avoidFor`（枚举标签，可被审计）与 `recommendedForNotes` / `avoidForNotes`（人读的完整理由）。
 
 ---
 

@@ -59,7 +59,9 @@
 |---|---|---|
 | `packages/contracts/tokens.css` | 变量词汇表 + 中立兜底值 + reduced-motion/触屏全局降级 | **最慢**（破坏性变更需升 major） |
 | `packages/contracts/contract.ts` | 十个维度的枚举、`StylePackProfile`、`StylePackMotion`、`assertStylePackMotion`、`motionToCssVars` —— 契约**只有这一份**，且是公开 API | 慢 |
-| `registry/assets.schema.json` | 资产登记表的结构契约 | 慢 |
+| `registry/assets.schema.json` | 资产登记表的结构契约，**同时是全部枚举词汇表的唯一来源** | 慢 |
+| `registry/manifest.schema.json` | style / component manifest 的结构契约（v0.2 起只覆盖新增/收紧的字段） | 慢 |
+| `scripts/lib/manifest-contract.mjs` | 把上面两份 schema 的声明翻译成**具名判定**；`pnpm registry`、Kits 测试、Playground 审计页共用它 | 中 |
 
 ---
 
@@ -104,6 +106,22 @@ transform: translate3d(calc(var(--kits-layer-dx, 0) * 1px * var(--kits-pointer-f
 - 每个 pack 的十个维度取值三值互不相同（"不能只是换颜色"）。
 
 任何人试图把 pack 逻辑写进组件，CI 立刻红。
+
+### 3.4 schema 不会自己执行
+
+仓库里没有通用 JSON-Schema validator（Kits CLI 零依赖，这是刻意的）。所以
+`registry/*.schema.json` 不是"跑一遍就完事"的文件，它分两个角色被使用：
+
+- **词汇表**：`scripts/lib/manifest-contract.mjs` 从 schema 的 `$defs` **读枚举**
+  （适配标签、mobileCompatible 取值、暗色 strategy / approach、对比度下限、pack 角色词），
+  自己的判定里不写第二份字面量 —— "schema 说合法、执行说非法"这种两套真相在结构上不可能出现；
+- **等价性由测试钉住**：`tests/manifest-contract.spec.ts` 逐个枚举值与下限，断言
+  "schema 声明的"与"执行做的"一致。
+
+**schema 里写了、却没有对应判定的字段不算契约**，只是文档。v0.1.1 的 `avoidFor`
+就是这么躺了两个版本 —— 自由散文、typo 与真值一样通过。v0.2（K1 / K2 / K6 / K7）
+把适配标签、移动端语义、引用一致性与暗色方向全部变成具名判定，判据与词汇表见
+[`registry/README.md`](../registry/README.md)。
 
 ---
 
@@ -195,4 +213,4 @@ incoming/components/fancy-glow/
 | 一条 Agent 流程 | `skills/<id>/SKILL.md` | 可执行的自检清单 |
 | 一个外部参考 | `references/<pack>/` 或 `references/incoming/` | 设计语言分析（不存源码） |
 | 一份外部源码 | `incoming/<type>/` | 走完整 incoming 流程 |
-| 一条资产记录 | `registry/assets.json` | 通过 schema 校验 |
+| 一条资产记录 | `registry/assets.json` | `pnpm registry` 0 处 error（结构一致性 + 覆盖度，退出码即判据） |
