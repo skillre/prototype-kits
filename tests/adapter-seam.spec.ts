@@ -299,8 +299,18 @@ describe("K-04 · 新增的缝同样遵守'已存在则保留'", () => {
     const lock = JSON.parse(
       readFileSync(path.join(product, "lib", "kits", "kits.lock.json"), "utf8"),
     );
-    expect(lock.adapters.templateVersion).toBe("0.1.1");
+    // v0.2：模板版本跟着 Installer 走（中性接缝让 banner 与推荐写法都变了）。
+    expect(lock.adapters.templateVersion).toBe("0.2.0");
     expect(lock.adapters.kept).toContain("lib/kits/adapters/style-pack.ts");
+    // 中性接缝同样是产品所有 —— 记进 lock 只为 doctor 能分清
+    // 「v0.1.1 装的」与「有接缝但被删了」。
+    expect(lock.seam.version).toBe("0.2.0");
+    expect(lock.seam.file).toBe("lib/kits/adapters/seam/seam.json");
+    // 第一次安装是 written，之后的安装是 kept（文件已存在就永不覆盖）——
+    // 两个都要算，否则这条断言会依赖测试执行顺序。
+    expect([...lock.seam.written, ...lock.seam.kept]).toContain(
+      "lib/kits/adapters/seam/seam.json",
+    );
   });
 
   it("模板版本落后时 doctor 报 warn 而不是静默覆盖", () => {

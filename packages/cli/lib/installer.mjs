@@ -420,13 +420,20 @@ export function stripSourceExtension(spec) {
  * @param {typeof import('./lock.mjs').DEFAULT_LAYOUT[keyof typeof import('./lock.mjs').DEFAULT_LAYOUT] extends never ? never : any} args.layout
  * @param {any[]} args.adapters 由 writeAdapters 返回的结果（已写入或跳过）
  * @param {() => void} [args.afterWrite] 写入完成后、返回前的回调（用于写 lock）
+ * @param {Array<{relPath: string, content: string}>} [args.extras]
+ *   产品所有的脚手架文件（v0.2：中性接缝 `adapters/seam/**`）。
+ *   语义与适配层一致 —— **只在不存在时生成，永不覆盖**；区别是它们跟着
+ *   托管区一起进入这次事务的快照，因此失败时会一起回滚，
+ *   不会留下"半个 skeleton"。
  */
-export function apply({ plan, productRoot, layout, onWritten }) {
+export function apply({ plan, productRoot, layout, onWritten, extras = [] }) {
   const installedRootAbs = path.join(productRoot, layout.installedRoot);
 
   /** @type {Map<string, {existed:boolean, content:string|null}>} */
   const snapshot = new Map();
   const written = [];
+  const extrasWritten = [];
+  const extrasKept = [];
 
   const absFor = (destRel) => path.join(productRoot, destRel);
 
@@ -457,9 +464,27 @@ export function apply({ plan, productRoot, layout, onWritten }) {
       });
     }
 
+    // --- 2b. 产品所有的脚手架（keep-if-exists），同样纳入快照 --------------
+    /*
+     * 它属于产品：已存在就跳过（`kits add` 永不覆盖产品改动）。
+     * 但"新建的那几个"必须可回滚 —— 否则一次中途失败会留下半套 skeleton，
+     * 而下次 `kits add` 会因为"文件已存在"而永远不去补全它。
+     */
+    for (const extra of extras) {
+      const abs = absFor(extra.relPath);
+      if (existsSync(abs)) {
+        extrasKept.push(extra.relPath);
+        continue;
+      }
+      snapshot.set(abs, { existed: false, content: null });
+      mkdirSync(path.dirname(abs), { recursive: true });
+      writeFileSync(abs, extra.content, "utf8");
+      extrasWritten.push(extra.relPath);
+    }
+
     if (onWritten) onWritten(written);
 
-    return { written };
+    return { written, extrasWritten, extrasKept };
   } catch (error) {
     // --- 3. 回滚 ---------------------------------------------------------
     for (const [abs, prev] of snapshot) {

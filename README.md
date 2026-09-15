@@ -268,6 +268,7 @@ node ../my-prototype/lib/kits/.kits/kits.mjs doctor
 lib/kits/
 ├── installed/       Kits 托管区（只读，重新安装会整体替换）
 ├── adapters/        产品托管区（Kits 永不覆盖）
+│   └── seam/        中性接缝（v0.2：绑定声明 + 模板 + 判定）
 ├── .kits/           Installer 自身
 └── kits.lock.json   安装清单（逐文件 checksum + 来源 commit）
 ```
@@ -287,7 +288,7 @@ lib/kits/
 | Effect | `effect-<id>.css` | `effect-<id>.ts` |
 
 ```ts
-// 产品侧——唯一的正确写法
+// 产品侧——唯一直接引用资产的正确写法
 import { AnimatedGrid } from "@/lib/kits/adapters/animated-grid";
 import { stylePackMotionVars } from "@/lib/kits/adapters/style-pack";
 import { effectClass, effectVars } from "@/lib/kits/adapters/effect-ambient-glow";
@@ -302,6 +303,50 @@ import { effectClass, effectVars } from "@/lib/kits/adapters/effect-ambient-glow
 缝属于**产品**：`kits add` 只在文件不存在时生成，永不覆盖你改过的版本。
 代价是模板升级不会自动流过来 —— `kits doctor` 的 `adapters-template` 检查
 会告诉你模板已过期，并给出"删掉该文件再跑 `kits add`"的做法，而不是替你做主。
+
+### 中性接缝：产品代码不出现资产 id（v0.2 · K4）
+
+上面那批文件的名字**就是资产 id**。产品直接 import 它们，等于把「这个产品用了
+哪一个 Kits 资产」写进了产品源码 —— 换资产要改所有调用点，而不是改一行。
+
+v0.2 生成一套**骨架**，让产品可以面向稳定语义入口：
+
+```
+产品代码  →  角色文件（你写，稳定的名字）  →  资产适配文件（Kits 生成）  →  installed/
+            lib/kits/adapters/pointer.tsx     lib/kits/adapters/data-cursor.tsx
+```
+
+三步（`kits add` 会在 `adapters/seam/` 下生成 README + 模板 + 状态文件）：
+
+```jsonc
+// 1. lib/kits/adapters/seam/seam.json —— 声明角色 → 资产
+{ "seamVersion": "0.2.0", "bindings": { "pointer": "data-cursor" } }
+```
+
+```tsx
+// 2. lib/kits/adapters/pointer.tsx —— 从 seam/_template.ts 复制，填一行
+export { DataCursor as Pointer, type DataCursorProps as PointerProps } from "./data-cursor"
+```
+
+```tsx
+// 3. 产品代码只 import 角色文件
+import { Pointer } from "@/lib/kits/adapters/pointer"
+```
+
+换资产 = 改这两处，**产品代码不动**。
+
+**Kits 不替你选角色。** registry / manifest 里没有 `role` / `capability` 字段
+（`manifest.adapter` 是一段政策说明，不是角色名），所以 Kits 不从文件名猜
+"`data-cursor` 就是 pointer"——那是产品决策。Kits 保证的是**机制可检查**：
+`kits doctor` 会分别报出
+
+| 缺口 | 判定 |
+|---|---|
+| 绑定指向**不在本次安装里**的资产 | **fail**（安装已无法兑现这条声明） |
+| 声明了角色，但**没有角色文件** | warn（模板就是那个 TODO） |
+| 有角色文件，但 **seam.json 里没有声明** | warn（下一个读者看不出它绑给谁） |
+| 角色名和资产 id 同名（会和生成文件撞名） | **fail** |
+| `seam.json` 语法坏了 | **fail** |
 
 ### 验收判据
 

@@ -56,6 +56,12 @@ import {
   ADAPTER_TEMPLATE_VERSION,
 } from "./lib/adapters.mjs";
 import { findManagedImports, boundaryVerdict } from "./lib/boundary.mjs";
+import {
+  SEAM_VERSION,
+  SEAM_DIR,
+  evaluateSeam,
+  seamScaffold,
+} from "./lib/seam.mjs";
 
 /* -------------------------------------------------------------------------- */
 /* 参数解析                                                                    */
@@ -111,7 +117,7 @@ const c = {
 /*
  * 状态四态而不是三态：v0.2 起有 `na`（不适用）。
  * 「不适用」既不是通过也不是失败 —— 一个"没有托管区可越界"的检查被判成 pass，
- * 就是 K5 要消灭的那种静默通过。
+ * 就是 K5 要消灭的那种静默通过。K-03 的 state 列同理，但那是另一根轴。
  */
 const MARK = {
   pass: c.green("✓"),
@@ -377,10 +383,21 @@ function cmdAdd({ flags }) {
 
   // --- 写入 ---------------------------------------------------------------
   let lock = null;
-  apply({
+  /*
+   * 中性接缝（v0.2 · K4）与托管区走**同一个事务**：
+   * 它们是产品所有的文件（已存在则保留、永不覆盖），但"新建的那几个"必须
+   * 跟着这次事务回滚 —— 否则一次中途失败会留下半套 skeleton，
+   * 而下次 `kits add` 会因为文件已存在而永远不去补全它。
+   */
+  const seamFiles = seamScaffold({ layout }).map((file) => ({
+    relPath: path.posix.join(layout.adapterRoot, file.relPath),
+    content: file.content,
+  }));
+  const applied = apply({
     plan: installPlan,
     productRoot,
     layout,
+    extras: seamFiles,
     onWritten: (written) => {
       lock = buildLock({
         plan: installPlan,
@@ -414,12 +431,27 @@ function cmdAdd({ flags }) {
     written: adapterResult.written,
     kept: adapterResult.kept,
   };
+
+  /*
+   * 中性接缝同样是**产品所有**：写进 lock 只是为了 doctor 能区分
+   * 「v0.1.1 装的、还没有接缝」与「有了但被删了」。它不在 files[] 里 ——
+   * files[] 是托管区 checksum 清单，接缝不属于托管区。
+   */
+  lock.seam = {
+    version: SEAM_VERSION,
+    file: `${layout.adapterRoot}/${SEAM_DIR}/seam.json`,
+    written: applied.extrasWritten,
+    kept: applied.extrasKept,
+  };
   writeLock(productRoot, layout, lock);
 
   header("  写入完成");
   console.log(`    Kits 托管区   ${c.dim(`${layout.installedRoot}/`)}  ${installPlan.files.length} 个文件`);
   console.log(`    安装清单      ${c.dim(layout.lockFile)}`);
   console.log(`    适配层        ${c.dim(`${layout.adapterRoot}/`)}  ${adapterResult.written.length} 新建 / ${adapterResult.kept.length} 保留产品版本`);
+  console.log(
+    `    中性接缝      ${c.dim(`${layout.adapterRoot}/${SEAM_DIR}/`)}  ${applied.extrasWritten.length} 新建 / ${applied.extrasKept.length} 保留产品版本`,
+  );
   console.log();
 
   if (adapterResult.kept.length) {
@@ -434,11 +466,15 @@ function cmdAdd({ flags }) {
     console.log(`    1. 在全局样式里引入 pack：${c.cyan(`@import "@/${styleAdapter}";`)}`);
   }
   if (components.length) {
-    console.log(`    2. 产品代码只 import 适配层：`);
+    console.log(`    2. 产品代码只 import 适配层（v0.2 起推荐走中性接缝见下）：`);
     for (const id of components) {
       console.log(c.cyan(`         import { ${pascal(id)} } from "@/lib/kits/adapters/${id}";`));
     }
   }
+  console.log(
+    `    ${c.dim("·")} 不想让产品代码出现资产 id：把「角色 → 资产」写进 ${c.dim(`${layout.adapterRoot}/${SEAM_DIR}/seam.json`)}，` +
+      `再从 ${c.dim(`${layout.adapterRoot}/${SEAM_DIR}/_template.ts`)} 复制一个角色文件，产品只 import 那个文件。`,
+  );
   if (styles.length) {
     console.log(
       `    3. 注入 pack 的动效变量：${c.cyan(`import { stylePackMotionVars } from "@/lib/kits/adapters/style-pack";`)}`,
@@ -467,6 +503,61 @@ function pascal(id) {
 /* kits doctor                                                                */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * seam 的一行摘要。
+ *
+ * 三个数字都必须出现（绑定 / 角色文件 / 可绑定资产）：只报"接缝存在"
+ * 和什么都不报没有区别 —— 读者需要知道它到底绑上了几个。
+ */
+function describeSeam(seam, layout) {
+  const dir = `${layout.adapterRoot}/${SEAM_DIR}/`;
+  if (seam.status === "not-applicable") {
+    return `not-installed：没有 ${layout.lockFile}，接缝无从核对（不是通过）`;
+  }
+  if (!seam.present) return `没有 ${dir}（v0.1.1 风格的安装）`;
+  /*
+   * 读不出来时必须把**具体原因**带出来（哪一行、什么错），
+   * 否则读者只知道"坏了"、不知道坏在哪 —— 那和没说差不多。
+   */
+  if (!seam.read) return `${dir}seam.json 存在但读不出来 —— ${seam.reason ?? "原因未记录"}`;
+  const counts = `绑定 ${seam.bound.length} 个角色 · 角色文件 ${seam.roleFiles.length} 个 · 可绑定资产 ${seam.candidates.length} 个`;
+  return seam.reason ? `${counts} —— ${seam.reason}` : counts;
+}
+
+function describeSeamHint(seam, layout) {
+  const dir = `${layout.adapterRoot}/${SEAM_DIR}/`;
+  if (seam.status === "not-applicable") return "先 `kits add` 安装资产。";
+  if (!seam.present) return `重跑 \`kits add\` 会在缺失时生成 ${dir}（已存在的适配层文件一个都不动）。`;
+  if (!seam.read) return `修好 ${dir}seam.json 的 JSON 语法。`;
+  if (seam.dangling.length) {
+    return "把 bindings 改成本次安装里的 asset id，或把那个资产重新装上。";
+  }
+  if (seam.nameCollisions.length) {
+    return "角色文件不能和 Kits 生成的文件同名 —— 换一个角色名。";
+  }
+  if (seam.status === "warn") {
+    return `按 ${dir}README.md 绑定：先声明角色 → 资产，再从 ${dir}_template.ts 复制一个角色文件。`;
+  }
+  return undefined;
+}
+
+/**
+ * 三类归属数一遍（v0.2 · K4 §14.8）。
+ *
+ * 之前 doctor 只说"适配层文件都在"—— 读者分不出哪些是 Kits 生成、
+ * 哪些是产品自己写的接缝。这三类文件的**更新规则完全不同**：
+ * 托管区会被覆盖、生成文件只在缺失时补、产品自有接缝永不被碰。
+ */
+function describeOwnership({ lock, seam, layout }) {
+  const managed = (lock.files ?? []).length;
+  const generated = expectedAdapterFiles(lock.assets ?? []).length;
+  return (
+    `managed ${layout.installedRoot}/ ${managed} 个文件（checksum 受保护） · ` +
+    `generated ${layout.adapterRoot}/ ${generated} 个适配文件（Kits 只在缺失时生成） · ` +
+    `product-owned 接缝 ${seam.roleFiles.length} 个角色文件（Kits 永不覆盖）`
+  );
+}
+
 function cmdDoctor({ flags }) {
   const productRoot = resolveTarget(flags.target ?? process.cwd());
   const layout = { ...DEFAULT_LAYOUT };
@@ -479,7 +570,8 @@ function cmdDoctor({ flags }) {
   const checks = [];
   /*
    * 库层说的是 "not-applicable"（语义名），渲染层用 "na"（Mark 表里的短名）。
-   * 在这里归一化，免得每个 push 点各写一遍，也免得漏掉一次就渲染成 undefined。
+   * 在这里归一化，免得每个 push 点各写一遍，也免得漏掉一次就渲染成 undefined ——
+   * "不适用"被打印成空字符串，恰恰又是 K5 要消灭的那种输出。
    */
   const statusOf = (status) => (status === "not-applicable" ? "na" : status);
   const push = (id, status, detail, hint, state) =>
@@ -620,6 +712,11 @@ function cmdDoctor({ flags }) {
    * 这条是整条 Distribution 设计的承重点，因此失败而不是警告：
    * 产品一旦直接 import installed/，适配层就成了装饰品，
    * "升级 Kits 不动产品代码"这个承诺当场变假。
+   *
+   * v0.2（K5）：判定从两态变三态。过去「扫过 0 个产品源文件，没有绕过适配层的
+   * 引用」会打印成通过 —— 那是这条正式质量门上的一条静默失败路径。
+   * 现在：没有托管区 → not-applicable（**不是**通过；没有东西可以被越界），
+   * 范围根缺失或扫到 0 个文件 → fail（检查没有发生）。
    */
   const scan = findManagedImports({ productRoot, layout });
   const boundary = boundaryVerdict({
@@ -630,12 +727,28 @@ function cmdDoctor({ flags }) {
   });
   push("boundary", boundary.status, boundary.detail, boundary.hint ?? undefined, boundary.state);
 
+  // --- 8. 中性接缝：声明与实现双向核对（v0.2 · K4）------------------------
+  const seam = evaluateSeam({ productRoot, layout, lock });
+  push(
+    "seam",
+    seam.status,
+    describeSeam(seam, layout),
+    describeSeamHint(seam, layout),
+    seam.status === "not-applicable" ? "not-installed" : null,
+  );
+
+  // --- 9. 三类归属：托管 / 生成 / 产品自有接缝 ----------------------------
+  if (lock) {
+    push("adapters-ownership", "pass", describeOwnership({ lock, seam, layout }));
+  }
+
   // --- 输出 ---------------------------------------------------------------
   /*
-   * state 是本版（v0.1.1）新增的一列：它说明**这个结论是靠什么得到的**。
+   * state 是 v0.1.1 新增的一列：它说明**这个结论是靠什么得到的**。
    * 之所以要显式打印，是因为最危险的失败不是"检查失败"，而是
    * "检查没查到却报告为通过" —— v0.1.0 的 doctor 就在独立安装下
    * 打印过一句它其实无法验证的"与 Kits 解析到同一 major"（K-03）。
+   * v0.2 起 status 也多了一态：`na`（不适用）。它既不是通过也不是失败。
    */
   for (const check of checks) {
     const state = check.state ? c.dim(`[${check.state}]`) : "";
@@ -722,6 +835,26 @@ function cmdDiff({ flags }) {
     console.log();
     console.log(c.dim("  上游还有未安装的已批准资产："));
     for (const a of upstreamNew) console.log(c.dim(`    · ${a.type} ${a.id} ${a.version}`));
+  }
+
+  /*
+   * 中性接缝的状态（v0.2 · K4）。
+   *
+   * `kits diff` 过去只看资产 id/版本/状态，从不看 adapters/ —— 于是
+   * "声明了绑定、但绑的资产已经不在本次安装里"这种情况在 diff 里完全隐形。
+   * 接缝是产品自己的文件，Kits 不改它，但必须**说得出来**。
+   */
+  const seam = evaluateSeam({ productRoot, layout, lock });
+  console.log();
+  if (seam.status === "not-applicable") {
+    console.log(c.dim("  中性接缝    —— 没有安装清单，不适用"));
+  } else {
+    const marker =
+      seam.status === "fail" ? c.red("✗") : seam.status === "warn" ? c.yellow("!") : c.green("✓");
+    console.log(
+      `  ${marker} 中性接缝    ${c.dim(`${layout.adapterRoot}/${SEAM_DIR}/`)} 绑定 ${seam.bound.length} 个角色 · 角色文件 ${seam.roleFiles.length} 个 · 可绑定资产 ${seam.candidates.length} 个`,
+    );
+    if (seam.reason) console.log(`    ${c.dim("→")} ${c.dim(seam.reason)}`);
   }
 
   console.log();
