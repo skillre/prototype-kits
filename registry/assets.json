@@ -1,7 +1,7 @@
 {
   "$schema": "./assets.schema.json",
-  "registryVersion": "0.1.1",
-  "generatedAt": "2026-09-13",
+  "registryVersion": "0.2.0",
+  "generatedAt": "2026-09-15",
   "description": "Prototype Kits 资产登记表。所有进入过审计流程的视觉与能力资产都必须在这里有一条记录；没有登记的资产不得被任何 Prototype 引用。",
   "statusLifecycle": [
     "incoming",
@@ -51,6 +51,14 @@
         "insight-reveal",
         "interactive-hero"
       ],
+      "recommendedFor": [
+        "text-heavy",
+        "low-density"
+      ],
+      "avoidFor": [
+        "data-heavy",
+        "high-density"
+      ],
       "source": {
         "kind": "first-party",
         "origin": "prototype-kits",
@@ -84,6 +92,14 @@
         "data-cursor",
         "animated-grid"
       ],
+      "recommendedFor": [
+        "desktop",
+        "low-density"
+      ],
+      "avoidFor": [
+        "data-heavy",
+        "high-density"
+      ],
       "source": {
         "kind": "first-party",
         "origin": "prototype-kits",
@@ -116,6 +132,14 @@
         "animated-grid",
         "insight-reveal"
       ],
+      "recommendedFor": [
+        "high-density",
+        "data-heavy"
+      ],
+      "avoidFor": [
+        "mobile",
+        "low-density"
+      ],
       "source": {
         "kind": "first-party",
         "origin": "prototype-kits",
@@ -145,6 +169,9 @@
       "performanceNotes": "pointermove + rAF 写 CSS 变量，只走合成；静态模式移除 will-change",
       "ssrCompatible": true,
       "mobileCompatible": true,
+      "avoidFor": [
+        "high-density"
+      ],
       "reducedMotion": "supported",
       "a11yNotes": "title 渲染为真实 h1；背景板 aria-hidden + pointer-events:none；视差是纯装饰增强",
       "adapterRequired": true,
@@ -177,6 +204,10 @@
       "performanceNotes": "translate 位移走合成；radial-gradient 一次性绘制；glass 会引入 backdrop-filter",
       "ssrCompatible": true,
       "mobileCompatible": true,
+      "avoidFor": [
+        "text-heavy",
+        "high-density"
+      ],
       "reducedMotion": "supported",
       "a11yNotes": "光斑层 aria-hidden + pointer-events:none；tone 使用语义命名；critical 必须配文字",
       "adapterRequired": true,
@@ -210,6 +241,9 @@
       "performanceNotes": "静态网格一次性绘制；drift 走 translate3d；mask-image 增加一次合成",
       "ssrCompatible": true,
       "mobileCompatible": true,
+      "avoidFor": [
+        "text-heavy"
+      ],
       "reducedMotion": "supported",
       "a11yNotes": "aria-hidden + pointer-events:none + z-index:-1；不承载任何信息",
       "adapterRequired": true,
@@ -241,7 +275,11 @@
       "performance": "B",
       "performanceNotes": "每帧 2 次 setProperty（rAF 合并）；未激活时 0 个合成层",
       "ssrCompatible": true,
-      "mobileCompatible": true,
+      "mobileCompatible": "fallback-only",
+      "avoidFor": [
+        "text-heavy",
+        "mobile"
+      ],
       "reducedMotion": "supported",
       "a11yNotes": "指示器 aria-hidden；data-cursor-label 的信息必须同时存在于可见文本中；只在标记区域内隐藏系统光标",
       "adapterRequired": true,
@@ -274,6 +312,9 @@
       "performanceNotes": "单个共享 IntersectionObserver（模块级单例）；揭示后释放 will-change",
       "ssrCompatible": true,
       "mobileCompatible": true,
+      "avoidFor": [
+        "high-density"
+      ],
       "reducedMotion": "supported",
       "a11yNotes": "默认状态内容可见（隐藏规则必须带 --animated 前缀）；不用 display:none，键盘可达性不受影响",
       "adapterRequired": true,

@@ -1,4 +1,5 @@
 {
+  "$schema": "../../registry/manifest.schema.json",
   "id": "instrument",
   "name": "Instrument",
   "displayName": "工业仪表 · 刻度与读数",
@@ -9,6 +10,10 @@
   "summary": "用刻度、标签与硬边界分层，而不是用留白或光。等宽排版 + 高密度 + 1px 实线面板，适合「一屏要放很多必须被读准的数字」的产品。",
   "oneLineFirstVisual": "整整一屏被 1px 实线切成网格的小面板，每个面板右上角是等宽大写标签，左下角是等宽大号读数。",
   "recommendedFor": [
+    "high-density",
+    "data-heavy"
+  ],
+  "recommendedForNotes": [
     "运维 / 监控 / 可观测性面板（一屏 40+ 指标）",
     "工业控制、设备状态、产线看板",
     "量化交易与风控台（数字必须逐位对齐）",
@@ -17,12 +22,36 @@
     "任何「数字本身就是内容」的界面"
   ],
   "avoidFor": [
+    "mobile",
+    "low-density"
+  ],
+  "avoidForNotes": [
     "品牌营销页与内容型落地页",
     "需要情绪与沉浸感的 AI 对话界面",
     "面向非技术用户的产品（等宽 + 高密度会显得冷）",
     "移动端为主的产品（高密度在 390px 下会变成不可读）",
     "需要「一屏一个故事」的叙事型页面"
   ],
+  "darkDirection": {
+    "strategy": "product-authored",
+    "approach": "preserve-hue",
+    "contrastTarget": {
+      "standard": "WCAG-AA",
+      "normalText": 4.5,
+      "largeText": 3
+    },
+    "slots": [
+      "--kits-color-canvas",
+      "--kits-color-surface",
+      "--kits-color-surface-raised",
+      "--kits-color-surface-sunken",
+      "--kits-color-ink",
+      "--kits-color-ink-muted",
+      "--kits-color-rule",
+      "--kits-color-rule-strong"
+    ],
+    "notes": "instrument 的颜色承担语义：工程蓝表示「当前档位」，positive / negative 是状态判据。所以暗色只允许反转明度（preserve-hue），不允许反相色相 —— 反相会把绿色的「正常」变成红色的「故障」。accent 与 positive / negative 刻意不在 slots 里：产品要换的是画布与墨色，不是判据本身。"
+  },
   "signatureComponents": [
     "animated-grid",
     "insight-reveal"
@@ -35,7 +64,6 @@
     "spotlight-surface"
   ],
   "effects": [
-    "technical-grid",
     "scanline-sweep"
   ],
   "designPrinciples": [

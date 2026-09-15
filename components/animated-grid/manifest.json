@@ -1,4 +1,5 @@
 {
+  "$schema": "../../registry/manifest.schema.json",
   "id": "animated-grid",
   "name": "AnimatedGrid",
   "version": "0.1.0",
@@ -108,6 +109,9 @@
   },
 
   "avoidFor": [
+    "text-heavy"
+  ],
+  "avoidForNotes": [
     "editorial 页面（纸质表面上的网格 = 印刷网点事故；pack 已自动禁用）",
     "任何需要密集文本阅读的区域（网格线与文字基线会互相干扰）",
     "同屏多个（每个都是全屏绘制层）"

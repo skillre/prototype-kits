@@ -1,4 +1,5 @@
 {
+  "$schema": "../../registry/manifest.schema.json",
   "id": "interactive-hero",
   "name": "InteractiveHero",
   "version": "0.1.0",
@@ -109,12 +110,15 @@
   },
 
   "usedByStylePacks": {
-    "editorial": "recommended",
+    "editorial": "signature",
     "cinematic": "optional",
     "instrument": "discouraged"
   },
 
   "avoidFor": [
+    "high-density"
+  ],
+  "avoidForNotes": [
     "一屏多指标的高密度监控页（首屏英雄区在 instrument 语义下是浪费）",
     "需要快速扫读的工具首页"
   ],

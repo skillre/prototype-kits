@@ -96,7 +96,7 @@ import "@kits/style-instrument/tokens.css";
 - **移动端为主的产品**：高密度在 390px 下会退化为不可读（必须降密度，见下）。
 - 一屏讲一个故事的叙事页。
 
-更多见 `manifest.json` 的 `recommendedFor` / `avoidFor`。
+更多见 `manifest.json` 的 `recommendedFor` / `avoidFor`（枚举标签）与 `recommendedForNotes` / `avoidForNotes`（人读的完整理由）。
 
 ---
 
@@ -129,7 +129,7 @@ import "@kits/style-instrument/tokens.css";
 ## 7. 相关资产
 
 - 组件：`animated-grid`（必配）、`insight-reveal`（必配）、`data-cursor`（可选）
-- 效果：`technical-grid`、`scanline-sweep`
+- 效果：`scanline-sweep`（v0.1.1 在此处还列过一个从未实现、也从未登记进 registry 的网格效果名，v0.2 已删除）
 - 不适配组件：`interactive-hero`、`spotlight-surface`（详见各自 manifest 的 `avoidFor`）
 - 参考板：[`references/instrument/`](../../references/instrument/)
 - 技能：[`skills/visual-direction/SKILL.md`](../../skills/visual-direction/SKILL.md)

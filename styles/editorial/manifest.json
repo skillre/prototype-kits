@@ -1,4 +1,5 @@
 {
+  "$schema": "../../registry/manifest.schema.json",
   "id": "editorial",
   "name": "Editorial",
   "displayName": "编辑式 · 纸与字",
@@ -9,6 +10,10 @@
   "summary": "把界面当印刷品来处理：强排版、大留白、细分隔线、几乎不用卡片。适合需要「被阅读」而不是「被操作」的产品。",
   "oneLineFirstVisual": "一个巨大的衬线标题，下方一条 1px 横线，然后是正文。",
   "recommendedFor": [
+    "text-heavy",
+    "low-density"
+  ],
+  "recommendedForNotes": [
     "行业研究报告 / 深度分析页",
     "内容优先的落地页与品牌故事页",
     "编辑类后台：文章、批注、审阅",
@@ -16,12 +21,36 @@
     "任何「少而重要」的信息面板"
   ],
   "avoidFor": [
+    "data-heavy",
+    "high-density"
+  ],
+  "avoidForNotes": [
     "实时监控大屏（信息刷新速度要求高于阅读体验）",
     "每屏超过 30 个数据字段的密集工作台",
     "强实时反馈的工具（编辑式的动效延迟会显得迟钝）",
     "需要大量并列对比的卡片式目录",
     "游戏化 / 社交化的强互动界面"
   ],
+  "darkDirection": {
+    "strategy": "product-authored",
+    "approach": "invert-contrast",
+    "contrastTarget": {
+      "standard": "WCAG-AAA",
+      "normalText": 7,
+      "largeText": 4.5
+    },
+    "slots": [
+      "--kits-color-canvas",
+      "--kits-color-surface",
+      "--kits-color-surface-raised",
+      "--kits-color-surface-sunken",
+      "--kits-color-ink",
+      "--kits-color-ink-muted",
+      "--kits-color-rule",
+      "--kits-color-rule-strong"
+    ],
+    "notes": "editorial 是近灰阶的纸与墨（#faf7f2 / #1a1614），暗色即画布与墨色的角色对调；accent（rust #b3441f）不动 —— 它是强调，不是背景关系。这是长文阅读的 pack，所以目标是 WCAG-AAA（正文 7:1）而不是 AA。"
+  },
   "signatureComponents": [
     "insight-reveal",
     "interactive-hero"

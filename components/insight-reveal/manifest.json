@@ -1,4 +1,5 @@
 {
+  "$schema": "../../registry/manifest.schema.json",
   "id": "insight-reveal",
   "name": "InsightReveal",
   "version": "0.1.0",
@@ -121,6 +122,9 @@
   },
 
   "avoidFor": [
+    "high-density"
+  ],
+  "avoidForNotes": [
     "首屏以上内容（用户立刻要看的东西不应该等动画）",
     "需要即时对比的密集表格行",
     "同一视口内多个 InsightReveal 嵌套（步进会叠加成不可预测的延迟）"

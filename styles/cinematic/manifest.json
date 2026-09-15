@@ -1,4 +1,5 @@
 {
+  "$schema": "../../registry/manifest.schema.json",
   "id": "cinematic",
   "name": "Cinematic",
   "displayName": "电影感 · 光与深度",
@@ -9,6 +10,10 @@
   "summary": "用光与深度分层，而不是用字号与留白。深色画布 + 环境光 + 玻璃表面 + 指针视差，适合需要让人「沉浸」的产品。",
   "oneLineFirstVisual": "深色空间里一片从左上打下来的光，标题浮在光里，下方是一条发光的曲线。",
   "recommendedFor": [
+    "desktop",
+    "low-density"
+  ],
+  "recommendedForNotes": [
     "AI 产品的对话 / 生成式界面（内容需要「浮出来」）",
     "数据叙事与增长看板（趋势比字段重要）",
     "产品发布会页、营销首屏、Demo 场景",
@@ -16,12 +21,20 @@
     "任何「一屏讲一个故事」的场景"
   ],
   "avoidFor": [
+    "data-heavy",
+    "high-density"
+  ],
+  "avoidForNotes": [
     "需要打印或导出为浅色文档的场景",
     "强日光 / 户外使用场景（深色 + 反光 = 不可读）",
     "长时间连续作业的表单密集型后台（深色 + 高对比会加速眼疲劳）",
     "医院 / 政务 / 财务合规类正式界面（情绪过于「产品发布会」）",
     "需要同时显示 40+ 行数据的表格页"
   ],
+  "darkDirection": {
+    "strategy": "single-theme",
+    "notes": "cinematic 原生就是深色（--kits-color-canvas #07090f / --kits-color-ink #eef2f8），暗色等于默认值，不存在第二套调色板。产品不要为「暗色」再写一套覆盖 —— 那只会把原生关系改坏。"
+  },
   "signatureComponents": [
     "spotlight-surface",
     "data-cursor",
@@ -33,8 +46,7 @@
   ],
   "discouragedComponents": [],
   "effects": [
-    "ambient-glow",
-    "animated-grid"
+    "ambient-glow"
   ],
   "designPrinciples": [
     "层级由光建立：越靠前的元素越亮、越大、越有光晕。不要用边框分层级。",

@@ -1,4 +1,5 @@
 {
+  "$schema": "../../registry/manifest.schema.json",
   "id": "data-cursor",
   "name": "DataCursor",
   "version": "0.1.0",
@@ -74,7 +75,7 @@
     "pointermove 监听绑定在 window 上，在 useEffect 内注册/注销"
   ],
 
-  "mobileCompatible": true,
+  "mobileCompatible": "fallback-only",
   "mobileFallback": {
     "trigger": "(hover: none) or (pointer: coarse)",
     "behavior": [
@@ -115,6 +116,10 @@
   },
 
   "avoidFor": [
+    "text-heavy",
+    "mobile"
+  ],
+  "avoidForNotes": [
     "editorial 页面（劫持系统光标与「纸」的隐喻冲突）",
     "表单密集型页面（用户需要精确的文本光标来选中文字）",
     "移动端为主的产品（组件在触屏上完全不激活，等于白引入）",

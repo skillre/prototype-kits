@@ -16,7 +16,7 @@ description: 使用 instrument Style Pack 做 Visual Direction 与界面实现�
   "productType": "observability-console",
   "firstVisual": "一屏被 1px 实线切开的等宽面板，每格右上角铭牌标签、左下角大号读数",
   "signatureComponents": ["animated-grid", "insight-reveal"],
-  "effects": ["technical-grid"],
+  "effects": ["scanline-sweep"],
   "motionDirection": "precise",
   "density": "high",
   "avoid": ["glassmorphism", "purple-gradient", "neon-glow", "drop-shadow-elevation", "soft-radius"]

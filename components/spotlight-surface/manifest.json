@@ -1,4 +1,5 @@
 {
+  "$schema": "../../registry/manifest.schema.json",
   "id": "spotlight-surface",
   "name": "SpotlightSurface",
   "version": "0.1.0",
@@ -123,6 +124,10 @@
   },
 
   "avoidFor": [
+    "text-heavy",
+    "high-density"
+  ],
+  "avoidForNotes": [
     "editorial 下的正文区域（纸不该有光斑；pack 已把 opacity 设为 0，这里只是明确语义）",
     "instrument 下的密集面板（光斑在读数区域内是干扰，且高密度下没人悬停）",
     "同屏超过 6 个（每次 radial-gradient 都是真实绘制成本）"
