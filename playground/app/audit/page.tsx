@@ -1,5 +1,9 @@
 import assets from "../../../registry/assets.json";
 import {
+  MATERIAL_AMBIENT_LABEL,
+  MATERIAL_GLOW_LABEL,
+  MATERIAL_LABEL,
+  MATERIAL_VIEWS,
   MOBILE_STATE_CLASS,
   MOBILE_STATE_LABEL,
   mobileStateOf,
@@ -100,6 +104,48 @@ export default function AuditPage() {
           这张表由 `styles/*/index.ts` 导出的 `profile` 直接渲染 ——
           而 `profile` 又必须与各自的 `manifest.json` 一致，由 `tests/contracts.spec.ts` 强制。
           也就是说：**文档不可能与实现漂移**。
+        </p>
+      </section>
+
+      {/* ------------------------------------------------------------------ */}
+      <section className="pg-section">
+        <h2 className="pg-section__title">01b · Material 语言（K8）</h2>
+        <div style={{ overflowX: "auto" }}>
+          <table className="pg-table">
+            <thead>
+              <tr>
+                <th>pack</th>
+                <th>材质语言</th>
+                <th>层级建立方式</th>
+                <th>环境光归谁</th>
+                <th>发光预算</th>
+              </tr>
+            </thead>
+            <tbody>
+              {MATERIAL_VIEWS.map(({ pack, material }) => (
+                <tr key={pack.id}>
+                  <td>
+                    <code>{pack.id}</code>
+                  </td>
+                  <td>{MATERIAL_LABEL[material.hierarchy] ?? material.hierarchy}</td>
+                  <td>
+                    <code>{material.hierarchy}</code>
+                  </td>
+                  <td>{MATERIAL_AMBIENT_LABEL[material.ambient] ?? material.ambient}</td>
+                  <td>{MATERIAL_GLOW_LABEL[material.glow] ?? material.glow}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="pg-note">
+          <strong>环境光与发光预算不是形容词</strong>：`ambient` 与 pack 的
+          `tokens.css` 里有没有 `.kits-ambient` 核对，`glow` 与 `--kits-color-glow`
+          核对，并与 `effects[]` 的材质类别交叉（不发光声明 + 发光效果 = audit error）。
+          <br />
+          左边三套 pack 的材质由 pack 拥有；<strong>Kits 不会自动使用任何一项</strong> ——
+          装 pack 只买到能力，用不用、用在哪里，由产品在自己的 Visual Manifest 里决定，
+          且 Effect Pack 必须显式安装。
         </p>
       </section>
 

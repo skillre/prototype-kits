@@ -368,8 +368,11 @@ describe("fixture 基线：一个没有缺陷的场景必须是绿的", () => {
     const findings = checkRegistry({ root: scenario("baseline") }).findings;
     expect(errorsOf(findings), JSON.stringify(findings, null, 2)).toEqual([]);
     expect(findings.filter((f) => f.level === "warn")).toEqual([]);
-    expect(codes(findings), "基线只允许出现「未声明暗色方向」这一条 info").toEqual([
+    // 「未声明」在任何一层都是**合法旧状态**（info，不是 error）：
+    // K1 的 darkDirection 与 K8 的 materialDirection 各报一条
+    expect(codes(findings), "基线只允许出现这两条「未声明」info").toEqual([
       "dark/undeclared",
+      "material/undeclared",
     ]);
   });
 });

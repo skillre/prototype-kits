@@ -11,6 +11,10 @@ import {
   instrumentProfile,
 } from "@kits/style-instrument";
 
+import cinematicManifest from "@kits/style-cinematic/manifest.json";
+import editorialManifest from "@kits/style-editorial/manifest.json";
+import instrumentManifest from "@kits/style-instrument/manifest.json";
+
 // 状态词的唯一实现（与 CLI 审计共用）。刻意从 fit-semantics 进：
 // 那是纯模块，不 import node:fs —— manifest-contract.mjs 会用 fs 核对文件，
 // 在 Server Component 里 import 它会让 Turbopack 追踪整个项目。
@@ -117,4 +121,39 @@ export const MOBILE_STATE_CLASS: Record<string, string> = {
   "fallback-only": "pg-pill--experimental",
   unsupported: "pg-pill--deprecated",
   "not-applicable": "pg-pill--incoming",
+};
+
+/* -------------------------------------------------------------------------- */
+/* 材质语言（K8）                                                              */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * `materialDirection` 只住在 pack manifest 里（与 `darkDirection` 一样）——
+ * 它描述的是"这套 pack 的材质性格"，不是运行时数据。
+ *
+ * 这一页只做一件事：让人一眼看懂**这套 pack 用什么建立层级、光归谁、发光有没有预算**。
+ * 它刻意不展示 token 清单 —— 那会把审计页变成 token 浏览器。
+ */
+export const MATERIAL_VIEWS = [
+  { pack: PACK_VIEWS[0], material: editorialManifest.materialDirection },
+  { pack: PACK_VIEWS[1], material: cinematicManifest.materialDirection },
+  { pack: PACK_VIEWS[2], material: instrumentManifest.materialDirection },
+];
+
+export const MATERIAL_LABEL: Record<string, string> = {
+  light: "光与明暗",
+  rule: "线与边界",
+  space: "留白与间距",
+  texture: "表面材质",
+};
+
+export const MATERIAL_AMBIENT_LABEL: Record<string, string> = {
+  "pack-authored": "pack 自带（.kits-ambient）",
+  "effect-only": "只能来自 Effect Pack",
+  none: "没有环境光",
+};
+
+export const MATERIAL_GLOW_LABEL: Record<string, string> = {
+  budgeted: "有预算（允许发光）",
+  forbidden: "禁止（glow = transparent）",
 };
