@@ -51,6 +51,12 @@
     ],
     "notes": "editorial 是近灰阶的纸与墨（#faf7f2 / #1a1614），暗色即画布与墨色的角色对调；accent（rust #b3441f）不动 —— 它是强调，不是背景关系。这是长文阅读的 pack，所以目标是 WCAG-AAA（正文 7:1）而不是 AA。"
   },
+  "materialDirection": {
+    "hierarchy": "space",
+    "ambient": "none",
+    "glow": "forbidden",
+    "notes": "editorial 的材质是纸与墨：层级靠留白与字号建立（间距大于任何控件尺寸），不靠光。因此包里没有环境光层，也不允许发光（`--kits-color-glow: transparent`）—— 纸不会自己发亮。表面材质是纹理（纸纹），不是光。"
+  },
   "signatureComponents": [
     "insight-reveal",
     "interactive-hero"

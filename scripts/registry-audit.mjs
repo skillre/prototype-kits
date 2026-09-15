@@ -24,11 +24,13 @@ import path from "node:path";
 
 import {
   checkCoverage,
+  checkPaintScope,
   checkRegistry,
   deriveMobileState,
   formatFinding,
   loadRegistry,
 } from "./lib/manifest-contract.mjs";
+import { effectScope, packScope } from "./lib/material-scope.mjs";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const registry = loadRegistry(ROOT);
@@ -57,8 +59,55 @@ const pad = (value, width) => String(value) + " ".repeat(Math.max(0, width - dis
 const padStart = (value, width) => String(value).padStart(width, " ");
 
 // 结构一致性（逐资产、跨字段）+ 覆盖度（本仓库的策略承诺）—— 两者刻意分开，这里合并报告
-const { findings, stats } = checkRegistry({ root: ROOT, registry });
+const { findings, stats, resolved } = checkRegistry({ root: ROOT, registry });
 findings.push(...checkCoverage(registry));
+
+/* ---- K8 · 材质边界：pack / effect 的样式表只在自己的选择器里作画 ---------- */
+const paintTargets = [];
+for (const asset of registry.assets) {
+  const place = resolved.get(asset.id);
+  if (asset.type === "style") {
+    const cssVariables = place?.manifest?.tokens?.cssVariables ?? "tokens.css";
+    paintTargets.push({
+      rel: path.join(path.dirname(asset.manifest), cssVariables),
+      scoped: packScope(asset.id),
+      label: `${asset.id} pack`,
+    });
+  }
+  if (asset.type === "effect" && place?.node?.entry && place?.node?.class) {
+    paintTargets.push({
+      rel: path.join("effects", place.node.entry),
+      scoped: effectScope(place.node.class),
+      label: `${asset.id} effect`,
+    });
+  }
+}
+const paintScans = paintTargets.map((target) => checkPaintScope(ROOT, target));
+const paintStats = {
+  files: paintScans.filter((scan) => !scan.missing).length,
+  missing: paintScans.filter((scan) => scan.missing).length,
+  rules: paintScans.reduce((sum, scan) => sum + scan.rules, 0),
+  paintRules: paintScans.reduce((sum, scan) => sum + scan.paintRules, 0),
+};
+for (const scan of paintScans) {
+  if (scan.missing) {
+    findings.push({
+      level: "warn",
+      code: "material/unverifiable",
+      where: scan.rel,
+      message: "读不到这份样式表，材质边界无从核对（不当作通过）",
+    });
+    continue;
+  }
+  for (const violation of scan.violations) {
+    findings.push({
+      level: "error",
+      code: "material/paint-out-of-scope",
+      where: `${scan.rel} · ${violation.selector}`,
+      message: violation.why,
+    });
+  }
+}
 
 console.log("");
 console.log(`Prototype Kits · Asset Registry v${registry.registryVersion}`);
@@ -121,6 +170,8 @@ const CHECKED = [
   ["darkDirection 可执行性（K1）", `已声明 ${stats.darkDeclared} 套 pack（未声明 ${stats.darkUndeclared} 套 = 合法旧状态）、${stats.darkSlots} 个槽位逐个对照 tokens.css`],
   ["effect 聚合清单（K6）", `${stats.effectsInAggregate} 个 effect 条目 + ${stats.reservedIds} 个 reserved 占位 id（占位不得已在册）`],
   ["package.json 版本与包名（K6）", `${stats.packagesChecked} 个包的 name / version 与 registry 比对`],
+  ["材质语言（K8）", `${stats.materialDeclared} 套 pack 声明了 materialDirection（未声明 ${stats.materialUndeclared} 套 = 合法旧状态）；${stats.effectKinds} 个 effect 声明了 material.kind（其中发光类 ${stats.lightEffects} 个）`],
+  ["材质边界（K8）", `${paintStats.files} 份样式表、${paintStats.rules} 条规则（其中 ${paintStats.paintRules} 条作画）—— 逐条核对「只在自己的选择器里作画」`],
   ["覆盖度", "approved Style ≥ 3、approved Signature Component ≥ 5"],
 ];
 
@@ -160,6 +211,35 @@ for (const asset of registry.assets) {
   );
 }
 console.log("");
+
+/* -------------------------------------------------------------------------- */
+/* 4b. 材质语言（K8）                                                          */
+/* -------------------------------------------------------------------------- */
+
+console.log("[4b] 材质语言（materialDirection · K8）\n");
+console.log(`  ${pad("pack", 14)} ${pad("hierarchy", 11)} ${pad("ambient", 15)} ${pad("glow", 10)} effect 材质`);
+console.log(`  ${"-".repeat(78)}`);
+for (const asset of registry.assets.filter((a) => a.type === "style")) {
+  const place = resolved.get(asset.id);
+  const material = place?.manifest?.materialDirection;
+  if (!material) {
+    console.log(`  ${pad(asset.id, 14)} ${pad("—", 11)} ${pad("—", 15)} ${pad("—", 10)} （未声明）`);
+    continue;
+  }
+  const kinds = (place.manifest.effects ?? [])
+    .map((id) => {
+      const node = resolved.get(id)?.node;
+      return node?.material?.kind ? `${id}:${node.material.kind}` : `${id}:?`;
+    })
+    .join(" ");
+  console.log(
+    `  ${pad(asset.id, 14)} ${pad(material.hierarchy, 11)} ${pad(material.ambient, 15)} ${pad(material.glow, 10)} ${kinds || "—"}`,
+  );
+}
+console.log("");
+console.log("  环境光与发光预算**不是形容词**：ambient 与 tokens.css 里的 `.kits-ambient` 核对，");
+console.log("  glow 与 `--kits-color-glow` 核对，并与 effects[] 的材质类别交叉（见 [3] 的判定）。");
+console.log("  **Kits 不会自动使用任何一项**：装 pack 只给能力，用不用由产品决定。\n");
 
 /* -------------------------------------------------------------------------- */
 /* 5. 覆盖度                                                                   */

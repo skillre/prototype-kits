@@ -30,6 +30,10 @@
       "pack": "editorial",
       "entry": "paper-grain.css",
       "class": "kits-effect-paper-grain",
+      "material": {
+        "kind": "texture",
+        "notes": "表面材质：噪点/纸纹，完全不发光。"
+      },
       "performance": "A",
       "trigger": "static（无动效）",
       "what": "纸纹：内联 SVG feTurbulence 噪声，0.035 不透明度 + multiply 混合",
@@ -48,6 +52,10 @@
       "pack": "cinematic",
       "entry": "ambient-glow.css",
       "class": "kits-effect-ambient-glow",
+      "material": {
+        "kind": "light",
+        "notes": "画的是光：三个有方向的径向光源（因此与 pack 的 ambient / glow 预算相关）。"
+      },
       "performance": "B",
       "trigger": "static（默认）/ .kits-effect-ambient-glow--breathing 显式开启呼吸",
       "modifiers": {
@@ -138,6 +146,10 @@
       "pack": "instrument",
       "entry": "scanline-sweep.css",
       "class": "kits-effect-scanlines",
+      "material": {
+        "kind": "line",
+        "notes": "画的是线：周期刻度线 + 一次扫掠。"
+      },
       "performance": "A（静态）/ B（扫掠）",
       "trigger": "static 扫描线 + is-sweeping 单次扫掠",
       "modifiers": {

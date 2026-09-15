@@ -52,6 +52,12 @@
     ],
     "notes": "instrument 的颜色承担语义：工程蓝表示「当前档位」，positive / negative 是状态判据。所以暗色只允许反转明度（preserve-hue），不允许反相色相 —— 反相会把绿色的「正常」变成红色的「故障」。accent 与 positive / negative 刻意不在 slots 里：产品要换的是画布与墨色，不是判据本身。"
   },
+  "materialDirection": {
+    "hierarchy": "rule",
+    "ambient": "none",
+    "glow": "forbidden",
+    "notes": "instrument 的材质是刻度与边界：1px 实线分格、等宽数值、扫描线与刻度线。没有环境光，也不发光（`--kits-color-glow: transparent`）—— 仪器面板的光只应该来自真实读数本身。"
+  },
   "signatureComponents": [
     "animated-grid",
     "insight-reveal"

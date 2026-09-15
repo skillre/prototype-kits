@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://prototype-kits.local/schemas/manifest.schema.json",
   "title": "Prototype Kits · Style Pack / Signature Component Manifest",
-  "description": "manifest.json（styles/<pack>/ 与 components/<name>/）的结构契约。**\n\n覆盖面（刻意的）**：这里只声明 v0.2 为此清单**新增或收紧**的字段 —— 适配标签与它们的人读散文、移动端兼容与降级、暗色方向、引用列表、角色表。其余既存字段（typography / profile / motion / tokens / performance / a11y …）由它们自己的契约声明与校验（例如 `packages/contracts` 的 `assertStylePackMotion`、`tests/contracts.spec.ts`），在这里重复声明只会造出第二份真相，所以 `additionalProperties` 是 true。",
+  "description": "manifest.json（styles/<pack>/ 与 components/<name>/）的结构契约。**\n\n覆盖面（刻意的）**：这里只声明 v0.2 为此清单**新增或收紧**的字段 —— 适配标签与它们的人读散文、移动端兼容与降级、暗色方向、引用列表、角色表。其余既存字段（typography / profile / motion / tokens / performance / a11y …）由它们自己的契约声明与校验（例如 `packages/contracts` 的 `assertStylePackMotion`、`tests/contracts.spec.ts`），在这里重复声明只会造出第二份真相，所以 `additionalProperties` 是 true。\n\n**effect 聚合清单**（`effects/manifest.json`）里每个 effect 节点可选的 `material` 字段用的是同一个词汇表来源：`assets.schema.json#/$defs/effectMaterial`（K8）。形状只声明一处，不在两个文件里各写一份。",
   "type": "object",
   "required": [
     "id",
@@ -66,6 +66,9 @@
     },
     "darkDirection": {
       "$ref": "assets.schema.json#/$defs/darkDirection"
+    },
+    "materialDirection": {
+      "$ref": "assets.schema.json#/$defs/materialDirection"
     },
     "signatureComponents": {
       "type": "array",

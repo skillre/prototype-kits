@@ -41,6 +41,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
+import { readAssetCss, scanPaintScope } from "./material-scope.mjs";
+
 import {
   ASSET_TYPES,
   deriveMobileState,
@@ -91,6 +93,10 @@ export function loadVocabularies(root) {
     darkApproaches: defs.darkApproach.enum,
     contrastTarget: defs.contrastTarget,
     packRoles: enumOf("packRole"),
+    materialHierarchies: enumOf("materialHierarchy"),
+    materialAmbients: enumOf("materialAmbient"),
+    materialGlows: enumOf("materialGlow"),
+    effectMaterialKinds: enumOf("effectMaterialKind"),
   };
 }
 
@@ -314,6 +320,12 @@ export function summarize(registry, resolved, reserved = []) {
     darkDeclared: packs.filter((place) => place.manifest?.darkDirection).length,
     darkUndeclared: packs.filter((place) => !place.manifest?.darkDirection).length,
     darkSlots: packs.reduce((sum, place) => sum + list(place.manifest?.darkDirection?.slots).length, 0),
+    materialDeclared: packs.filter((place) => place.manifest?.materialDirection).length,
+    materialUndeclared: packs.filter((place) => !place.manifest?.materialDirection).length,
+    effectKinds: places
+      .filter((place) => place.kind === "effect" && place.node?.material?.kind)
+      .length,
+    lightEffects: places.filter((place) => place.node?.material?.kind === "light").length,
   };
 }
 
@@ -438,9 +450,11 @@ function checkKind({ root, asset, place, byId, vocab, registry, push }) {
   if (place.kind === "pack") {
     checkRegistryManifestList({ asset, manifest: place.node, push });
     checkDarkDirection({ root, asset, manifest: place.manifest, dark: place.manifest.darkDirection, vocab, push });
+    checkMaterialDirection({ root, asset, manifest: place.manifest, vocab, byId, push });
   }
   if (place.kind === "effect" && place.node) {
     checkEffectNode({ asset, node: place.node, byId, push });
+    checkEffectMaterial({ asset, node: place.node, vocab, push });
     const required = place.manifest?.contract?.requiredFields ?? [];
     for (const field of required) {
       if (place.node[field] === undefined) {
@@ -677,6 +691,183 @@ function checkDarkDirection({ root, asset, manifest, dark, vocab, push }) {
       }
     }
   }
+}
+
+/* -------------------------------------------------------------------------- */
+/* K8 · 材质语言（materialDirection）与材质类别（material.kind）                 */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * `materialDirection` —— Style Pack 的材质语言（可选字段）。
+ *
+ * 三个字段里**两个可以被机器核对**（这决定了它们不是"审美形容词"）：
+ *
+ *   ambient === "pack-authored"  → 该 pack 的 tokens.css 里必须真的有 `.kits-ambient`
+ *   ambient === "none" / "effect-only" → 不许有（否则"没有环境光"是假的）
+ *   glow === "forbidden"         → `--kits-color-glow` 必须是 transparent
+ *   glow === "budgeted"          → 它必须不是 transparent（声明了预算却发光为 0 = 没接线）
+ *
+ * 外加与 K6 的 `effects[]` 交叉核对（见下），与 K1 的 `darkDirection` 只做**可证明**
+ * 的那一条（product-authored 暗色 + pack-authored 环境光 → warn，不是 error）。
+ */
+function checkMaterialDirection({ root, asset, manifest, vocab, byId, push }) {
+  const where = `${asset.manifest}#materialDirection`;
+  const material = manifest.materialDirection;
+
+  if (material === undefined) {
+    push(
+      "info",
+      "material/undeclared",
+      where,
+      "未声明材质语言 —— 合法（旧状态），但产品与 agent 只能从 CSS 里猜这套 pack 的材质边界",
+    );
+    return;
+  }
+  if (typeof material !== "object" || material === null || Array.isArray(material)) {
+    push("error", "material/not-object", where, "materialDirection 必须是对象");
+    return;
+  }
+
+  const fields = { hierarchy: vocab.materialHierarchies, ambient: vocab.materialAmbients, glow: vocab.materialGlows };
+  for (const [field, allowed] of Object.entries(fields)) {
+    if (material[field] === undefined) {
+      push("error", "material/missing-field", where, `${field} 缺失（schema 里是必填）`);
+      continue;
+    }
+    if (!allowed.includes(material[field])) {
+      push(
+        "error",
+        "material/unknown-value",
+        `${where}.${field}`,
+        `\`${material[field]}\` 不是合法取值（schema 允许 ${allowed.join(" / ")}）`,
+      );
+    }
+  }
+  // additionalProperties: false —— 尤其防止在这里再造一套 mobile 字段（K2 已经有一份）
+  const known = new Set(["hierarchy", "ambient", "glow", "notes"]);
+  for (const key of Object.keys(material)) {
+    if (known.has(key)) continue;
+    const hint = /mobile|desktop|viewport|touch/i.test(key)
+      ? "：移动端语义走 K2 的 mobileCompatible / mobileFallback，材质字段里不造第二套"
+      : "";
+    push("error", "material/unknown-key", `${where}.${key}`, `\`${key}\` 不是 materialDirection 的字段${hint}`);
+  }
+
+  /* ---- 与 CSS 核对：环境光归属 ------------------------------------- */
+  const tokensCss = readAssetCss(root, path.join(path.dirname(asset.manifest), manifest.tokens?.cssVariables ?? "tokens.css"));
+  if (tokensCss === null) {
+    push("warn", "material/unverifiable", where, "读不到 tokens.css，无法核对环境光与发光声明（不当作通过）");
+  } else {
+    const definesAmbient = /(^|[^a-z-])\.kits-ambient\b/.test(tokensCss.replace(/\/\*[\s\S]*?\*\//g, ""));
+    if (material.ambient === "pack-authored" && !definesAmbient) {
+      push(
+        "error",
+        "material/ambient-claim-unbacked",
+        where,
+        "声明 ambient = pack-authored，但 tokens.css 里没有 `.kits-ambient` —— 声明没有兑现",
+      );
+    }
+    if (material.ambient !== "pack-authored" && definesAmbient) {
+      push(
+        "error",
+        "material/ambient-leak",
+        where,
+        `声明 ambient = ${material.ambient}，却在 tokens.css 里定义了 \`.kits-ambient\` —— ` +
+          "环境光的归属两处不一致",
+      );
+    }
+
+    const glowValue = (tokensCss.match(/--kits-color-glow:\s*([^;]+);/) ?? [])[1]?.trim();
+    const glowTransparent = glowValue === "transparent";
+    if (glowValue === undefined) {
+      push("warn", "material/unverifiable", where, "tokens.css 里没有 `--kits-color-glow`，无法核对发光预算");
+    } else if (material.glow === "forbidden" && !glowTransparent) {
+      push(
+        "error",
+        "material/glow-claim-conflict",
+        where,
+        `声明 glow = forbidden，但 \`--kits-color-glow: ${glowValue}\` —— 这是一支真实的发光颜色`,
+      );
+    } else if (material.glow === "budgeted" && glowTransparent) {
+      push(
+        "error",
+        "material/glow-unused",
+        where,
+        "声明 glow = budgeted，但 `--kits-color-glow: transparent` —— 声明了预算却没有可用的发光颜色",
+      );
+    }
+  }
+
+  /* ---- 与 effects[] 交叉核对（K8 × K6）：光不能与"禁止发光"共存 ---- */
+  const effects = Array.isArray(manifest.effects) ? manifest.effects : [];
+  for (const id of effects) {
+    const target = byId.get(id);
+    if (!target || target.type !== "effect") continue; // 引用本身的问题由 K6 报
+    const place = resolveAsset(root, target);
+    const kind = place.node?.material?.kind;
+    if (kind !== "light") continue;
+    if (material.ambient === "none" || material.glow === "forbidden") {
+      push(
+        "error",
+        "material/light-effect-forbidden",
+        `${asset.manifest}#effects`,
+        `\`${id}\` 的 material.kind = light，而本 pack 声明 ambient = ${material.ambient} / glow = ${material.glow} —— ` +
+          "「不发光」的 pack 不能把发光效果列为自己的 effects",
+      );
+    }
+  }
+
+  /* ---- 与 darkDirection 的兼容（K1 × K8）：只报**可证明**的那一条 ---- */
+  const dark = manifest.darkDirection;
+  if (dark?.strategy === "product-authored" && material.ambient === "pack-authored") {
+    push(
+      "warn",
+      "material/dark-authoring-gap",
+      where,
+      "暗色由产品自己写（darkDirection = product-authored），但 pack 自带的环境光是 pack 写死的 —— " +
+        "产品的暗色覆盖没有对应的 ambient 槽位可改，需要产品自己处理这层光（这不是矛盾，是缺口）",
+    );
+  }
+}
+
+/** effect 的 `material`：材质类别（light / texture / line）。 */
+function checkEffectMaterial({ asset, node, vocab, push }) {
+  const material = node.material;
+  if (material === undefined) {
+    push(
+      "info",
+      "material/effect-undeclared",
+      `${asset.manifest}#${asset.id}`,
+      "未声明 material.kind —— 合法（旧状态），但它与 pack 的材质预算之间就无法交叉核对",
+    );
+    return;
+  }
+  const where = `${asset.manifest}#${asset.id}.material`;
+  if (typeof material !== "object" || material === null || Array.isArray(material)) {
+    push("error", "material/not-object", where, "material 必须是对象");
+    return;
+  }
+  if (!vocab.effectMaterialKinds.includes(material.kind)) {
+    push(
+      "error",
+      "material/unknown-kind",
+      `${where}.kind`,
+      `\`${material.kind}\` 不是合法类别（schema 允许 ${vocab.effectMaterialKinds.join(" / ")}）`,
+    );
+  }
+  for (const key of Object.keys(material)) {
+    if (key === "kind" || key === "notes") continue;
+    push("error", "material/unknown-key", `${where}.${key}`, `\`${key}\` 不是 material 的字段`);
+  }
+}
+
+/** 扫一份 pack / effect 样式表的作画作用域（K8 的机械判据，audit 会把它当 error）。 */
+export function checkPaintScope(root, { rel, scoped, label }) {
+  const css = readAssetCss(root, rel);
+  if (css === null) {
+    return { label, rel, rules: 0, paintRules: 0, violations: [], missing: true };
+  }
+  return { label, rel, ...scanPaintScope(css, { scoped, label }), missing: false };
 }
 
 /** effect 的 per-asset 节点：pack 引用、id 自洽。 */

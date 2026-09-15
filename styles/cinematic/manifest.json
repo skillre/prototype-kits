@@ -35,6 +35,12 @@
     "strategy": "single-theme",
     "notes": "cinematic 原生就是深色（--kits-color-canvas #07090f / --kits-color-ink #eef2f8），暗色等于默认值，不存在第二套调色板。产品不要为「暗色」再写一套覆盖 —— 那只会把原生关系改坏。"
   },
+  "materialDirection": {
+    "hierarchy": "light",
+    "ambient": "pack-authored",
+    "glow": "budgeted",
+    "notes": "cinematic 用光建立层级：容器从背景里被一束有方向的光托起来，而不是靠边框或阴影。环境光由 pack 自己带（tokens.css 的 `.kits-ambient`，三个径向光源），因为它是这套风格的材质基础；发光有预算 ——「同屏发光元素 ≤ 1」「一页最多一个环境光容器」。"
+  },
   "signatureComponents": [
     "spotlight-surface",
     "data-cursor",

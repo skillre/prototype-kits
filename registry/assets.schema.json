@@ -314,6 +314,12 @@
         },
         "darkDirection": {
           "$ref": "#/$defs/darkDirection"
+        },
+        "materialDirection": {
+          "$ref": "#/$defs/materialDirection"
+        },
+        "material": {
+          "$ref": "#/$defs/effectMaterial"
         }
       },
       "allOf": [
@@ -534,6 +540,79 @@
           }
         }
       ]
+    },
+    "materialHierarchy": {
+      "description": "这套 pack 用什么建立层级（v0.2 · K8 的「材质语言」）。light = 用光与明暗分层（cinematic：一束光把容器从背景里托起来）；rule = 用线与边界分格（instrument：1px 实线）；space = 用留白与间距（editorial：间距大于任何控件尺寸）；texture = 用表面材质本身（纸、网点）。**这是声明，不是断言** —— 它给 agent 与人读，判定不去猜审美；能被机器核对的字段见 materialAmbient / materialGlow。",
+      "enum": [
+        "light",
+        "rule",
+        "space",
+        "texture"
+      ]
+    },
+    "materialAmbient": {
+      "description": "环境光（ambient）归谁 —— 这一条**可以从 CSS 核对**，不是形容词。pack-authored = pack 自己带一层环境光，必须在自己的 tokens.css 里定义 `.kits-ambient`（cinematic）；effect-only = pack 不带，环境光只能来自显式安装的 Effect Pack（ambient-glow）；none = 这套 pack 的材质语言里没有环境光（editorial / instrument），此时它的 CSS 里不得出现 `.kits-ambient`。",
+      "enum": [
+        "pack-authored",
+        "effect-only",
+        "none"
+      ]
+    },
+    "materialGlow": {
+      "description": "发光预算 —— 同样**可从 CSS 核对**：pack 的 `--kits-color-glow` 是透明还是真颜色。budgeted = 允许发光（cinematic：glow 是真实颜色，且自己规定「同屏发光元素 ≤ 1」）；forbidden = 不允许（editorial / instrument：`--kits-color-glow: transparent`）。与 effects[] 交叉核对：声明 forbidden 的 pack 不允许登记发光的 effect。",
+      "enum": [
+        "budgeted",
+        "forbidden"
+      ]
+    },
+    "materialDirection": {
+      "description": "Style Pack 的**材质语言**（v0.2 · K8）。**可选**：不声明 = 合法旧状态（audit 报 info）。目的不是把 CSS token 搬进 JSON，而是机器可读地回答「这套 pack 的材质性格是什么」。三个字段里 ambient 与 glow 可以被核对（CSS / effects[] 交叉），hierarchy 是声明。**不包含任何 mobile 字段**：移动端语义一律走 K2 的 mobileCompatible / mobileFallback，不在这里造第二套。",
+      "type": "object",
+      "required": [
+        "hierarchy",
+        "ambient",
+        "glow"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "hierarchy": {
+          "$ref": "#/$defs/materialHierarchy"
+        },
+        "ambient": {
+          "$ref": "#/$defs/materialAmbient"
+        },
+        "glow": {
+          "$ref": "#/$defs/materialGlow"
+        },
+        "notes": {
+          "type": "string",
+          "description": "人读的一句话：这套材质语言为什么是这样。"
+        }
+      }
+    },
+    "effectMaterialKind": {
+      "description": "Effect Pack 在材质层面的类别。light = 它画的是光（因此会与 pack 的发光预算、环境光归属发生关系）；texture = 它画的是表面材质（噪点、纸纹）；line = 它画的是线（刻度、扫描线）。字段少是刻意的：这是三个 effect 的反推，不是待填的目录。",
+      "enum": [
+        "light",
+        "texture",
+        "line"
+      ]
+    },
+    "effectMaterial": {
+      "description": "Effect Pack 的材质类别声明（写在该 effect 于 effects/manifest.json 的节点上，可选）。它让 pack 的 materialDirection 与 effect 之间可以**交叉核对**：声明 `ambient: none` 或 `glow: forbidden` 的 pack 不允许把 light 类 effect 写进自己的 effects[]。",
+      "type": "object",
+      "required": [
+        "kind"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/effectMaterialKind"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
     }
   }
 }
