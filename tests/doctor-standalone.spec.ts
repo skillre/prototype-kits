@@ -55,6 +55,16 @@ function makeProduct(name: string, pkg: Record<string, unknown> = {}) {
       2,
     ),
   );
+  /*
+   * 每个 fixture 都要有真实产品源码（v0.2 起）：
+   * 一个没有源码根的"产品"，boundary 检查会正确地判成 vacuous-scan（FAIL）——
+   * 那是 K5 要的行为，但它会盖住这些用例真正要验的东西（独立安装下的上游诚实性）。
+   */
+  mkdirSync(path.join(dir, "app"), { recursive: true });
+  writeFileSync(
+    path.join(dir, "app", "page.tsx"),
+    "export default function Page() { return null }\n",
+  );
   return dir;
 }
 

@@ -59,6 +59,24 @@ const SKIP_DIRS = new Set([
 const SOURCE_EXT = /\.(?:ts|tsx|mts|cts|js|jsx|mjs|cjs|css)$/;
 
 /**
+ * 产品源码通常住在这里。
+ *
+ * 为什么需要它：一个"扫过 0 个文件、0 个违规"的检查，和一个"扫过 200 个文件、
+ * 0 个违规"的检查，打印出来长得一模一样 —— 而前者什么都没检查。
+ * 所以判定必须知道**范围根在哪**、**扫到几个文件**，见 boundaryVerdict()。
+ */
+export const PRODUCT_SOURCE_ROOTS = [
+  "app",
+  "src",
+  "components",
+  "lib",
+  "pages",
+  "hooks",
+  "stores",
+  "scripts",
+];
+
+/**
  * 读产品的路径别名（tsconfig.json 的 compilerOptions.paths）。
  *
  * 需要它是因为越界有两种写法：
@@ -183,8 +201,17 @@ function* walkSource(root, skipRoots) {
 /**
  * 找出产品源码里绕过适配层、直接引用托管区的说明符。
  *
+ * v0.2：除 `violations` 与 `scanned` 之外还返回**范围证据**（`excluded` /
+ * `roots`）。原因是这把检查接进 doctor 时，"扫到 0 个文件也算通过" 是一条
+ * 正式的静默失败路径 —— 判定需要知道检查到底有没有发生，见 `boundaryVerdict()`。
+ *
  * @param {{ productRoot: string, layout?: typeof DEFAULT_LAYOUT }} options
- * @returns {{ violations: Array<{file:string, line:number|null, spec:string, reason:string, resolved:string|null}>, scanned: number }}
+ * @returns {{
+ *   violations: Array<{file:string, line:number|null, spec:string, reason:string, resolved:string|null}>,
+ *   scanned: number,
+ *   excluded: number,
+ *   roots: { present: string[], missing: string[] },
+ * }}
  */
 export function findManagedImports({ productRoot, layout = DEFAULT_LAYOUT }) {
   const installedRoot = layout.installedRoot; // lib/kits/installed
@@ -272,7 +299,147 @@ export function findManagedImports({ productRoot, layout = DEFAULT_LAYOUT }) {
     }
   }
 
-  return { violations, scanned };
+  const present = PRODUCT_SOURCE_ROOTS.filter((root) =>
+    statIsDirectory(path.join(productRoot, root)),
+  );
+
+  return {
+    violations,
+    scanned,
+    excluded: countSourceFiles(productRoot, skipRoots),
+    roots: {
+      present,
+      missing: PRODUCT_SOURCE_ROOTS.filter((root) => !present.includes(root)),
+    },
+  };
+}
+
+/** 目录存在且是目录。 */
+function statIsDirectory(abs) {
+  try {
+    return statSync(abs).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 统计被跳过的源码文件数（托管区 / 适配层里的 .ts/.tsx/.css …）。
+ *
+ * 它不是"违规"，而是让 doctor 能把范围说完整：扫了 N 个、跳过 M 个
+ * （M 全部属于 `installed/`、`.kits/`、`adapters/`）。
+ */
+function countSourceFiles(root, relDirs) {
+  let total = 0;
+  for (const relDir of relDirs) {
+    const abs = path.join(root, relDir);
+    const stack = [abs];
+    while (stack.length) {
+      const dir = stack.pop();
+      let entries;
+      try {
+        entries = readdirSync(dir);
+      } catch {
+        continue;
+      }
+      for (const entry of entries) {
+        const child = path.join(dir, entry);
+        let st;
+        try {
+          st = statSync(child);
+        } catch {
+          continue;
+        }
+        if (st.isDirectory()) {
+          if (SKIP_DIRS.has(entry)) continue;
+          stack.push(child);
+        } else if (st.isFile() && SOURCE_EXT.test(entry)) {
+          total += 1;
+        }
+      }
+    }
+  }
+  return total;
+}
+
+/**
+ * 把一次扫描变成一个**可以负责的结论**。
+ *
+ * 判定顺序（顺序本身是契约）：
+ *   1. Kits 没安装            → not-applicable（**不是** pass：没有托管区可越界，
+ *                              这句话不是"检查通过"）
+ *   2. 没有任何产品源码根      → fail（范围根缺失 = 检查没有发生）
+ *   3. 有根、但扫到 0 个文件   → fail（0 个文件里发现 0 个违规 ≠ 通过）
+ *   4. 有违规                  → fail
+ *   5. 其余                    → pass（并且必须能说出 scanned / excluded）
+ *
+ * @param {{ productRoot: string, layout?: typeof DEFAULT_LAYOUT, scan: ReturnType<typeof findManagedImports>, installPresent: boolean }} args
+ * @returns {{ status: "pass"|"fail"|"not-applicable", state: string|null, detail: string, hint: string|null, scanned: number, excluded: number, violations: any[] }}
+ */
+export function boundaryVerdict({ productRoot, layout = DEFAULT_LAYOUT, scan, installPresent }) {
+  const counts = `扫过 ${scan.scanned} 个产品源文件 · 跳过 ${scan.excluded} 个（${layout.installedRoot}/、${layout.agentRoot}/、${layout.adapterRoot}/）`;
+
+  if (!installPresent) {
+    return {
+      status: "not-applicable",
+      state: "not-installed",
+      detail: `not-installed：没有 ${layout.lockFile}，没有托管区可越界 —— 不适用（不是通过）`,
+      hint: "先 `kits add` 安装资产；装好之后这条检查才会真的扫描。",
+      scanned: scan.scanned,
+      excluded: scan.excluded,
+      violations: [],
+    };
+  }
+
+  if (scan.roots.present.length === 0) {
+    return {
+      status: "fail",
+      state: "vacuous-scan",
+      detail: `检查没有发生：${productRoot} 下找不到任何产品源码根（${PRODUCT_SOURCE_ROOTS.join(" / ")}）`,
+      hint: "范围根缺失不是「没有可检查的东西」，而是「检查没有执行」。确认 --target 指对了产品根。",
+      scanned: scan.scanned,
+      excluded: scan.excluded,
+      violations: [],
+    };
+  }
+
+  if (scan.scanned === 0) {
+    return {
+      status: "fail",
+      state: "vacuous-scan",
+      detail: `检查没有发生：扫描范围内 0 个产品源文件（0 个文件里发现 0 个违规 ≠ 通过）`,
+      hint: "产品源码要么不在这些根下，要么扩展名不在扫描集合里。范围不完整时不允许判 PASS。",
+      scanned: scan.scanned,
+      excluded: scan.excluded,
+      violations: [],
+    };
+  }
+
+  if (scan.violations.length) {
+    const shown = scan.violations
+      .slice(0, 3)
+      .map((v) => `${v.file}${v.line ? `:${v.line}` : ""} → ${v.spec}`)
+      .join(" · ");
+    return {
+      status: "fail",
+      state: null,
+      detail: `${scan.violations.length} 处产品源码绕过适配层直接引用托管区（${counts}）`,
+      hint: `从 adapters/ 走。Kits 托管区会被下次安装覆盖：${shown}`,
+      scanned: scan.scanned,
+      excluded: scan.excluded,
+      violations: scan.violations,
+    };
+  }
+
+  return {
+    status: "pass",
+    state: null,
+    detail: `没有绕过适配层的引用（${counts}）`,
+    hint: null,
+    scanned: scan.scanned,
+    excluded: scan.excluded,
+    violations: [],
+  };
 }
 
 /** 找到某个说明符在文件里第一次出现的行号（1 起）。 */

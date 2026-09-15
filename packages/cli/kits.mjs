@@ -55,7 +55,7 @@ import {
   expectedAdapterFiles,
   ADAPTER_TEMPLATE_VERSION,
 } from "./lib/adapters.mjs";
-import { findManagedImports } from "./lib/boundary.mjs";
+import { findManagedImports, boundaryVerdict } from "./lib/boundary.mjs";
 
 /* -------------------------------------------------------------------------- */
 /* 参数解析                                                                    */
@@ -108,7 +108,17 @@ const c = {
   cyan: (s) => `\u001b[36m${s}\u001b[0m`,
 };
 
-const MARK = { pass: c.green("✓"), warn: c.yellow("!"), fail: c.red("✗") };
+/*
+ * 状态四态而不是三态：v0.2 起有 `na`（不适用）。
+ * 「不适用」既不是通过也不是失败 —— 一个"没有托管区可越界"的检查被判成 pass，
+ * 就是 K5 要消灭的那种静默通过。
+ */
+const MARK = {
+  pass: c.green("✓"),
+  warn: c.yellow("!"),
+  fail: c.red("✗"),
+  na: c.dim("–"),
+};
 
 function header(title) {
   console.log(`\n${c.bold(title)}`);
@@ -467,8 +477,13 @@ function cmdDoctor({ flags }) {
   console.log();
 
   const checks = [];
+  /*
+   * 库层说的是 "not-applicable"（语义名），渲染层用 "na"（Mark 表里的短名）。
+   * 在这里归一化，免得每个 push 点各写一遍，也免得漏掉一次就渲染成 undefined。
+   */
+  const statusOf = (status) => (status === "not-applicable" ? "na" : status);
   const push = (id, status, detail, hint, state) =>
-    checks.push({ id, status, detail, hint, state: state ?? null });
+    checks.push({ id, status: statusOf(status), detail, hint, state: state ?? null });
 
   // --- 1. 安装清单 --------------------------------------------------------
   if (!lock) {
@@ -606,25 +621,14 @@ function cmdDoctor({ flags }) {
    * 产品一旦直接 import installed/，适配层就成了装饰品，
    * "升级 Kits 不动产品代码"这个承诺当场变假。
    */
-  const boundary = findManagedImports({ productRoot, layout });
-  if (boundary.violations.length) {
-    const shown = boundary.violations
-      .slice(0, 3)
-      .map((v) => `${v.file}${v.line ? `:${v.line}` : ""} → ${v.spec}`)
-      .join(" · ");
-    push(
-      "boundary",
-      "fail",
-      `${boundary.violations.length} 处产品源码绕过适配层直接引用托管区`,
-      `从 adapters/ 走。Kits 托管区会被下次安装覆盖：${shown}`,
-    );
-  } else {
-    push(
-      "boundary",
-      "pass",
-      `扫过 ${boundary.scanned} 个产品源文件，没有绕过适配层的引用`,
-    );
-  }
+  const scan = findManagedImports({ productRoot, layout });
+  const boundary = boundaryVerdict({
+    productRoot,
+    layout,
+    scan,
+    installPresent: Boolean(lock),
+  });
+  push("boundary", boundary.status, boundary.detail, boundary.hint ?? undefined, boundary.state);
 
   // --- 输出 ---------------------------------------------------------------
   /*
@@ -644,12 +648,17 @@ function cmdDoctor({ flags }) {
 
   const failed = checks.filter((x) => x.status === "fail").length;
   const warned = checks.filter((x) => x.status === "warn").length;
+  const na = checks.filter((x) => x.status === "na").length;
+  const naNote = na ? c.dim(` · ${na} 项不适用`) : "";
   if (failed) {
-    console.log(`  ${c.red(`✗ ${failed} 项失败`)}${warned ? c.yellow(` · ${warned} 项警告`) : ""}`);
+    console.log(`  ${c.red(`✗ ${failed} 项失败`)}${warned ? c.yellow(` · ${warned} 项警告`) : ""}${naNote}`);
   } else if (warned) {
-    console.log(`  ${c.yellow(`! 通过，但有 ${warned} 项警告`)}`);
+    console.log(`${c.yellow(`! 通过，但有 ${warned} 项警告`)}${naNote}`);
+  } else if (na) {
+    // 「全部通过」只允许在没有 na 的时候说：不适用不是通过。
+    console.log(`${c.green("✓ 通过")}${naNote}`);
   } else {
-    console.log(`  ${c.green("✓ 全部通过")}`);
+    console.log(c.green("✓ 全部通过"));
   }
   console.log();
 

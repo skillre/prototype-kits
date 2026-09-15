@@ -190,6 +190,30 @@ kits diff    已安装 vs 当前 Kits
 `@types/react`，Development Mode 那种"两份类型身份打架"在结构上不可能发生。
 所以独立下的判据是"产品 major ∈ 安装时声明的区间"，而不是上游比对。
 
+#### `boundary` 的三态：0 个文件扫描到的 0 个违规不等于通过（v0.2 · K5）
+
+v0.1.1 的 `boundary` 有一个正式质量门上的静默失败路径：
+
+```
+扫过 0 个产品源文件，没有绕过适配层的引用     → ✓ boundary (pass)
+```
+
+「0 个文件里发现 0 个违规」和「检查通过」不是同一句话 —— 前者是**检查没有发生**。
+v0.2 起判定分三态（与 `probe guard` 的 `0/0 = NaN`、Factory v1.2 seam 扫描的
+`scanned 0` 是同一条原则）：
+
+| 情形 | 判定 |
+|---|---|
+| 扫过 > 0 个产品源文件，0 个违规 | **pass**，并打印 `扫过 N 个 · 跳过 M 个` |
+| 有违规 | **fail** |
+| 有安装，但范围根全缺失 / 扫到 0 个文件 | **fail**（`[vacuous-scan]` 检查没有发生） |
+| 没有安装（没有 lock） | **`not-applicable`**（`[not-installed]`）——**不是通过** |
+
+`not-applicable` 是**第四种 status**（此前只有 pass / warn / fail）：它既不是通过
+也不是失败。摘要行里它会单独计数（`· N 项不适用`），而且**只要还有不适用项，
+摘要就不会说"全部通过"**。doctor 的输出恒包含 `scanned` / `excluded` / `violations`
+三个数字 —— 说不清范围就不算检查过。
+
 ### 6. 升级路径
 
 ```bash
