@@ -268,11 +268,20 @@ v0.2 再考虑带迁移脚本的 upgrade。
 
 ## 版本策略
 
-当前 `registryVersion` 是 `0.2.0`（v0.2 把 pack / component 的适配标签与 darkDirection
-写进 registry，属于**新增字段**，产品侧无破坏性变更）；**资产的版本号各自独立** ——
-v0.1.1 只让真正变了的 5 个资产升到了 0.1.1（`contracts` / `cli` /
+当前 `registryVersion` 是 `0.2.0`；**资产的版本号各自独立**，而且只有**分发内容真的变了**
+的资产才会升版本 —— 这样 `kits diff` 说出的才是实话，它只报真有差异的资产：
+
+| 版本 | 资产 | 为什么 |
+|---|---|---|
+| `0.2.0` | `editorial` / `cinematic` / `instrument` | manifest 增加了 `darkDirection`、`materialDirection`、适配标签与散文 |
+| `0.2.0` | 五个 Signature Component | manifest 增加了适配标签与 `recommendedFor` / `avoidFor` 语义 |
+| `0.2.0` | `paper-grain` / `ambient-glow` / `scanline-sweep` | `effects/manifest.json` 增加了 `material.kind` |
+| `0.2.0` | `cli` | 接缝骨架、doctor 三态、registry 审计门与全部新判定 |
+| `0.1.1` | `contracts` | v0.2 未改动 |
+| `0.1.0` | `react-utils` | v0.2 未改动 |
+
+历史：v0.1.1 只让真正变了的 5 个资产升到了 0.1.1（`contracts` / `cli` /
 `insight-reveal` / `animated-grid` / `ambient-glow`），其余仍是 0.1.0。
-这样 `kits diff` 说出的才是实话：它只报真有差异的资产。
 
 三条约定：
 

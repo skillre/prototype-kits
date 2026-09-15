@@ -32,7 +32,7 @@ export default function RootLayout({
             <Link href="/audit">Asset Registry</Link>
           </nav>
           <div className="pg-header__note">
-            v0.1.1 · 验收台，不是业务产品
+            v0.2.0 · 验收台，不是业务产品
           </div>
         </header>
         <main className="pg-main">{children}</main>

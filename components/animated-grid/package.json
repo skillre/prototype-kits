@@ -1,6 +1,6 @@
 {
   "name": "@kits/animated-grid",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": true,
   "description": "Signature Component · AnimatedGrid —— 结构性背景网格（纯装饰，aria-hidden），动效只有语义档位",
   "type": "module",

@@ -1,5 +1,88 @@
 # Changelog
 
+## v0.2.0 · Contract Hardening
+
+`v0.1.1` → `v0.2.0`。两次独立消费之间（AI Finance 的 Source Installation 与
+第三个 Prototype「AI Research」的自建 Art Direction）暴露出同一类问题：
+**metadata 看起来是契约，实际上只是字符串** —— 写错也不会变红。本次把八件事
+变成可执行的判定，没有加 Style Pack、没有加 Signature Component、没有视觉 redesign。
+
+**兼容**：资产 id、组件 API、CSS 变量、`kits.lock.json` 的 `schemaVersion`（仍是 1）
+全部不变；v0.1.1 安装的产品可以直接重跑 `kits add`。变的是 metadata 的表达方式与
+判定强度 —— 三个 pack、五个组件、effects 与 CLI 的分发内容因此升到 `0.2.0`，
+未变更的 `contracts`（0.1.1）与 `react-utils`（0.1.0）保持原版本，`kits diff`
+说出的仍然是实话。
+
+### K4 · 中性适配接缝（neutral Product adapter seam）
+
+适配层以前只生成**资产名**文件，产品代码只能写
+`import { DataCursor } from "@/lib/kits/adapters/data-cursor"` —— 资产身份被焊进
+产品源码。现在生成骨架（`adapters/seam/{README.md,seam.json,_template.ts}`），
+由产品自己命名角色；doctor 双向核对声明与实现（悬空绑定 fail、有文件无声明 warn、
+角色名与资产 id 撞车 fail、无接缝的旧安装 warn + 迁移路径）。
+`ADAPTER_TEMPLATE_VERSION` 与 `lock.seam` 随之升到 `0.2.0`。
+
+### K5 · doctor 诚实性（zero-scan 不得 PASS）
+
+`boundary` 有一条正式的静默失败路径：扫过 0 个产品源文件、发现 0 个违规 → ✓ pass。
+现在它是三态（pass / fail / not-applicable），`na` 在摘要里单独计数，
+**有 na 时不会说"全部通过"**；扫描同时给出 `scanned` 与 `excluded` 作为范围证据。
+
+### K1 · `darkDirection`
+
+Style Pack 可以声明暗色方向（`single-theme` / `pack-authored` / `product-authored`）。
+可选，但一旦声明就必须可执行：`product-authored` 必须给出 `approach`、
+WCAG `contrastTarget`（正文 ≥ 4.5、大字 ≥ 3）与 `slots`，且每个槽位要与该 pack 的
+`tokens.css` 逐个变量核对。三套 pack 首次给出真实取值：instrument `preserve-hue`、
+editorial `invert-contrast`、cinematic `single-theme`。
+
+### K2 · `mobileCompatible` 语义
+
+`true` 现在有明确定义：**在它自己声明的支持条件下允许使用，不表示推荐**。
+新增 `"fallback-only"`（只能在声明的 `mobileFallback` 下使用）并首次用于
+`data-cursor`；审计输出的是**状态词**（推荐 / 可用但不推荐 / 允许（需适配）/
+仅降级形态 / 不支持 / 不适用），不再是真假值。instrument 成为"兼容但不推荐"的
+真实样本（`avoidFor` 含 `mobile`）。
+
+### K3 · `technical-grid` 漂移归零
+
+三处引用了一个从未实现、也从未登记进 registry 的效果名，全部删除。
+
+### K6 · 类型化引用一致性
+
+`signatureComponents` / `optionalComponents` / `discouragedComponents` 必须指向
+component，`effects` 必须指向 effect —— 字段名不再等于类型（cinematic 曾把
+`animated-grid` 写在 `effects[]` 里）。同时核对 registry ↔ manifest 的
+`signatureComponents`、组件 `usedByStylePacks` 的角色词 ↔ pack 三列表（双向）、
+effect 与聚合清单的一致性、`package.json` 的包名与版本。
+
+### K7 · 适配维度（fit taxonomy）
+
+`recommendedFor` / `avoidFor` 从自由散文变成**枚举标签**（10 个维度 + `x-` 扩展），
+同一维度不得同时推荐与回避；v0.1.1 的 46 条散文**逐字**保留在同名 manifest 的
+`recommendedForNotes` / `avoidForNotes` 里。标签同时写进 registry 与 manifest，
+两侧必须逐字相等。
+
+### K8 · 材质归属（material handoff）
+
+Factory v1.2 把 personality 从 Core 移出之后，归属由 K8 补齐：Style Pack 用
+`materialDirection`（`hierarchy` / `ambient` / `glow`）声明材质语言，Effect Pack 用
+`material.kind`（`light` / `texture` / `line`）声明材质类别，产品决定在哪里用。
+`ambient` 与 `glow` **与 CSS 逐条核对**，并与 `effects[]` 交叉；
+"装 Kits 不会自动污染页面"由 `scripts/lib/material-scope.mjs` 扫描证明
+（作画必须在自己的选择器里）。**没有新增 Effect Pack，也没有给 ambient-glow 加旋钮。**
+
+### 单一事实来源
+
+`registry/assets.schema.json` 的 `$defs` 是全部枚举（fit 标签、mobile 取值、
+dark 策略、材质语言、角色词、effect 材质）的**唯一来源**；
+`scripts/lib/{fit-semantics,material-scope,manifest-contract}.mjs` 是判定的唯一实现；
+`pnpm registry`、Kits 测试与 Playground 审计页共用它，并有一条测试钉住
+"schema 声明的"与"执行做的"等价。`pnpm registry` 现在**是一个门**：
+有 error 时退出码非 0，并逐项说明这次检查了什么、覆盖了多少对象。
+
+---
+
 ## v0.1.1 · Patch Hardening
 
 `v0.1.0` → `v0.1.1`。第二次真实消费（AI Finance × Source Installation）

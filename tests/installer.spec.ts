@@ -471,9 +471,13 @@ describe("lock 与 diff", () => {
     expect(lock.source.commit).toMatch(/^[0-9a-f]{7,40}$|^null$/);
     expect(lock.layout.installedRoot).toBe("lib/kits/installed");
     expect(lock.layout.adapterRoot).toBe("lib/kits/adapters");
-    // 资产条目带版本，用于 diff
+    // 资产条目带版本，用于 diff —— 期望值从 registry 读，不写死字面量：
+    // 写死的话每次 release 都要改测试，而测试本来要守的是"lock 抄对了 registry"
+    const registryCinematic = JSON.parse(
+      readFileSync(path.join(ROOT, "registry", "assets.json"), "utf8"),
+    ).assets.find((asset: { id: string }) => asset.id === "cinematic");
     const cinematic = lock.assets.find((a: { id: string }) => a.id === "cinematic");
-    expect(cinematic.version).toBe("0.1.0");
+    expect(cinematic.version).toBe(registryCinematic.version);
     expect(cinematic.type).toBe("style");
   });
 

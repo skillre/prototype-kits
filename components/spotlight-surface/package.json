@@ -1,6 +1,6 @@
 {
   "name": "@kits/spotlight-surface",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Signature Component · SpotlightSurface —— 响应指针的表面；Adapter 模式的参考实现（产品只见 tone / intensity）",
   "type": "module",

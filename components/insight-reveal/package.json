@@ -1,6 +1,6 @@
 {
   "name": "@kits/insight-reveal",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": true,
   "description": "Signature Component · InsightReveal —— 按阅读顺序逐段揭示；三层降级，JS 失败时内容依然可见",
   "type": "module",

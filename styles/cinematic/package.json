@@ -1,6 +1,6 @@
 {
   "name": "@kits/style-cinematic",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Style Pack · cinematic —— 深色、空间纵深、环境光、局部 glow、数据视觉、更强 interaction",
   "type": "module",

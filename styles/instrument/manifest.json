@@ -3,7 +3,7 @@
   "id": "instrument",
   "name": "Instrument",
   "displayName": "工业仪表 · 刻度与读数",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "status": "approved",
   "type": "style",
   "contractVersion": "1.0.0",
