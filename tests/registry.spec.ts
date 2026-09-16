@@ -212,11 +212,11 @@ describe("registry/assets.json", () => {
 });
 
 describe("registry 覆盖度", () => {
-  it("三个 Style Pack 都已登记且为 approved", () => {
+  it("Style Pack 资产都已登记且为 approved（含 K1 新增的 console）", () => {
     const ids = registry.assets
       .filter((a) => a.type === "style")
       .map((a) => a.id);
-    for (const pack of ["editorial", "cinematic", "instrument"]) {
+    for (const pack of ["editorial", "cinematic", "instrument", "console"]) {
       expect(ids, `缺少 style 资产 ${pack}`).toContain(pack);
       const asset = registry.assets.find((a) => a.id === pack)!;
       expect(asset.status, `${pack} 未 approved`).toBe("approved");

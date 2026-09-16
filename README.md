@@ -16,7 +16,7 @@
 
 | 资产类型 | 内容 | 数量（v0.1） |
 |---|---|---|
-| **Style Packs** | 整套视觉语言（排版/间距/密度/圆角/边界/表面/导航/数据/动效/层级） | 3 |
+| **Style Packs** | 整套视觉语言（排版/间距/密度/圆角/边界/表面/导航/数据/动效/层级） | 4 |
 | **Signature Components** | 有稳定内部 API 的签名组件 | 5 |
 | **Effect Packs** | 纯 CSS 的表面与环境效果 | 3 |
 | **Skills** | 给 Agent 的强制流程（Visual Direction / Motion Direction） | 2 |
@@ -62,7 +62,8 @@ prototype-kits/
 ├── styles/                     Style Packs（每套一个包）
 │   ├── editorial/              纸与字
 │   ├── cinematic/              光与深度
-│   └── instrument/             刻度与读数
+│   ├── instrument/             刻度与读数
+│   └── console/                终端与列（运营控制台）
 ├── components/                 Signature Components（每个一个包）
 │   ├── interactive-hero/
 │   ├── spotlight-surface/
@@ -93,27 +94,29 @@ prototype-kits/
 
 ---
 
-## 4. 三套 Style Pack
+## 4. 四套 Style Pack
 
-| | **editorial** | **cinematic** | **instrument** |
-|---|---|---|---|
-| 一句话 | 纸与字 | 光与深度 | 刻度与读数 |
-| 第一视觉 | 巨大衬线标题 + 一条 1px 横线 | 深色空间里从左上打下来的环境光 | 一屏被 1px 实线切开的等宽面板 |
-| 排版 | 衬线 4.5rem / 行高 **1.02** / 字距 **−0.022em** | 无衬线 500 / 1.08 / 字距 **+0.005em** | 全站等宽 / 1.12 / 字距 **+0.02em** |
-| 间距节奏 | 脉搏 4px，段落 **96px** | 脉搏 8px，段落 **96px**（层级内 8px） | 脉搏 4px，段落 **32px** |
-| 密度 | 控件 40px / 行 52px | 控件 36px / 行 44px | 控件 **28px** / 行 **32px** |
-| 圆角 | **0**（印刷直角） | **14px**（材质连续） | **2px**（机械公差） |
-| 边界 | 只用 1px 横线（opacity 0.14） | **无边框**，靠亮度差 | **处处 1px 实线** |
-| 表面 | 纸纹 0.035 + 零投影 | 玻璃 + 三层环境光 + 深投影 | 平面面板 + 极淡扫描线 |
-| 导航 | 书眉行（不吸附） | 浮起玻璃（overlay） | 机架轨道（左侧 2px 条） |
-| 数据 | 衬线大字号 tabular | 发光曲线 + 端点光点 | 等宽读数 + 刻度网格 |
-| 动效 | restrained · 80–480ms · 位移 10px | atmospheric · 120–720ms · 24px + 6px 模糊 | precise · **50–220ms** · 位移 4px |
-| 指针视差 | 0.15（几乎不动） | **1.0**（完整跟随） | 0.4 |
-| ambient 角色 | ✗ 不授予 | ✓ 9s | ✗ **不授予**（仪表不呼吸） |
+| | **editorial** | **cinematic** | **instrument** | **console** |
+|---|---|---|---|---|
+| 一句话 | 纸与字 | 光与深度 | 刻度与读数 | 终端与列 |
+| 第一视觉 | 巨大衬线标题 + 一条 1px 横线 | 深色空间里从左上打下来的环境光 | 一屏被 1px 实线切开的等宽面板 | 深色画布上三列被规则线切开：攻击链 / 战情 / 待人授权 |
+| 排版 | 衬线 4.5rem / 行高 **1.02** / 字距 **−0.022em** | 无衬线 500 / 1.08 / 字距 **+0.005em** | 全站等宽 / 1.12 / 字距 **+0.02em** | 等宽即读数（正文无衬线）/ 1.04 / 字距 **−0.01em** |
+| 间距节奏 | 脉搏 4px，段落 **96px** | 脉搏 8px，段落 **96px**（层级内 8px） | 脉搏 4px，段落 **32px** | 脉搏 4px，段落 **24px**（列对齐优先） |
+| 密度 | 控件 40px / 行 52px | 控件 36px / 行 44px | 控件 28px / 行 32px | 控件 **38px** / 行 **28px**（面板内可滚动） |
+| 圆角 | **0**（印刷直角） | **14px**（材质连续） | **2px**（机械公差） | **0**（格位是矩形的） |
+| 边界 | 只用 1px 横线（opacity 0.14） | **无边框**，靠亮度差 | **处处 1px 实线** | **1px 规则线只编码结构**（面板边界与列分隔） |
+| 表面 | 纸纹 0.035 + 零投影 | 玻璃 + 三层环境光 + 深投影 | 平面面板 + 极淡扫描线 | 点阵格位 0.05 + 零投影（**无**环境光） |
+| 导航 | 书眉行（不吸附） | 浮起玻璃（overlay） | 机架轨道（左侧 2px 条） | **命令/查询条**（键盘驱动，不是菜单树） |
+| 数据 | 衬线大字号 tabular | 发光曲线 + 端点光点 | 等宽读数 + 刻度网格 | **事件日志流**（文本主导） |
+| 动效 | restrained · 80–480ms · 位移 10px | atmospheric · 120–720ms · 24px + 6px 模糊 | precise · 50–220ms · 位移 4px | event-driven · **60–240ms** · 位移 **4px** |
+| 指针视差 | 0.15（几乎不动） | **1.0**（完整跟随） | 0.4 | **0**（完全禁用） |
+| ambient 角色 | ✗ 不授予 | ✓ 9s | ✗ **不授予**（仪表不呼吸） | ✓ 4s，**只给「运行中」呼吸点** |
 
-> **判定标准**：把三列都转成**灰度**之后，差异是否依然一眼可见？
+> **判定标准**：把四列都转成**灰度**之后，差异是否依然一眼可见？
 > 是 —— 因为差异在排版、间距、圆角、边界与层级手段上，不在调色板上。
-> 这一条由 `tests/contracts.spec.ts` 强制执行（十个维度三值互不相同）。
+> 这一条由 `tests/contracts.spec.ts` 强制执行（十个维度取值互不相同；
+> `radiusPhilosophy` 与 `radiusSurface` 是刻意的两处豁免 —— console 与 editorial
+> 同为 0 半径但理由不同，见 `styles/console/README.md` §1 与测试里的专项断言）。
 
 ---
 
@@ -207,7 +210,7 @@ styles/<id>/
 6.  normalize           剥掉品牌视觉、剥掉不必要的依赖与 API
 7.  adapter             包成内部稳定 API（产品只见我们的 prop）
 8.  fallback            补 mobile + reduced-motion + no-JS 降级
-9.  demo                在三种 Style Pack 下都能渲染
+9.  demo                在（当时的）各套 Style Pack 下都能渲染
 10. test                契约测试（API 稳定性、降级存在性、无视觉字面量）
 11. experimental        登记为 experimental，可在实验性 Prototype 中使用
 12. approved            登记为 approved，可进入正式 Prototype
@@ -423,13 +426,19 @@ pnpm verify:standalone   # Distribution 验收（把 Kits 仓库移走后仍能 
 
 | 路由 | 内容 |
 |---|---|
-| `/` | 三套 Style Pack **并排**：同一份组件调用 × 三种 pack，逐组对比 |
-| `/components` | 五个组件的 API / 降级矩阵 / 三种 pack 下的同一份调用 |
+| `/` | Style Pack **并排**：同一份组件调用 × 多个 pack，逐组对比（当前是 editorial / cinematic / instrument 三列） |
+| `/components` | 五个组件的 API / 降级矩阵 / 同一份在多个 pack 下的调用 |
 | `/effects` | Effect Contract：公开变量表 + 同一份调用的三种覆盖（默认 / 浅色 / 品牌） |
 | `/audit` | 十维对照表、motion 契约对照、Asset Registry、Incoming Workflow |
 
 外壳刻意**不使用任何 pack 变量**，`data-kits-pack` 只出现在每一列的舞台元素上 ——
-这样三套风格才能在同一页里共存而不互相污染。
+这样多套风格才能在同一页里共存而不互相污染。
+
+> **Playground 尚未覆盖 console。** 它的并排舞台是按三列硬编码的
+> （`playground/app/page.tsx` 的 `PackColumn`），把第四套 pack 加进去需要重排布局 ——
+> 属于 Playground 的工单，不在 K1（新增 Style Pack）范围内。因此
+> **K1 的验收证据里没有"console 在浏览器里渲染正确"这一条**，只有契约 / registry /
+> 构建门禁。缺的这部分写在交接的「没有验证的部分」里。
 
 ---
 
@@ -450,7 +459,7 @@ pnpm verify:standalone   # Distribution 验收（把 Kits 仓库移走后仍能 
 
 ## 12. 版本与边界
 
-- 本仓库是 **v0.1**：三套 Style Pack、五个组件、三个 effect、两个 skill，
+- 本仓库是 **v0.1**：四套 Style Pack、五个组件、三个 effect、两个 skill，
   加上三个基础设施包（contracts / react-utils / cli）。
 - **不做**：Style Migration（不改任何现有项目的视觉）、Factory Core 改动、
   第三个业务 Prototype。
@@ -463,5 +472,5 @@ manifest schema、Incoming Workflow、`Visual Manifest` 的字段约定。
 
 ### 必须永远留在 Kits 的
 
-三套具体风格、五个具体组件、effect、reference board ——
+具体风格、五个具体组件、effect、reference board ——
 它们**变化快**，进 Core 就等于让 Core 变成设计系统。

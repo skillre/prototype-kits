@@ -1,5 +1,72 @@
 # Changelog
 
+## Unreleased · K1 · 第四套 Style Pack `console`
+
+新增一套 Style Pack（`styles/console/`）并相应扩展契约。**不改任何组件、
+不改已安装产品的任何东西、不授予任何签名组件或 effect。**
+
+### 新资产：`console`（type: style, status: approved, version 0.2.0）
+
+- 定位：**高级终端 / 运营控制台**，给 S1 安全运营控制台（16:9 大屏，1680×1050）用。
+  目标气质是「运营控制台」，明确**不是**「展厅大屏」。
+- 十个维度的立场：`console` / `columnar` / `very-high` / `flush` / `syntax-rule` /
+  `cell-grid` / `command-line` / `log-stream` / `event-driven` / `luminance-and-weight`。
+- **`radiusPhilosophy` 与 `radiusSurface` 与 editorial 重合，这是刻意的**：
+  console 的 0 半径是「格位是矩形的」，editorial 的 0 是「印刷不切圆角」——
+  两个不同的理由落在同一个枚举值上。这两处的豁免连同「只允许 flush 被两套共用」
+  的专项断言一起写在 `tests/contracts.spec.ts` 里。
+- `signatureComponents: []`、`effects: []`、`optionalComponents: []`、
+  `discouragedComponents: []` —— 组件角色留给 K2；effect 则是因为本 pack 声明
+  `ambient: none` / `glow: forbidden`，现有三个 effect（light / texture / line）
+  没有一个与本 pack 的材质语言相容，登记任何一个都是凑数。
+- 契约枚举新增 8 个成员（契约版本不变，仍是 `1.0.0`）：`TYPE_VOICE += "console"` ·
+  `SPACING_RHYTHM += "columnar"` · `DENSITY += "very-high"` ·
+  `BORDER_TREATMENT += "syntax-rule"` · `SURFACE_TREATMENT += "cell-grid"` ·
+  `NAVIGATION_FEEL += "command-line"` · `DATA_LANGUAGE += "log-stream"` ·
+  `MOTION_LANGUAGE += "event-driven"` · `HIERARCHY_METHOD += "luminance-and-weight"`。
+  每个成员在 `packages/contracts/contract.ts` 里都带一段说明它**与已有取值的区别**
+  （例如 `syntax-rule` vs `hard-technical` 的区别是「线出现的条件」而不是粗细）。
+
+### `registryVersion` 0.2.0 → 0.3.0
+
+版本语义按仓内既有事实处理：`registryVersion` 描述**登记表本身**的版本
+（见 `assets.schema.json` 的 `registryVersion` 字段，与 `generatedAt` 成对使用）。
+0.2 系列见证了 K1–K8 的字段落地（适配标签 / 移动端语义 / 引用一致性 / 暗色方向 / 材质语言）。
+
+**新增一套 pack 不改变 schema、也不改变任何既有字段的形状**，它改的是
+「这张表里有哪些资产」—— 对消费者是**向后兼容的内容扩展**：表结构不变，
+既有全部 id 照旧，新增一个 `style` 条目。因此取 **minor**（0.2.0 → 0.3.0），
+理由与 0.1.1 → 0.2.0 一致：那一次也是「加字段 / 加内容而不破坏既有读取方」。
+若下游有按 `registryVersion` 严格相等做缓存键的实现，这是一次需要它们重新读取的
+变更 —— 列在这里，不藏起来。`generatedAt` 同步为 `2026-09-16`。
+
+### 对设计稿取值的两处有意偏离（都记录在案，不是静默改动）
+
+1. **规则线 `#22344F` → `#4A6C9B`。** 实测四个承载面彼此之间的对比度只有
+   `panel/canvas` 1.08、`card/canvas` 1.17、`raise/card` 1.13 —— 结构层级几乎全部
+   由那根 1px 规则线承担，而设计稿原值对它只有 1.27–1.49。产品验收线是
+   「3 米外投屏可读」，1.49 在那里会直接消失。提到 3:1 以上后 canvas / panel / term
+   三面过线（3.49 / 3.24 / 3.54）；`card` 面 2.97 由 `--kits-color-rule-strong`
+   （`#6C90C0`，card 4.85）承担。
+2. **控件高 40px → 38px。** 40px 与 editorial 的 `--kits-control-height` 撞值，
+   而「四套 pack 的密度数值互不相同」是一条被断言的设计约束。38px 仍然装得进
+   真实骨架的 76px 顶栏（可用高度 76 − 2×16 = 44px），且与 cinematic 36px /
+   instrument 28px / editorial 40px 三值互不相同。**改的是 2px，不是那条断言。**
+
+`#F4364C` 攻击红**保持设计稿原值不变**：card 面 4.16:1 不过正文 AA，
+因此约束的是**用法**（该面上只允许大字或非文本元素），不是身份。
+
+### 测试：从「写死 3」改成「从 pack 数推导」
+
+`tests/contracts.spec.ts` 与 `tests/manifest-contract.spec.ts` 里五处硬编码的
+「恰好三套」期望值改为从 `PACKS.length` / registry 推导，并**加强**了原意
+（例如 surfaceTreatment 一条从「数组顺序相等」改为「取值数量 = pack 数」
++ 「四种取值都还在」）。放宽清单与理由见 K1 交接。
+
+---
+
+## Unreleased · Factory Governance v1.3（治理采纳 + 端口迁移）
+
 ## Unreleased · Factory Governance v1.3（治理采纳 + 端口迁移）
 
 本次**不改资产、不改 registry 内容、不改组件 API、不改已安装产品的任何东西**。

@@ -179,7 +179,7 @@ Factory Core（`prototype-starter` 的骨架、交付流程、AGENTS 约束）�
 
 | 内容 | 为什么不能进 Core |
 |---|---|
-| 三套具体风格（editorial / cinematic / instrument） | Core 一旦包含具体风格，就等于让架构层做设计决策；下次想要第四套风格就要动 Core |
+| 具体风格（editorial / cinematic / instrument / console …，且会继续变） | Core 一旦包含具体风格，就等于让架构层做设计决策；下次想要第五套风格就要动 Core |
 | 五个具体组件 | 组件的 API 会演进，进 Core 会把 Core 变成组件库 |
 | Effect Packs | 效果是最容易过时的一类资产 |
 | Reference Board | 参考与审美判断天然随时间和项目变化 |

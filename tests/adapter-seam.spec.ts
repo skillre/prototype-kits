@@ -335,7 +335,7 @@ describe("K-04 · 新增的缝同样遵守'已存在则保留'", () => {
 /* 三个 pack 的导出名约定                                                      */
 /* -------------------------------------------------------------------------- */
 
-describe("K-04 · 三个 pack 都满足 <id>Motion / Profile / Meta 约定", () => {
+describe("K-04 · 每个 pack 都满足 <id>Motion / Profile / Meta 约定", () => {
   it("导出名推导正确", () => {
     expect(styleExportNames("cinematic")).toEqual({
       motion: "cinematicMotion",
@@ -346,8 +346,23 @@ describe("K-04 · 三个 pack 都满足 <id>Motion / Profile / Meta 约定", () 
     expect(styleExportNames("instrument").meta).toBe("instrumentMeta");
   });
 
-  it("每个 pack 的 index.ts 确实导出这三个名字", () => {
-    for (const pack of ["editorial", "cinematic", "instrument"]) {
+  it("registry 里每套 approved pack 的 index.ts 都确实导出这三个名字", () => {
+    /*
+     * 这条以前写死 ["editorial","cinematic","instrument"] —— 加第四套 pack 时
+     * 它不会红，只会**静默地不检查新 pack**。改成从 registry 取全部 approved
+     * style 资产之后，新 pack 必须提供这三个导出（安装器的适配层缝
+     * `style-<id>.ts` 正是 import 它们，缺一个就是装完编译不过）。
+     */
+    const packIds = (
+      JSON.parse(readFileSync(path.join(ROOT, "registry", "assets.json"), "utf8")) as {
+        assets: Array<{ id: string; type: string; status: string }>;
+      }
+    ).assets
+      .filter((asset) => asset.type === "style" && asset.status === "approved")
+      .map((asset) => asset.id);
+    expect(packIds.length).toBeGreaterThanOrEqual(3);
+
+    for (const pack of packIds) {
       const index = readFileSync(path.join(ROOT, "styles", pack, "index.ts"), "utf8");
       const names = styleExportNames(pack);
       for (const name of [names.motion, names.profile, names.meta]) {

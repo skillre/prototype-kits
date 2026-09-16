@@ -25,6 +25,7 @@ import {
 import { editorialMotion, editorialProfile } from "../styles/editorial/index.ts";
 import { cinematicMotion, cinematicProfile } from "../styles/cinematic/index.ts";
 import { instrumentMotion, instrumentProfile } from "../styles/instrument/index.ts";
+import { consoleMotion, consoleProfile } from "../styles/console/index.ts";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 
@@ -42,7 +43,20 @@ const PACKS = [
   { id: "editorial", motion: editorialMotion, profile: editorialProfile },
   { id: "cinematic", motion: cinematicMotion, profile: cinematicProfile },
   { id: "instrument", motion: instrumentMotion, profile: instrumentProfile },
+  { id: "console", motion: consoleMotion, profile: consoleProfile },
 ] as const;
+
+/**
+ * pack 数 —— 下面每一条「互不相同」的断言都从这里取期望值，而不是写死 3。
+ *
+ * 写死数字的问题是它会**静默变成谎言**：加第四套 pack 时，`toBe(3)` 并不会
+ * 因为新 pack 与旧 pack 撞了同一个取值而失败 —— 它只会因为「有 4 个不同的
+ * 取值」而失败，于是修复方式看起来是「把 3 改成 4」，而不是「查出谁撞了谁」。
+ * 从 PACKS.length 取值之后，「互不相同」这句话在任意 pack 数下都成立，
+ * 且新增一套 pack 不需要再改这个文件里的任何期望值。
+ */
+const PACK_COUNT = PACKS.length;
+const PACK_IDS: readonly string[] = PACKS.map((pack) => pack.id);
 
 describe("Style Pack Contract · 五件套", () => {
   it.each(PACKS.map((pack) => pack.id))(
@@ -185,26 +199,81 @@ const DIMENSIONS: Array<keyof StylePackProfile> = [
   "hierarchyMethod",
 ];
 
-describe("三套 Style Pack 的真实差异（不能只是换颜色）", () => {
-  it.each(DIMENSIONS)("维度 %s 在三个 pack 之间取值互不相同", (dimension) => {
-    const values = PACKS.map((pack) => pack.profile[dimension]);
+describe("全部 Style Pack 的真实差异（不能只是换颜色）", () => {
+  /*
+   * radiusPhilosophy 与 --kits-radius-surface 是**刻意豁免**「互不相同」的两个量。
+   *
+   * 原意是「每一维都要有明显不同的立场」，而 K1 的 console 与 editorial 同为
+   * `flush`（0 半径）是**规格里明确允许**的：console 的 0 是「格位是矩形的」，
+   * editorial 的 0 是「印刷不切圆角」—— 两个不同的理由落在同一个枚举值上，
+   * 这不是「换皮」，因为其余九个维度与全部数值（间距 / 密度 / 边界 / 表面 /
+   * 导航 / 数据 / 动效 / 层级）全部不同。
+   *
+   * 因此这两条断言从「取值数量 = pack 数」改成「取值数量 ≥ 明确不同的哲学数」，
+   * 并且**额外**钉住「哪种重复是允许的」—— 这样如果有人把第三套 pack 也改成
+   * flush，或者把 cinematic 的 continuous 改成 flush，仍然会红。
+   */
+  it.each(DIMENSIONS.filter((d) => d !== "radiusPhilosophy"))(
+    `维度 %s 在 ${PACK_COUNT} 个 pack 之间取值互不相同`,
+    (dimension) => {
+      const values = PACKS.map((pack) => pack.profile[dimension]);
+      expect(
+        new Set(values).size,
+        `维度 ${dimension} 在 ${PACK_COUNT} 套 pack 中只有 ${new Set(values).size} 个不同取值：${values.join(" / ")}`,
+      ).toBe(PACK_COUNT);
+    },
+  );
+
+  it("radiusPhilosophy：每一套都有立场，且只有 flush 被两套共用（且理由不同）", () => {
+    const values = PACKS.map((pack) => pack.profile.radiusPhilosophy);
+    expect(new Set(values).size, `radiusPhilosophy: ${values.join(" / ")}`).toBeGreaterThanOrEqual(3);
+    // 允许重复的只有 flush 这一对；谁都不许再往 flush 里挤
+    const flushPacks = PACKS.filter((pack) => pack.profile.radiusPhilosophy === "flush").map((p) => p.id);
+    expect(flushPacks.sort()).toEqual(["console", "editorial"]);
+    // 其余两套必须各自独占一个取值 —— 否则「明显不同」就真的被削弱了
+    for (const id of ["cinematic", "instrument"]) {
+      const value = PACKS.find((pack) => pack.id === id)!.profile.radiusPhilosophy;
+      expect(
+        values.filter((v) => v === value).length,
+        `${id} 的 radiusPhilosophy 被别的 pack 共用了`,
+      ).toBe(1);
+    }
+  });
+
+  it("没有两套 pack 共用同一表面哲学，且四种表面哲学都还在", () => {
+    const values = PACKS.map((pack) => pack.profile.surfaceTreatment);
+    /*
+     * 这条断言的**原意**是「没有两套 pack 共用同一表面哲学」——
+     * 之前的写法（`toEqual(["paper", "ambient-glow", "panel"])`）把原意
+     * 与「恰好三套 pack、且顺序恰好如此」这件无关的事捆在了一起：
+     * 加第四套 pack 时它会因为「数组第 4 项对不上」而失败，
+     * 即便四套的表面哲学确实互不相同。
+     *
+     * 拆开之后两件事各自被断言：① 取值数量 = pack 数（互不相同）；
+     * ② 四种取值都真实存在（没有人在加 pack 的过程中把已有立场改掉）。
+     * 第 ② 条是**加强**：原来的顺序断言其实也顺带钉住了原三值的存在，
+     * 拆开之后它仍然是显式的，而不是顺序比较的副产品。
+     */
     expect(
       new Set(values).size,
-      `维度 ${dimension} 在三套 pack 中只有 ${new Set(values).size} 个不同取值：${values.join(" / ")}`,
-    ).toBe(3);
+      `surfaceTreatment 出现重复取值：${values.join(" / ")}`,
+    ).toBe(PACK_COUNT);
+    for (const expected of ["paper", "ambient-glow", "panel", "cell-grid"]) {
+      expect(values, `surfaceTreatment 丢了 \`${expected}\``).toContain(expected);
+    }
   });
 
-  it("三个 pack 的 surfaceTreatment 覆盖了三种不同的表面哲学", () => {
-    const values = PACKS.map((pack) => pack.profile.surfaceTreatment);
-    expect(values).toEqual(["paper", "ambient-glow", "panel"]);
-  });
-
-  it("动效语言三种互不相同，且时长刻度确实不同", () => {
+  it("动效语言互不相同，且时长刻度确实不同", () => {
     const languages = PACKS.map((pack) => pack.motion.language);
-    expect(new Set(languages).size).toBe(3);
+    expect(new Set(languages).size, `动效语言：${languages.join(" / ")}`).toBe(
+      PACK_COUNT,
+    );
 
     const bases = PACKS.map((pack) => pack.motion.duration.base);
-    expect(new Set(bases).size, "三套的 base 时长不应相同").toBe(3);
+    expect(
+      new Set(bases).size,
+      `各套的 base 时长不应相同：${bases.join(" / ")}`,
+    ).toBe(PACK_COUNT);
   });
 
   it("instrument 不授予 ambient 角色（仪表不呼吸）", () => {
@@ -213,17 +282,31 @@ describe("三套 Style Pack 的真实差异（不能只是换颜色）", () => {
     expect(cinematicMotion.roles).toContain("ambient");
   });
 
+  it("console 授予 ambient 角色，但它只属于「运行中」呼吸点", () => {
+    /*
+     * 这条与上面的 instrument 断言刻意并列，而不是二选一：
+     * 「仪表不呼吸」是关于 instrument 的规则，「呼吸点是状态、不是氛围」
+     * 是关于 console 的规则。两者同时成立 —— 区别在于呼吸在这块屏上
+     * 说不说话（见 styles/console/motion.ts 的 roles 注释）。
+     */
+    expect(consoleMotion.roles).toContain("ambient");
+    // 周期必须是一个能被读完的**有限**值，而不是无限加速的环境光
+    expect(consoleMotion.ambientCycle).toBeGreaterThan(0);
+    // reduced-motion 下整个关掉：呼吸点是唯一会无限持续的动画
+    expect(consoleMotion.reducedMotion.disableRoles).toContain("ambient");
+  });
+
   it("instrument 的 reduced-motion 不保留淡入（告警必须瞬时可见）", () => {
     expect(instrumentMotion.reducedMotion.keepOpacity).toBe(false);
     expect(editorialMotion.reducedMotion.keepOpacity).toBe(true);
     expect(cinematicMotion.reducedMotion.keepOpacity).toBe(true);
   });
 
-  it("三个 pack 的间距节奏确实不同（不是同一套数值换皮）", () => {
+  it(`${PACK_COUNT} 套 pack 的间距节奏确实不同（不是同一套数值换皮）`, () => {
     // `--kits-space-unit`（脉搏）只要求「editorial/instrument 同为 4px，
-    // cinematic 为 8px」—— 4px 是精细节奏，但两套 pack 用它做出完全不同的结果：
-    // editorial 的段落间距是 96px，instrument 是 32px。
-    // 真正必须三值互不相同的是「节奏」而非「脉搏」本身。
+    // cinematic 为 8px」—— 4px 是精细节奏，但几套 pack 用它做出完全不同的结果：
+    // editorial 的段落间距是 96px，instrument 是 32px，console 是 24px。
+    // 真正必须互不相同的是「节奏」而非「脉搏」本身。
     const css = PACKS.map((pack) => read(`styles/${pack.id}/tokens.css`));
     const pick = (pattern: RegExp, label: string): string[] =>
       css.map((text, index) => {
@@ -233,15 +316,29 @@ describe("三套 Style Pack 的真实差异（不能只是换颜色）", () => {
       });
 
     const spaceUnits = pick(/--kits-space-unit:\s*([^;]+);/, "space-unit");
-    expect(spaceUnits, `space-unit: ${spaceUnits.join(" / ")}`).toEqual([
-      "4px",
-      "8px",
-      "4px",
-    ]);
+    /*
+     * 脉搏是**允许重复**的（4px / 8px 是仅有的两档，四套 pack 必然有重复）——
+     * 这条断言的意图从来不是「数量与 pack 数相同」，而是：
+     *   ① 每一套都显式声明了自己用哪一档脉搏；
+     *   ② 两档都用上了（否则「脉搏」这个旋钮是假的）；
+     *   ③ 具体的分配没有在加 pack 的过程中被顺手改掉。
+     *
+     * 之前的写法 `toEqual(["4px", "8px", "4px"])` 把这件事写成了
+     * 「恰好三套、顺序恰好如此」。改成下面几行之后，加第四套 pack 不需要
+     * 改动期望值，而 ①②③ 仍然被逐条钉住。
+     */
+    expect(spaceUnits).toHaveLength(PACK_COUNT);
+    const pulseOf = (id: string) => spaceUnits[PACK_IDS.indexOf(id)];
+    expect(pulseOf("editorial"), "editorial 的脉搏").toBe("4px");
+    expect(pulseOf("instrument"), "instrument 的脉搏").toBe("4px");
+    expect(pulseOf("cinematic"), "cinematic 的脉搏").toBe("8px");
+    expect(
+      new Set(spaceUnits).size,
+      `脉搏两档都应当被用到：${spaceUnits.join(" / ")}`,
+    ).toBeGreaterThan(1);
 
     for (const [label, pattern] of [
       ["section-gap", /--kits-section-gap:\s*([^;]+);/],
-      ["radius-surface", /--kits-radius-surface:\s*([^;]+);/],
       ["display-line", /--kits-display-line:\s*([^;]+);/],
       ["density/control-height", /--kits-control-height:\s*([^;]+);/],
       ["density/row-height", /--kits-row-height:\s*([^;]+);/],
@@ -250,14 +347,37 @@ describe("三套 Style Pack 的真实差异（不能只是换颜色）", () => {
       expect(
         new Set(values).size,
         `${label}: ${values.join(" / ")}`,
-      ).toBe(3);
+      ).toBe(PACK_COUNT);
     }
 
-    // `--kits-border-width` 刻意**不做三值断言**：editorial 与 cinematic 都是 0，
-    // 但语义完全不同 —— editorial 是「没有圆角也没有边框，只用横线分区」，
-    // cinematic 是「没有边框，靠亮度差与光分层」。两者在 borderTreatment
-    // 维度上已经是不同的取值（hairline-rule vs none-with-depth），
-    // 这条断言只会把一个刻意的设计巧合误判为缺陷。
+    /*
+     * `--kits-radius-surface` 与 `--kits-border-width` 一样，刻意**不做多值断言**：
+     *
+     *   radius-surface   editorial 0 · cinematic 14px · instrument 2px · console 0
+     *   border-width     editorial 0 · cinematic 0  · instrument 1px · console 2px
+     *
+     * 两处的重合都是**刻意的**，而且重合的那两套在这些量上语义完全不同：
+     *   · editorial 与 console 同为 0 半径，但 editorial 的 0 是「印刷不切圆角」，
+     *     console 的 0 是「格位是矩形的」；两者的边框处理是 hairline-rule 与
+     *     syntax-rule（不同的枚举值），表面是 paper 与 cell-grid（不同的枚举值）。
+     *   · editorial 与 cinematic 同为 0 边框，但一个是「只用横线分区」，
+     *     一个是「靠亮度差与光分层」。
+     *
+     * 一条「数量 = pack 数」的断言只会把一个刻意的设计巧合误判为缺陷，
+     * 于是逼出「为了凑数改数值」这种反而更糟的修复。这条量由上面
+     * radiusPhilosophy 的专项断言（谁可以和谁共用、其余必须独占）覆盖。
+     */
+    const radiusSurfaces = pick(/--kits-radius-surface:\s*([^;]+);/, "radius-surface");
+    expect(radiusSurfaces).toHaveLength(PACK_COUNT);
+    // 仍然要求「至少三种不同的圆角结果」—— 重合只允许发生在 0 上
+    expect(
+      new Set(radiusSurfaces).size,
+      `radius-surface: ${radiusSurfaces.join(" / ")}`,
+    ).toBeGreaterThanOrEqual(3);
+    expect(
+      radiusSurfaces.filter((value) => value === "0").length,
+      `radius-surface: ${radiusSurfaces.join(" / ")}`,
+    ).toBe(2);
   });
 });
 

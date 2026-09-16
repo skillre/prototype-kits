@@ -1,7 +1,7 @@
 {
   "$schema": "./assets.schema.json",
-  "registryVersion": "0.2.0",
-  "generatedAt": "2026-09-15",
+  "registryVersion": "0.3.0",
+  "generatedAt": "2026-09-16",
   "description": "Prototype Kits 资产登记表。所有进入过审计流程的视觉与能力资产都必须在这里有一条记录；没有登记的资产不得被任何 Prototype 引用。",
   "statusLifecycle": [
     "incoming",
@@ -147,6 +147,44 @@
         "containsThirdPartyCode": false
       },
       "package": "Instrument"
+    },
+    {
+      "id": "console",
+      "name": "Console",
+      "type": "style",
+      "status": "approved",
+      "version": "0.2.0",
+      "contractVersion": "1.0.0",
+      "path": "styles/console",
+      "manifest": "styles/console/manifest.json",
+      "entry": "styles/console/tokens.css",
+      "cssEntry": "@kits/style-console/tokens.css",
+      "selector": "[data-kits-pack=\"console\"]",
+      "dependencies": [
+        "contracts"
+      ],
+      "performance": "A",
+      "performanceNotes": "纯静态 CSS：零滤镜 / 零 backdrop-filter / 零阴影 / 零 animation / 零混合模式；点阵纹理为两层 radial-gradient 在单一伪元素内封闭",
+      "ssrCompatible": true,
+      "mobileCompatible": true,
+      "reducedMotion": "supported",
+      "signatureComponents": [],
+      "recommendedFor": [
+        "pointer",
+        "high-density",
+        "data-heavy"
+      ],
+      "avoidFor": [
+        "mobile",
+        "touch"
+      ],
+      "source": {
+        "kind": "first-party",
+        "origin": "prototype-kits",
+        "license": "UNLICENSED (internal)",
+        "containsThirdPartyCode": false
+      },
+      "package": "Console"
     },
     {
       "id": "interactive-hero",

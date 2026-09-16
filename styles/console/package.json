@@ -1,0 +1,29 @@
+{
+  "name": "@kits/style-console",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Style Pack · console —— 高级终端 / 运营控制台：等宽即读数、列对齐、语义色纪律、事件驱动动效",
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./motion": "./motion.ts",
+    "./tokens.css": "./tokens.css",
+    "./manifest.json": "./manifest.json"
+  },
+  "files": [
+    "index.ts",
+    "motion.ts",
+    "tokens.css",
+    "manifest.json",
+    "README.md",
+    "SKILL.md"
+  ],
+  "keywords": [
+    "style-pack",
+    "console",
+    "prototype-kits"
+  ],
+  "dependencies": {
+    "@kits/contracts": "workspace:*"
+  }
+}

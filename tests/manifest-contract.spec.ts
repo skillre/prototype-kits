@@ -251,17 +251,65 @@ describe("Phase B · 真实仓库是一致的（gate）", () => {
 
   it("并说明自己检查了什么：每类计数都非零", () => {
     const stats = summarize(REGISTRY, result.resolved, result.reserved);
-    expect(stats.assets).toBe(16);
-    expect(stats.kinds).toEqual({ pack: 3, component: 5, effect: 3, package: 3, none: 2 });
-    expect(stats.manifestsResolved).toBe(14);
-    expect(stats.referenceLists).toBeGreaterThanOrEqual(12);
-    expect(stats.referenceIds).toBeGreaterThanOrEqual(18);
-    expect(stats.roleAssignments).toBe(15);
+    /*
+     * 这条测试守的是「说清自己检查了什么」—— 预期值全部**从 registry 推导**，
+     * 而不是写死数字。
+     *
+     * 写死 3 套 pack / 14 份清单的问题是：加一个资产就会让这条红一次，而修复
+     * 方式看起来是「把 14 改成 15」，不是「去看统计有没有算错」。推导之后，
+     * 它断言的是**统计与自己总结的那份输入一致**（在任意资产数下都有意义），
+     * 而「每类计数都非零」的原意反而被钉得更死：空类别会以 0 的形式暴露出来。
+     */
+    const assets = REGISTRY.assets as Array<{
+      id: string;
+      type: string;
+      manifest: string | null;
+    }>;
+
+    expect(stats.assets).toBe(assets.length);
+    expect(stats.assets).toBeGreaterThan(0);
+
+    // kind 是「清单文件的形状」，不是 registry 的 type —— 断言两者对得上
+    const kindCounts = (kind: string) =>
+      assets.filter((asset) => resolveAsset(ROOT, { ...asset, type: asset.type }).kind === kind).length;
+    expect(stats.kinds).toEqual({
+      pack: kindCounts("pack"),
+      component: kindCounts("component"),
+      effect: kindCounts("effect"),
+      package: kindCounts("package"),
+      none: kindCounts("none"),
+    });
+    // 「每类计数都非零」：五个 kind 各有资产，才说明这五条检查路径真的跑过
+    for (const [kind, count] of Object.entries(stats.kinds)) {
+      expect(count, `kind=${kind} 的计数是 0 —— 这条检查路径没有跑过`).toBeGreaterThan(0);
+    }
+
+    expect(stats.manifestsResolved).toBe(
+      assets.filter((asset) => asset.manifest !== null).length,
+    );
+    expect(stats.packagesChecked).toBe(kindCounts("package"));
+    expect(stats.manifestsResolved).toBeGreaterThan(0);
+
+    // 引用列表、引用项、角色分配、notes 都来自 pack / component 清单：
+    // 非零，且引用项的条数不少于引用列表的条数（后者前者之和）
+    expect(stats.referenceLists).toBeGreaterThanOrEqual(kindCounts("pack") + kindCounts("component"));
+    expect(stats.referenceIds).toBeGreaterThanOrEqual(stats.referenceLists);
+    expect(stats.roleAssignments).toBeGreaterThan(0);
     expect(stats.notes).toBeGreaterThanOrEqual(40);
-    expect(stats.packagesChecked).toBe(3);
-    expect(stats.effectsInAggregate).toBe(3);
-    expect(stats.darkDeclared).toBe(3);
-    // 「标签数两边相等」同时说明投影完整：registry 与 manifest 各 19 个值
+
+    expect(stats.effectsInAggregate).toBe(kindCounts("effect"));
+    expect(stats.darkDeclared).toBe(
+      assets.filter((asset) => {
+        if (asset.type !== "style") return false;
+        const place = resolveAsset(ROOT, asset);
+        return Boolean(place.manifest?.darkDirection);
+      }).length,
+    );
+    expect(stats.darkDeclared).toBeGreaterThan(0);
+    expect(stats.darkDeclared + stats.darkUndeclared).toBe(kindCounts("pack"));
+    expect(stats.materialDeclared + stats.materialUndeclared).toBe(kindCounts("pack"));
+
+    // 「标签数两边相等」同时说明投影完整：registry 与 manifest 的标签数必须一致
     expect(stats.registryTagValues).toBe(stats.manifestTagValues);
     expect(stats.registryTagValues).toBeGreaterThan(0);
   });
@@ -306,9 +354,23 @@ describe("Phase B · 真实仓库是一致的（gate）", () => {
     }
   });
 
-  it("K1 · 三套 pack 都声明了可执行的暗色方向", () => {
+  it("K1 · 每一套 pack 都声明了可执行的暗色方向", () => {
+    /*
+     * 这条守的是「每一套 pack 都不能漏声明」—— 预期值从 registry 推导，
+     * 而不是写死 3。写死数字会让加 pack 必须改测试，而真正的缺陷
+     * （某一套漏了 darkDirection）反而被「把 3 改成 4」的动作掩盖过去。
+     * 推导之后，漏一套仍然会红（下面第一条断言），且它红的原因就是原意。
+     */
     const packs = REGISTRY.assets.filter((a: { type: string }) => a.type === "style");
-    expect(packs).toHaveLength(3);
+    expect(packs.length).toBeGreaterThan(3);
+    const declared = packs.filter((pack: { manifest: string }) => {
+      const manifest = JSON.parse(readFileSync(path.join(ROOT, pack.manifest), "utf8"));
+      return Boolean(manifest.darkDirection);
+    });
+    expect(
+      declared.length,
+      `有 ${packs.length - declared.length} 套 pack 没有声明 darkDirection`,
+    ).toBe(packs.length);
     for (const pack of packs as Array<{ id: string; manifest: string }>) {
       const manifest = JSON.parse(readFileSync(path.join(ROOT, pack.manifest), "utf8"));
       expect(manifest.darkDirection, `${pack.id} 缺 darkDirection`).toBeDefined();
@@ -317,6 +379,12 @@ describe("Phase B · 真实仓库是一致的（gate）", () => {
       if (manifest.darkDirection.strategy === "product-authored") {
         expect(manifest.darkDirection.slots.length).toBeGreaterThan(0);
         expect(VOCAB.darkApproaches).toContain(manifest.darkDirection.approach);
+      }
+      // 对比度目标若声明了，必须是可执行的数字且不低于 WCAG-AA 底线
+      const target = manifest.darkDirection.contrastTarget;
+      if (target !== undefined) {
+        expect(target.normalText).toBeGreaterThanOrEqual(4.5);
+        expect(target.largeText).toBeGreaterThanOrEqual(3);
       }
     }
   });
@@ -527,6 +595,9 @@ describe("K7 · 适配标签", () => {
       "styles/editorial/manifest.json": 10,
       "styles/cinematic/manifest.json": 10,
       "styles/instrument/manifest.json": 11,
+      // console 是 K1 新增的 pack，没有 v0.1.1 原文可比 —— 这条锁的是它
+      // **从此不再被删短**（5 条 recommended + 5 条 avoid，逐条是人读理由）
+      "styles/console/manifest.json": 10,
       "components/interactive-hero/manifest.json": 2,
       "components/spotlight-surface/manifest.json": 3,
       "components/animated-grid/manifest.json": 3,
@@ -541,6 +612,14 @@ describe("K7 · 适配标签", () => {
       ];
       expect(notes.length, `${rel} 的散文条数变了`).toBe(count);
     }
+    // 反向：每一份**有标签的** pack manifest 都必须在上面被登记 ——
+    // 否则新加的 pack 会静默绕过这条「散文不许被删短」的检查
+    const packManifests = REGISTRY.assets
+      .filter((asset: { type: string }) => asset.type === "style")
+      .map((asset: { manifest: string }) => asset.manifest);
+    expect(packManifests.filter((rel: string) => rel in expected).sort()).toEqual(
+      [...packManifests].sort(),
+    );
   });
 });
 
