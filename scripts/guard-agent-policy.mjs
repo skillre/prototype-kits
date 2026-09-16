@@ -62,7 +62,6 @@ import {
   POLICY_FILENAME,
   POLICY_SCHEMA_PATH,
   PolicyScopeError,
-  UPSTREAM_CONTRACT_LOCK_ID,
   UPSTREAM_LOCK_ID,
   UPSTREAM_REUSABLE_WORKFLOW,
   assertNonVacuousPolicyScan,
@@ -400,22 +399,6 @@ if (lock) {
       "lock/upstream-unrecorded",
       `${CI_WORKFLOW_PATH} 没有调用上游 reusable workflow，${LOCK_FILENAME} 必须把 ${UPSTREAM_LOCK_ID} 记为未知（value: null）`,
     )
-  }
-
-  /**
-   * The cross-repository contract gap must stay visible for exactly as long as it
-   * is real. Root's `contracts/factory-lock.schema.json` has no `kits-registry`
-   * shape, so the root control plane reports this lock as UNKNOWN. Deleting the
-   * entry while that is still true would turn a known gap into a silent one.
-   */
-  const contractGap = (lock.unresolved ?? []).find((entry) => entry.id === UPSTREAM_CONTRACT_LOCK_ID)
-  if (!contractGap) {
-    fail(
-      "lock/contract-gap-unrecorded",
-      `${LOCK_FILENAME} 没有把 ${UPSTREAM_CONTRACT_LOCK_ID} 记为未知——根契约尚未支持 kits-registry 形态这一事实必须留档`,
-    )
-  } else if (contractGap.value !== null) {
-    fail("lock/contract-gap-guessed", `${UPSTREAM_CONTRACT_LOCK_ID} 的 value 必须恒为 null`)
   }
 
   // Identity: the lock describes *this* repository, and the values must match.

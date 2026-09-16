@@ -25,10 +25,9 @@ Style Packs、Signature Components、Effects、Skills 与 References，以及描
 | 交付方式 | 部署成可访问的原型 | source install 进产品仓 + registry 分发 |
 
 > **不要把这个仓当成 product。** 治理锁里 `kind` 写的是 `kits-registry`，这是机器可读的事实，
-> 不是措辞偏好。根控制面的 `contracts/factory-lock.schema.json` **目前还不支持**这一形态
-> （只描述了 baseline 与 product 两种），差异已如实记录在 `factory.lock.json` 的
-> `unresolved: upstream/contract-kits-registry-shape`，等待根契约扩 schema。
-> **不要**为了让校验通过而把 `kind` 改成 `product` —— 那会让「这个仓是什么」变成一句假话，
+> 不是措辞偏好。根控制面的 `contracts/factory-lock.schema.json` 已在控制仓提交 `83916bf`
+> 增加对应 role branch，并用根校验器对本锁实测通过。
+> **不要**为了复用 product 字段而把 `kind` 改成 `product` —— 那会让「这个仓是什么」变成一句假话，
 > 而假的元数据比缺的元数据更贵。
 
 ---

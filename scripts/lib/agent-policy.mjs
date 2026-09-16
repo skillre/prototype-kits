@@ -62,13 +62,11 @@ export const STANDALONE_VERIFIER_PATH = "scripts/verify-standalone.mjs"
 export const REGISTRY_AUDIT_PATH = "scripts/registry-audit.mjs"
 export const REGISTRY_SCHEMA_PATH = "registry/assets.schema.json"
 
-/** The upstream reusable workflow this repo's CI would call once the control repo exists. */
+/** The upstream reusable workflow this repo could call after a verified immutable v1 ref exists. */
 export const UPSTREAM_CONTROL_REPO = "skillre/prototype-factory-control"
 export const UPSTREAM_REUSABLE_WORKFLOW = `${UPSTREAM_CONTROL_REPO}/.github/workflows/reusable-prototype-ci.yml@v1`
 /** Lock entry that must exist while the upstream workflow is NOT actually called. */
 export const UPSTREAM_LOCK_ID = "upstream/control-repo"
-/** Lock entry recording that the root contract has no `kits-registry` shape yet. */
-export const UPSTREAM_CONTRACT_LOCK_ID = "upstream/contract-kits-registry-shape"
 
 /**
  * The port Kits used to share with starter and s1. Retired by the 3200 → 3300
