@@ -108,7 +108,7 @@ const main = () => {
       "--style",
       "cinematic",
       "--components",
-      "animated-grid,data-cursor,insight-reveal",
+      "animated-grid,data-cursor,insight-reveal,evidence-chip",
       "--effects",
       "ambient-glow",
     ],

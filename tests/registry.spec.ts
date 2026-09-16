@@ -223,10 +223,26 @@ describe("registry 覆盖度", () => {
     }
   });
 
-  it("五个 Signature Component 都已登记且为 approved", () => {
-    const ids = registry.assets
-      .filter((a) => a.type === "component")
-      .map((a) => a.id);
+  it("Signature Component 的断言对象来自 registry：原五个仍在册且 approved", () => {
+    const components = registry.assets.filter((a) => a.type === "component");
+
+    /*
+     * 这条的**原意**是「五个签名组件都已登记且为 approved」。
+     * 写死五个 id 的问题不是"检查不够多"，而是它会**静默变假**：
+     * 新增第六个组件时，那个组件不被这条断言覆盖，而套件仍然是绿的
+     * （K2 加 evidence-chip 时暴露的正是这一类"没检查"）。
+     *
+     * 因此断言对象改成 registry 的全集 + 显式保留"原五个不许消失"：
+     *   ① 名单非空（过滤条件写错时不会空跑成绿）；
+     *   ② 原五个 id 仍然在册且 approved —— 放宽数量不等于允许它们被删掉。
+     * 「每一个 component 都必须有 apiVersion / manifest / demo / readme」
+     * 由上面的「分类型附加要求」一节对 registry 全集逐条核对，不在这里重复。
+     */
+    expect(
+      components.length,
+      "registry 里没有任何 component —— 这一节会空跑（空跑不等于通过）",
+    ).toBeGreaterThanOrEqual(5);
+
     for (const component of [
       "interactive-hero",
       "spotlight-surface",
@@ -234,9 +250,9 @@ describe("registry 覆盖度", () => {
       "data-cursor",
       "insight-reveal",
     ]) {
-      expect(ids, `缺少 component 资产 ${component}`).toContain(component);
-      const asset = registry.assets.find((a) => a.id === component)!;
-      expect(asset.status, `${component} 未 approved`).toBe("approved");
+      const asset = components.find((a) => a.id === component);
+      expect(asset, `原有组件 ${component} 从 registry 消失了`).toBeDefined();
+      expect(asset!.status, `${component} 未 approved`).toBe("approved");
     }
   });
 

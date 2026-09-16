@@ -51,6 +51,21 @@ const TMP = path.join(ROOT, "node_modules", ".cache", "kits-manifest-contract-te
 const REGISTRY = loadRegistry(ROOT);
 const VOCAB = loadVocabularies(ROOT);
 
+/**
+ * 真实仓库里的组件全集 —— 下面的"真实仓库"断言从 registry 取断言对象。
+ *
+ * 原意是「真仓库里的每一个组件都必须满足这条约束」。写死五个 id 会让这句话
+ * 在新增组件时**静默变假**（新组件不被检查，套件仍然是绿的），
+ * 而"没检查"永远不能被说成"通过"。
+ */
+const APPROVED_COMPONENTS: string[] = (REGISTRY.assets as Array<{
+  id: string;
+  type: string;
+  status: string;
+}>)
+  .filter((asset) => asset.type === "component" && asset.status === "approved")
+  .map((asset) => asset.id);
+
 afterAll(() => {
   rmSync(TMP, { recursive: true, force: true });
 });
@@ -603,6 +618,9 @@ describe("K7 · 适配标签", () => {
       "components/animated-grid/manifest.json": 3,
       "components/data-cursor/manifest.json": 4,
       "components/insight-reveal/manifest.json": 3,
+      // evidence-chip 是 K2 新增的组件，没有 v0.1.1 原文可比 —— 这条同样锁的是
+      // 它**从此不再被删短**（4 条 recommended + 2 条 avoid，逐条是人读理由）
+      "components/evidence-chip/manifest.json": 6,
     };
     for (const [rel, count] of Object.entries(expected)) {
       const manifest = JSON.parse(readFileSync(path.join(ROOT, rel), "utf8"));
@@ -612,14 +630,27 @@ describe("K7 · 适配标签", () => {
       ];
       expect(notes.length, `${rel} 的散文条数变了`).toBe(count);
     }
-    // 反向：每一份**有标签的** pack manifest 都必须在上面被登记 ——
-    // 否则新加的 pack 会静默绕过这条「散文不许被删短」的检查
+    // 反向：每一份**有标签的** pack / component manifest 都必须在上面被登记 ——
+    // 否则新加的资产会静默绕过这条「散文不许被删短」的检查
     const packManifests = REGISTRY.assets
       .filter((asset: { type: string }) => asset.type === "style")
       .map((asset: { manifest: string }) => asset.manifest);
     expect(packManifests.filter((rel: string) => rel in expected).sort()).toEqual(
       [...packManifests].sort(),
     );
+
+    /*
+     * 组件的反向检查同样是**加强**：在这个仓里，组件的散文只放在 *Notes 里
+     * （标签是机器可读投影，理由是完整原文）。少了这条反向断言，
+     * 新增组件可以完全不带理由地挂上标签，而"有标签没散文"只报 warn。
+     */
+    const componentManifests = REGISTRY.assets
+      .filter((asset: { type: string }) => asset.type === "component")
+      .map((asset: { manifest: string }) => asset.manifest);
+    expect(
+      componentManifests.filter((rel: string) => rel in expected).sort(),
+      "有 component manifest 没被登记进上面的 notes 条数表 —— 它会静默绕过这条检查",
+    ).toEqual([...componentManifests].sort());
   });
 });
 
@@ -674,8 +705,9 @@ describe("K2 · 移动端语义", () => {
     expect(findings).toContain("mobile/unsupported-recommended");
   });
 
-  it("真实仓库里五个组件都仍然给出降级行为（K2 没有放宽任何东西）", () => {
-    for (const id of ["interactive-hero", "spotlight-surface", "animated-grid", "data-cursor", "insight-reveal"]) {
+  it("真实仓库里每个 approved 组件都仍然给出降级行为（K2 没有放宽任何东西）", () => {
+    expect(APPROVED_COMPONENTS.length).toBeGreaterThanOrEqual(5);
+    for (const id of APPROVED_COMPONENTS) {
       const manifest = JSON.parse(readFileSync(path.join(ROOT, `components/${id}/manifest.json`), "utf8"));
       expect([true, "fallback-only"]).toContain(manifest.mobileCompatible);
       expect(manifest.mobileFallback?.trigger).toBeTruthy();
@@ -859,8 +891,9 @@ describe("K6c · usedByStylePacks ↔ pack 列表", () => {
     expect(codes(checkRegistry({ root }).findings)).toContain("usedby/unknown-pack");
   });
 
-  it("真实仓库里五个组件的角色词与三套 pack 的列表完全对齐", () => {
-    for (const id of ["interactive-hero", "spotlight-surface", "animated-grid", "data-cursor", "insight-reveal"]) {
+  it("真实仓库里每个组件的角色词与 pack 的列表完全对齐", () => {
+    expect(APPROVED_COMPONENTS.length).toBeGreaterThanOrEqual(5);
+    for (const id of APPROVED_COMPONENTS) {
       const manifest = JSON.parse(readFileSync(path.join(ROOT, `components/${id}/manifest.json`), "utf8"));
       for (const [packId, raw] of Object.entries(manifest.usedByStylePacks as Record<string, string>)) {
         const role = String(raw).match(/^([a-z-]+)/)?.[1];
@@ -873,7 +906,8 @@ describe("K6c · usedByStylePacks ↔ pack 列表", () => {
 
   it("真实仓库里角色词只有一种写法（不再是 signature 与 recommended 混用）", () => {
     const used = new Set<string>();
-    for (const id of ["interactive-hero", "spotlight-surface", "animated-grid", "data-cursor", "insight-reveal"]) {
+    expect(APPROVED_COMPONENTS.length).toBeGreaterThanOrEqual(5);
+    for (const id of APPROVED_COMPONENTS) {
       const manifest = JSON.parse(readFileSync(path.join(ROOT, `components/${id}/manifest.json`), "utf8"));
       for (const raw of Object.values(manifest.usedByStylePacks as Record<string, string>)) {
         used.add(String(raw).match(/^([a-z-]+)/)?.[1] as string);

@@ -385,7 +385,8 @@ describe("全部 Style Pack 的真实差异（不能只是换颜色）", () => {
 /* 3. Signature Component Contract                                             */
 /* -------------------------------------------------------------------------- */
 
-const COMPONENTS = [
+/** v0.2 之前就在册的五个组件 —— 它们不许从 registry 里消失（见下面的断言）。 */
+const ORIGINAL_COMPONENTS = [
   "interactive-hero",
   "spotlight-surface",
   "animated-grid",
@@ -393,8 +394,40 @@ const COMPONENTS = [
   "insight-reveal",
 ] as const;
 
+/**
+ * 断言对象来自 registry，而不是本文件里的一份名单。
+ *
+ * 原意是「**每一个** Signature Component 都必须交付完整契约」。
+ * 写死五个 id 会让这句话在加第六个组件时**静默变假** —— 新组件不会被检查，
+ * 而套件仍然是绿的（这正是 K2 加 evidence-chip 时暴露出来的：
+ * 这是一处"没检查"，不是"检查通过"）。
+ *
+ * 现在的规则有三条，比原来更强：
+ *   ① 断言对象 = registry 里全部 approved 的 component 资产（新增即自动纳入）；
+ *   ② 原有的五个 id **仍然必须在册**（放宽数量不等于允许它们消失）；
+ *   ③ 名单为空时失败（防止 registry 过滤写错导致这条检查空跑）。
+ */
+const APPROVED_COMPONENTS = (
+  readJson<{
+    assets: Array<{ id: string; type: string; status: string }>;
+  }>("registry/assets.json")
+).assets
+  .filter((asset) => asset.type === "component" && asset.status === "approved")
+  .map((asset) => asset.id)
+  .sort();
+
 describe("Signature Component Contract", () => {
-  it.each(COMPONENTS)("%s 交付完整的六件", (id) => {
+  it("断言对象来自 registry：覆盖全部 approved 组件，且原五个仍在册", () => {
+    expect(
+      APPROVED_COMPONENTS.length,
+      "registry 里一个 approved component 都没有 —— 这组断言会空跑",
+    ).toBeGreaterThanOrEqual(ORIGINAL_COMPONENTS.length);
+    for (const id of ORIGINAL_COMPONENTS) {
+      expect(APPROVED_COMPONENTS, `原有组件 ${id} 从 registry 消失了`).toContain(id);
+    }
+  });
+
+  it.each(APPROVED_COMPONENTS)("%s 交付完整的六件", (id) => {
     const dir = path.join(ROOT, "components", id);
     const files = readdirSync(dir);
     for (const required of [
@@ -410,7 +443,7 @@ describe("Signature Component Contract", () => {
     expect(files.some((file) => file.endsWith(".tsx"))).toBe(true);
   });
 
-  it.each(COMPONENTS)("%s 的 manifest 声明了契约要求的字段", (id) => {
+  it.each(APPROVED_COMPONENTS)("%s 的 manifest 声明了契约要求的字段", (id) => {
     const manifest = readJson<Record<string, unknown>>(
       `components/${id}/manifest.json`,
     );
@@ -438,7 +471,7 @@ describe("Signature Component Contract", () => {
     expect(manifest.source).toMatchObject({ containsThirdPartyCode: false });
   });
 
-  it.each(COMPONENTS)(
+  it.each(APPROVED_COMPONENTS)(
     "%s 的 internalApi 声明了「明确不暴露」的清单（Adapter 契约的前置条件）",
     (id) => {
       const manifest = readJson<{
@@ -452,7 +485,7 @@ describe("Signature Component Contract", () => {
     },
   );
 
-  it.each(COMPONENTS)(
+  it.each(APPROVED_COMPONENTS)(
     "%s 的 manifest.adapter.required 为 true（产品不得直接依赖第三方 API）",
     (id) => {
       const manifest = readJson<{ adapter: { required: boolean } }>(
@@ -462,8 +495,8 @@ describe("Signature Component Contract", () => {
     },
   );
 
-  it("五个组件的 apiVersion 都等于共享契约版本", () => {
-    for (const id of COMPONENTS) {
+  it("每个 approved 组件的 apiVersion 都是 1.x（产品只依赖 major）", () => {
+    for (const id of APPROVED_COMPONENTS) {
       const manifest = readJson<{ apiVersion: string }>(
         `components/${id}/manifest.json`,
       );
@@ -473,7 +506,7 @@ describe("Signature Component Contract", () => {
     }
   });
 
-  it.each(COMPONENTS)("%s 的实现带有 \"use client\" 指令", (id) => {
+  it.each(APPROVED_COMPONENTS)("%s 的实现带有 \"use client\" 指令", (id) => {
     const dir = path.join(ROOT, "components", id);
     const implementation = readdirSync(dir).find((file) =>
       file.endsWith(".tsx"),
@@ -485,7 +518,7 @@ describe("Signature Component Contract", () => {
     ).toBe(true);
   });
 
-  it.each(COMPONENTS)(
+  it.each(APPROVED_COMPONENTS)(
     "%s 的 README 覆盖了无障碍 / 移动端 / reduced-motion / SSR / 性能五个段落",
     (id) => {
       const readme = read(`components/${id}/README.md`);
@@ -509,7 +542,7 @@ describe("Signature Component Contract", () => {
 /* -------------------------------------------------------------------------- */
 
 describe("视觉字面量禁令（组件不得自己决定视觉）", () => {
-  it.each(COMPONENTS)("%s 的实现代码里没有 hex 颜色", (id) => {
+  it.each(APPROVED_COMPONENTS)("%s 的实现代码里没有 hex 颜色", (id) => {
     const dir = path.join(ROOT, "components", id);
     const implementation = readdirSync(dir).find((file) =>
       file.endsWith(".tsx"),
@@ -519,7 +552,7 @@ describe("视觉字面量禁令（组件不得自己决定视觉）", () => {
     expect(hexes, `${id} 出现硬编码颜色: ${hexes.join(", ")}`).toEqual([]);
   });
 
-  it.each(COMPONENTS)("%s 的 CSS 里没有 hex 颜色", (id) => {
+  it.each(APPROVED_COMPONENTS)("%s 的 CSS 里没有 hex 颜色", (id) => {
     const dir = path.join(ROOT, "components", id);
     const stylesheet = readdirSync(dir).find((file) => file.endsWith(".css"))!;
     const css = read(`components/${id}/${stylesheet}`);
@@ -529,7 +562,7 @@ describe("视觉字面量禁令（组件不得自己决定视觉）", () => {
     expect(hexes, `${id} CSS 出现硬编码颜色: ${hexes.join(", ")}`).toEqual([]);
   });
 
-  it.each(COMPONENTS)("%s 的实现代码不直接使用 window / document 于渲染期", (id) => {
+  it.each(APPROVED_COMPONENTS)("%s 的实现代码不直接使用 window / document 于渲染期", (id) => {
     const dir = path.join(ROOT, "components", id);
     const implementation = readdirSync(dir).find((file) =>
       file.endsWith(".tsx"),

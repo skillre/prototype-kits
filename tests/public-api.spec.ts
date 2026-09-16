@@ -26,13 +26,18 @@ const readJson = (rel: string) =>
   JSON.parse(readFileSync(path.join(ROOT, rel), "utf8"));
 const read = (rel: string) => readFileSync(path.join(ROOT, rel), "utf8");
 
-const COMPONENTS = [
-  "interactive-hero",
-  "spotlight-surface",
-  "animated-grid",
-  "data-cursor",
-  "insight-reveal",
-] as const;
+/**
+ * 断言对象来自 registry（理由与 tests/contracts.spec.ts 的同名注释相同）：
+ * 写死五个 id 会让新组件**静默绕过**这一组 React peer / 依赖边界检查。
+ */
+const COMPONENTS: string[] = (
+  readJson("registry/assets.json") as {
+    assets: Array<{ id: string; type: string; status: string }>;
+  }
+).assets
+  .filter((asset) => asset.type === "component" && asset.status === "approved")
+  .map((asset) => asset.id)
+  .sort();
 const STYLE_PACKS = ["editorial", "cinematic", "instrument"] as const;
 
 /* -------------------------------------------------------------------------- */

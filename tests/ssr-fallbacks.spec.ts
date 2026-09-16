@@ -28,13 +28,19 @@ const ROOT = path.resolve(import.meta.dirname, "..");
 const read = (relative: string) =>
   readFileSync(path.join(ROOT, relative), "utf8");
 
-const COMPONENTS = [
-  "interactive-hero",
-  "spotlight-surface",
-  "animated-grid",
-  "data-cursor",
-  "insight-reveal",
-] as const;
+/**
+ * 断言对象来自 registry（理由与 tests/contracts.spec.ts 的同名注释相同）：
+ * 写死五个 id 会让新组件**静默绕过**这一整组 SSR / 降级检查 ——
+ * 少检查一个组件，套件仍然是绿的。
+ */
+const COMPONENTS: string[] = (
+  JSON.parse(read("registry/assets.json")) as {
+    assets: Array<{ id: string; type: string; status: string }>;
+  }
+).assets
+  .filter((asset) => asset.type === "component" && asset.status === "approved")
+  .map((asset) => asset.id)
+  .sort();
 
 function implementationOf(id: string): string {
   const dir = path.join(ROOT, "components", id);

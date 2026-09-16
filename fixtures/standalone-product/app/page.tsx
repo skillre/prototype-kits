@@ -15,6 +15,7 @@ import { useState } from "react";
  */
 import { AnimatedGrid } from "@/lib/kits/adapters/animated-grid";
 import { DataCursor } from "@/lib/kits/adapters/data-cursor";
+import { EvidenceChip } from "@/lib/kits/adapters/evidence-chip";
 import { InsightReveal } from "@/lib/kits/adapters/insight-reveal";
 import {
   effectClass,
@@ -30,13 +31,16 @@ import { stylePackMeta } from "@/lib/kits/adapters/style-pack";
  *   AnimatedGrid   → useMotionAllowed（能力探测）
  *   DataCursor     → useFinePointer + useMotionAllowed（指针探测）
  *   InsightReveal  → useReveal（共享 IntersectionObserver）+ 步进宿主
+ *   EvidenceChip   → 零能力探测（纯渲染 + 事件回调）：它证明的是"没有 hook 的组件
+ *                    同样能被装进产品并编译"，而不是又走一遍 @kits/react-utils
  *
- * 三个组件都渲染出来，等于把 @kits/react-utils 的公开面全部走了一遍。
+ * 四个组件都渲染出来，前三者把 @kits/react-utils 的公开面走了一遍；
  * 少一个，就不能说"组件包自足"。
  */
 export default function FixturePage() {
   const [count, setCount] = useState(3);
   const [light, setLight] = useState(false);
+  const [evidence, setEvidence] = useState<string | undefined>(undefined);
 
   /*
    * 浅色主题的"光"——**只覆盖公开变量**，不重写效果的实现。
@@ -71,6 +75,34 @@ export default function FixturePage() {
             </div>
           ))}
         </InsightReveal>
+
+        <p
+          style={{
+            marginTop: "var(--kits-space-lg)",
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            gap: "var(--kits-space-2xs)",
+          }}
+        >
+          {/*
+           * EvidenceChip —— 安装后的组件直接可用，且它**不依赖任何能力探测**：
+           * 这条证明的是"没有 hook 的资产同样能被装进产品并编译/水合"。
+           * 抽屉内容属于产品，所以这里只把 onActivate 接成一个受控状态。
+           */}
+          <EvidenceChip
+            category="证据"
+            evidenceId="e-41"
+            label="原始报文"
+            expanded={evidence === "e-41"}
+            drawerId="fixture-evidence-drawer"
+            onActivate={setEvidence}
+          />
+          <EvidenceChip label="手法指纹匹配" count={2} onActivate={setEvidence} />
+          <span className="fixture-note">
+            已打开的引用：{evidence ?? "无"}
+          </span>
+        </p>
 
         <p style={{ marginTop: "var(--kits-space-lg)" }}>
           <button type="button" onClick={() => setCount((c) => (c === 3 ? 5 : 3))}>

@@ -168,7 +168,9 @@
       "ssrCompatible": true,
       "mobileCompatible": true,
       "reducedMotion": "supported",
-      "signatureComponents": [],
+      "signatureComponents": [
+        "evidence-chip"
+      ],
       "recommendedFor": [
         "pointer",
         "high-density",
@@ -363,6 +365,46 @@
         "containsThirdPartyCode": false
       },
       "package": "InsightReveal"
+    },
+    {
+      "id": "evidence-chip",
+      "name": "EvidenceChip",
+      "type": "component",
+      "status": "approved",
+      "version": "0.1.0",
+      "apiVersion": "1.0.0",
+      "path": "components/evidence-chip",
+      "manifest": "components/evidence-chip/manifest.json",
+      "entry": "components/evidence-chip/index.ts",
+      "demo": "components/evidence-chip/demo.tsx",
+      "readme": "components/evidence-chip/README.md",
+      "dependencies": [
+        "react-utils"
+      ],
+      "thirdPartyRuntime": "none",
+      "bundleSize": "≈0.7 KB gzip JS + ≈0.8 KB gzip CSS（esbuild --minify 实测，React 与 react-utils 外置）",
+      "performance": "A",
+      "performanceNotes": "纯静态 CSS + 一次 React 渲染：无观察器 / 无 rAF / 无指针监听 / 无定时器；状态过渡只动 color / border-color / background-color 三个属性",
+      "ssrCompatible": true,
+      "mobileCompatible": true,
+      "avoidFor": [
+        "text-heavy"
+      ],
+      "recommendedFor": [
+        "data-heavy",
+        "high-density"
+      ],
+      "reducedMotion": "supported",
+      "a11yNotes": "真 button（Enter / Space 原生激活）；无 onActivate 时渲染 span 而不是惰性 button；可访问名 = 可见文本；引用号 text-transform: none（id 不得被 pack 的大写排版改写）；焦点环用 pack 的 --kits-focus-ring-*；颜色不是唯一编码",
+      "adapterRequired": true,
+      "adapterWorkedExample": "第三方 chip/tag 的 size/variant/color/radius → category/evidenceId/label/count/tone/intensity",
+      "source": {
+        "kind": "first-party",
+        "origin": "prototype-kits",
+        "license": "UNLICENSED (internal)",
+        "containsThirdPartyCode": false
+      },
+      "package": "EvidenceChip"
     },
     {
       "id": "paper-grain",
