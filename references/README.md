@@ -25,7 +25,14 @@ Agent 在做 Visual Direction 之前，必须先读参考板。目的不是"抄�
 | `editorial/` | 印刷、杂志、年报、编辑式排版的设计语言 |
 | `cinematic/` | 深色空间、环境光、电影感产品的设计语言 |
 | `instrument/` | 工业仪表、监控终端、工程工具的设计语言 |
+| `console/` | 运营控制台、终端与列、值班室与日志流的设计语言（第四套 pack；它明写了自己「外部参考分析：未做」） |
 | `incoming/` | 还没有归类的参考（正在被分析中） |
+
+> **新增一套 style pack = 同时交付 `references/<id>/README.md` 并登记到上表。**
+> 这不是靠自觉：`tests/reference-board-coverage.spec.ts` 拿 `registry/assets.json` 里
+> `type: style && status: approved` 的名单逐套核对，缺板子或缺这一行都会红。
+> 写这条门禁的直接原因：第四套 pack `console` 交付时 **pack 齐了、参考板没有**，
+> 而当时五门全绿 —— 因为没有任何一条门禁的名单里有参考板。
 
 ---
 

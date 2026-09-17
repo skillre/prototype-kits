@@ -2,10 +2,11 @@
  * Browser QA —— Prototype Kits Playground。
  *
  * 立场：**测试通过不等于画面成立**。
- * 这个脚本把三个路由真正渲染出来，检查四件在单元测试里看不到的事：
- *   1. 三套 Style Pack 在同一页里并排时，是否真的渲染出了**不同**的视觉结果；
+ * 这个脚本把四个路由真正渲染出来，检查这些在单元测试里看不到的事：
+ *   1. registry 里**每一套已批准的 pack** 在同一页里并排时，是否真的渲染出了
+ *      **不同**的视觉结果（不是三套 —— 名单来自 registry，见下面的 PACKS）；
  *   2. 是否有横向溢出 / 控制台报错 / 页面异常 / 请求失败；
- *   3. 组件在三种 pack 下是否都真正挂载（而不是静默失败成空白）；
+ *   3. 组件在每一套 pack 下是否都真正挂载（而不是静默失败成空白）；
  *   4. 降级路径是否生效（例如 reduced-motion 下 InsightReveal 内容必须可见）。
  *
  * 用法：
@@ -20,6 +21,8 @@
  */
 import { chromium } from "@playwright/test";
 import { mkdir, writeFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 import { QA_ORIGIN } from "./qa.config.mjs";
@@ -31,6 +34,12 @@ import { withQaServer } from "./qa-server.mjs";
  */
 let BASE = process.env.KITS_BASE ?? QA_ORIGIN;
 const OUT = path.join(process.cwd(), ".qa", "out");
+
+/** 仓根。用它读 registry 与各 pack 的 tokens.css，不受调用时的 cwd 影响。 */
+const ROOT = fileURLToPath(new URL("../", import.meta.url));
+
+const readJson = (relative) =>
+  JSON.parse(readFileSync(path.join(ROOT, relative), "utf8"));
 
 const VIEWPORTS = [
   { name: "desktop-1440x900", width: 1440, height: 900, isMobile: false },
@@ -44,7 +53,71 @@ const ROUTES = [
   { name: "audit", path: "/audit", expect: ["Asset Registry"] },
 ];
 
-const PACKS = ["editorial", "cinematic", "instrument"];
+/* --------------------------------------------------------------------------
+ * pack 名单：来自 registry，不在 QA 里写死
+ *
+ * K1 的教训：这里的名单曾经是写死的三套 pack id（editorial / cinematic / instrument），
+ * 于是第四套 pack `console` 就算真的上了屏，**这套断言也不会看它一眼**
+ * —— 断言的覆盖面跟着一个常量一起过期了。
+ *
+ * 所以名单从 `registry/assets.json` 派生（`type === "style"` 且 `status === "approved"`，
+ * 保持登记顺序）。registry 是权威，QA 只是它的一个视图。
+ * ----------------------------------------------------------------------- */
+
+const REGISTRY = readJson("registry/assets.json");
+
+const STYLE_ASSETS = REGISTRY.assets.filter(
+  (asset) => asset.type === "style" && asset.status === "approved",
+);
+
+const PACKS = STYLE_ASSETS.map((asset) => asset.id);
+
+if (PACKS.length === 0) {
+  /*
+   * 空名单**不是**"没问题"：它会让下面每一处 per-pack 断言空跑成绿
+   * （「0 / 0 = NaN」那类静默通过）。所以这里直接停下。
+   */
+  console.error(
+    "QA 前置失败：registry 里没有 approved 的 style 资产 —— per-pack 断言会空跑成绿。",
+  );
+  process.exit(1);
+}
+
+/**
+ * 每个 pack **自己声明的** `--kits-color-canvas`（读它的 tokens.css，不在这里抄颜色）。
+ *
+ * 为什么要读文件而不是写死一个期望色：这一条要证明的是
+ * 「这一列真的由**它自己**那套 pack 的样式渲染」—— 而 pack 的样式来自
+ * `globals.css` 里那一行 `@import "@kits/style-<id>/tokens.css"`。
+ * 漏了那一行，舞台会退回契约兜底的 `#f5f5f4`，浏览器里的计算值就对不上。
+ */
+const DECLARED_CANVAS = new Map(
+  STYLE_ASSETS.map((asset) => {
+    const tokensPath = asset.entry ?? `${asset.path}/tokens.css`;
+    const css = readFileSync(path.join(ROOT, tokensPath), "utf8");
+    // 只认声明行；pack 的注释里可能出现变量名，但不会写成「名字 + 冒号 + 值」。
+    const match = css.match(/--kits-color-canvas\s*:\s*([^;]+);/);
+    return [asset.id, match ? match[1].trim() : null];
+  }),
+);
+
+/**
+ * `#rrggbb` → `rgb(r, g, b)`：浏览器返回的就是这个格式。
+ * 认不出来的写法返回 null（调用方会把"认不出"记成问题，而不是跳过）。
+ */
+function hexToRgb(value) {
+  if (typeof value !== "string") return null;
+  const hex = value.trim().replace(/^#/, "");
+  if (!/^[0-9a-fA-F]{6}$/.test(hex)) return null;
+  const [r, g, b] = [0, 2, 4].map((offset) =>
+    parseInt(hex.slice(offset, offset + 2), 16),
+  );
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+const EXPECTED_CANVAS = new Map(
+  [...DECLARED_CANVAS].map(([id, declared]) => [id, hexToRgb(declared)]),
+);
 
 const problems = [];
 
@@ -112,14 +185,14 @@ async function checkRoute(browser, route, viewport) {
         "data-cursor",
         "insight-reveal",
       ][index];
-      if (count < 3) {
+      if (count < PACKS.length) {
         problems.push(
-          `${viewport.name} /: 组件 ${id} 只渲染了 ${count} 个实例（应为 3 —— 每个 pack 一个）`,
+          `${viewport.name} /: 组件 ${id} 只渲染了 ${count} 个实例（应为 ${PACKS.length} —— 每个已批准的 pack 一个）`,
         );
       }
     });
 
-    // 三套 pack 的计算样式必须真的不同
+    // 每一套已批准的 pack 的计算样式必须真的不同
     const perPack = {};
     for (const pack of PACKS) {
       const sample = page.locator(`[data-kits-pack="${pack}"]`).first();
@@ -147,13 +220,13 @@ async function checkRoute(browser, route, viewport) {
       const values = PACKS.map((pack) => perPack[pack][key]);
       if (new Set(values).size < 2) {
         problems.push(
-          `${viewport.name} /: 维度 ${key} 在三套 pack 下取值相同 → ${values.join(" | ")}`,
+          `${viewport.name} /: 维度 ${key} 在全部 ${PACKS.length} 套 pack 下取值相同 → ${values.join(" | ")}`,
         );
       }
     }
-    if (new Set(PACKS.map((pack) => perPack[pack].canvas)).size !== 3) {
+    if (new Set(PACKS.map((pack) => perPack[pack].canvas)).size !== PACKS.length) {
       problems.push(
-        `${viewport.name} /: 三套 pack 的画布色没有全部不同 → ${PACKS.map((p) => perPack[p].canvas).join(" | ")}`,
+        `${viewport.name} /: ${PACKS.length} 套 pack 的画布色没有全部不同 → ${PACKS.map((p) => perPack[p].canvas).join(" | ")}`,
       );
     }
     if (perPack.editorial.displayFont === perPack.instrument.displayFont) {
@@ -271,6 +344,146 @@ async function checkRoute(browser, route, viewport) {
   return report;
 }
 
+/* --------------------------------------------------------------------------
+ * Pack 舞台覆盖探针 —— 「registry 里的每一套 pack 都真的上了屏」的判据
+ *
+ * 为什么需要单独一条：
+ *   上面那组断言只比较**被列进来的**那几套 pack（而且曾经比较的是写死的三套）。
+ *   一套 pack 从"没被列进来"到"列进来了但样式没接上"，两种情况在上面都可能是绿的。
+ *
+ * 这里做三件事，合起来才叫"上了屏"：
+ *   1. **在场**：每一套 pack 在 / 上都渲染出同样多的列（少一套就会不相等）；
+ *      数量按 `[data-pack-column="<id>"]` 数，也要 > 0（空列表不许空跑成绿）；
+ *   2. **由它自己的样式渲染**：该 pack 第一列舞台的计算背景色
+ *      === 它自己 tokens.css 里声明的 `--kits-color-canvas`。
+ *      这条专门抓「忘了在 globals.css 里 @import 这套 pack」——
+ *      漏掉时该列会退回契约兜底色，而不是报错；
+ *   3. **占的是真实像素**：舞台矩形非零，且矩形中心点 elementFromPoint
+ *      命中的还是这一套 pack 的子树（没有覆盖、没有零尺寸、没有跑到屏外），
+ *      并按 pack 存一张舞台截图到 .qa/out/（像素证据落盘）。
+ * ----------------------------------------------------------------------- */
+
+async function checkPackStages(browser, viewport) {
+  const context = await browser.newContext({
+    viewport: { width: viewport.width, height: viewport.height },
+    isMobile: viewport.isMobile,
+    deviceScaleFactor: 2,
+  });
+  const page = await context.newPage();
+  await page.goto(`${BASE}/`, { waitUntil: "load" });
+  await page.waitForTimeout(400);
+
+  /** 每套 pack 的列数：`[data-pack-column]` 是 PackColumn 自己打的标记。 */
+  const columns = await page.evaluate((packs) =>
+    Object.fromEntries(
+      packs.map((pack) => [
+        pack,
+        document.querySelectorAll(`[data-pack-column="${pack}"]`).length,
+      ]),
+    ), PACKS);
+
+  const total = Object.values(columns).reduce((sum, count) => sum + count, 0);
+  if (total === 0) {
+    problems.push(
+      `${viewport.name} /: 一个 pack 舞台都没有（[data-pack-column] 命中 0）—— 后续 per-pack 断言会空跑成绿`,
+    );
+  }
+
+  const expectedColumns = Math.max(...PACKS.map((pack) => columns[pack] ?? 0));
+  for (const pack of PACKS) {
+    if ((columns[pack] ?? 0) === 0) {
+      problems.push(
+        `${viewport.name} /: registry 里已批准的 pack「${pack}」在并排舞台上**一列都没有** —— 权威里有，视图里没有`,
+      );
+    } else if (columns[pack] !== expectedColumns) {
+      problems.push(
+        `${viewport.name} /: pack「${pack}」只有 ${columns[pack]} 列，其它 pack 有 ${expectedColumns} 列 —— 有某一节把它漏掉了`,
+      );
+    }
+  }
+
+  const perPack = {};
+  for (const pack of PACKS) {
+    const stage = page.locator(`[data-kits-pack="${pack}"]`).first();
+    const found = await stage.count();
+    if (found === 0) {
+      perPack[pack] = { found: 0 };
+      continue; // 上面已经记过"一列都没有"
+    }
+
+    await stage.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(120);
+
+    const measured = await stage.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      const styles = getComputedStyle(element);
+      /*
+       * 取矩形中心点——但要**夹到视口内**：舞台比视口高时，中心点可能在屏外，
+       * 那时 elementFromPoint 只会返回 null，把"没量到"误报成"没上屏"。
+       */
+      const x = Math.min(Math.max(rect.left + rect.width / 2, 1), window.innerWidth - 2);
+      const y = Math.min(Math.max(rect.top + rect.height / 2, 1), window.innerHeight - 2);
+      const hit = document.elementFromPoint(x, y);
+      return {
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
+        backgroundColor: styles.backgroundColor,
+        canvasToken: styles.getPropertyValue("--kits-color-canvas").trim(),
+        inkToken: styles.getPropertyValue("--kits-color-ink").trim(),
+        hitPack: hit?.closest("[data-kits-pack]")?.getAttribute("data-kits-pack") ?? null,
+      };
+    });
+
+    // 像素证据落盘：这一列的舞台单独截一张（.qa/out/ 已被 .gitignore 忽略）
+    const shot = path.join(OUT, `pack-stage-${pack}-${viewport.name}.png`);
+    await stage.screenshot({ path: shot });
+
+    perPack[pack] = { found, ...measured, screenshot: path.relative(ROOT, shot) };
+
+    const expected = EXPECTED_CANVAS.get(pack);
+    const declared = DECLARED_CANVAS.get(pack);
+    if (!expected) {
+      problems.push(
+        `${viewport.name} /: 无法从该 pack 的 tokens.css 里读出 --kits-color-canvas` +
+          `（读到的是 ${JSON.stringify(declared ?? null)}）—— 这一列的舞台背景无法核对`,
+      );
+    } else if (measured.backgroundColor !== expected) {
+      problems.push(
+        `${viewport.name} /: pack「${pack}」的舞台背景是 ${measured.backgroundColor}，` +
+          `但它的 tokens.css 声明 ${declared}（= ${expected}）—— ` +
+          `这一列没有拿到它自己那套 pack 的样式（检查 globals.css 的 @import）`,
+      );
+    }
+    if (measured.canvasToken !== "") {
+      // 自定义属性的计算值就是声明值本身；与背景色（用出来的值）互为佐证。
+      const tokenRgb = hexToRgb(measured.canvasToken);
+      if (tokenRgb && tokenRgb !== measured.backgroundColor) {
+        problems.push(
+          `${viewport.name} /: pack「${pack}」的 --kits-color-canvas 解析为 ${measured.canvasToken}` +
+            `（= ${tokenRgb}），但舞台计算背景色是 ${measured.backgroundColor} —— 两者不一致`,
+        );
+      }
+    } else {
+      problems.push(
+        `${viewport.name} /: pack「${pack}」的舞台上 --kits-color-canvas 是空的 —— 这套 pack 的 tokens 没进来`,
+      );
+    }
+    if (measured.width < 1 || measured.height < 1) {
+      problems.push(
+        `${viewport.name} /: pack「${pack}」的舞台矩形是 ${measured.width}×${measured.height} —— 没有占据任何像素`,
+      );
+    } else if (measured.hitPack !== pack) {
+      problems.push(
+        `${viewport.name} /: pack「${pack}」舞台中心点命中的是 ` +
+          `${measured.hitPack ? `pack「${measured.hitPack}」` : "没有任何 pack 子树"} —— 这一列被挡住或没上屏`,
+      );
+    }
+  }
+
+  await context.close();
+  return { columns, total, expectedColumns, perPack };
+}
+
 /**
  * 降级验证：reduced-motion 下 InsightReveal 的内容必须可见。
  * 这是整套 Kits 里最容易做错的一条契约（隐藏是 CSS 默认、显示依赖 JS）。
@@ -298,9 +511,9 @@ async function checkReducedMotion(browser) {
     });
   });
 
-  if (revealState.length < 3) {
+  if (revealState.length < PACKS.length) {
     problems.push(
-      `reduced-motion: InsightReveal 实例数 ${revealState.length}（应为 3）`,
+      `reduced-motion: InsightReveal 实例数 ${revealState.length}（应为 ${PACKS.length} —— 每个已批准的 pack 一个）`,
     );
   }
   for (const state of revealState) {
@@ -314,7 +527,7 @@ async function checkReducedMotion(browser) {
     }
   }
 
-  // 指针动效必须关闭：三套 pack 的 --kits-pointer-factor 归零
+  // 指针动效必须关闭：每一套 pack 的 --kits-pointer-factor 归零
   const factors = await page.evaluate(() =>
     Array.from(document.querySelectorAll("[data-kits-pack]")).map((element) =>
       getComputedStyle(element).getPropertyValue("--kits-pointer-factor").trim(),
@@ -440,9 +653,9 @@ async function checkCoarsePointer(browser) {
     const page = await context.newPage();
     await page.goto(`${BASE}/`, { waitUntil: "load" });
     await page.waitForTimeout(400);
-    const result = await page.evaluate(() => {
+    const result = await page.evaluate((packs) => {
       const out = {};
-      for (const pack of ["editorial", "cinematic", "instrument"]) {
+      for (const pack of packs) {
         const grid = document.querySelector(`[data-kits-pack="${pack}"] .kits-grid`);
         if (!grid) continue;
         const cs = (p) => getComputedStyle(grid).getPropertyValue(p).trim();
@@ -480,7 +693,7 @@ async function checkCoarsePointer(browser) {
         hoverNone: matchMedia("(hover: none)").matches,
         packs: out,
       };
-    });
+    }, PACKS);
     await context.close();
     return result;
   };
@@ -502,7 +715,7 @@ async function checkCoarsePointer(browser) {
     );
   }
 
-  for (const pack of ["editorial", "cinematic", "instrument"]) {
+  for (const pack of PACKS) {
     const f = fine.packs[pack];
     const c = coarse.packs[pack];
     if (!f || !c) {
@@ -635,6 +848,13 @@ async function main() {
       }
 
       report.reducedMotion = await checkReducedMotion(browser);
+      report.packStages = {};
+      for (const viewport of VIEWPORTS) {
+        report.packStages[viewport.name] = await checkPackStages(
+          browser,
+          viewport,
+        );
+      }
       report.a11y = await checkInsightRevealA11y(browser);
       report.coarsePointer = await checkCoarsePointer(browser);
       report.effectOverride = await checkEffectOverride(browser);
@@ -656,12 +876,28 @@ async function main() {
     for (const problem of problems) console.error(`  ✗ ${problem}`);
     process.exit(1);
   }
+
+  /*
+   * 这一行是本仓「pack 覆盖」这件事的现场证据：
+   * 有多少套 pack、它们是哪些、每一套在 / 上有几列舞台、
+   * 以及每一列的舞台背景色是否等于它自己 tokens.css 里的声明值。
+   */
+  const desktopStages = report.packStages["desktop-1440x900"];
+  const stageEvidence = PACKS.map((pack) => {
+    const measured = desktopStages?.perPack?.[pack] ?? {};
+    return `${pack} ${measured.backgroundColor ?? "?"} ← ${DECLARED_CANVAS.get(pack) ?? "?"}`;
+  }).join(" · ");
+
   console.log(
     `\nQA OK —— mode ${run.mode} · origin ${run.origin}（身份检查已通过）\n` +
       `  ${ROUTES.length} 个路由 × ${VIEWPORTS.length} 个视口：无控制台报错 / 无页面异常 / 无横向溢出（三条判据）；` +
-      "三套 pack 计算样式确有差异；reduced-motion 降级正确；" +
-      "InsightReveal 无障碍树与 DOM 一致；coarse pointer 因子生效（64 → 96px）；" +
-      "effect 公开变量可在祖先作用域覆盖",
+      "reduced-motion 降级正确；" +
+      "InsightReveal 无障碍树与 DOM 一致；coarse pointer 因子生效；" +
+      "effect 公开变量可在祖先作用域覆盖\n" +
+      `  registry 里 ${PACKS.length} 套 approved Style Pack：${PACKS.join(" / ")}\n` +
+      `  并排舞台（desktop 1440×900）：每套 pack ${desktopStages?.expectedColumns ?? "?"} 列，` +
+      `共 ${desktopStages?.total ?? "?"} 列；每列舞台背景色 = 它自己 tokens.css 声明的 --kits-color-canvas：\n` +
+      `    ${stageEvidence}`,
   );
 }
 

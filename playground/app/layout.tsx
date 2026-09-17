@@ -5,14 +5,14 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Prototype Kits · Visual Playground",
   description:
-    "Prototype Factory 的可插拔视觉与能力资产库 —— 三套 Style Pack、五个 Signature Component、Asset Registry 与 Incoming Workflow 的验收台。",
+    "Prototype Factory 的可插拔视觉与能力资产库 —— registry 里全部已批准的 Style Pack、五个 Signature Component、Asset Registry 与 Incoming Workflow 的验收台。",
 };
 
 /**
  * Playground 外壳。
  *
  * 注意：外壳**不使用任何 Style Pack 变量** —— 它是中立的容器，
- * 这样三种风格才能在同一页里并排而互不污染。
+ * 这样多套风格才能在同一页里并排而互不污染。
  * `data-kits-pack` 只出现在每一列的舞台元素上。
  */
 export default function RootLayout({

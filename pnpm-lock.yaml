@@ -203,6 +203,9 @@ importers:
       '@kits/style-cinematic':
         specifier: workspace:*
         version: link:../styles/cinematic
+      '@kits/style-console':
+        specifier: workspace:*
+        version: link:../styles/console
       '@kits/style-editorial':
         specifier: workspace:*
         version: link:../styles/editorial

@@ -16,10 +16,13 @@ import {
  * /audit —— Asset Registry 与契约审计页。
  *
  * 这一页回答：
- *   1. 三套 pack 在十个维度上是否**真的不同**（逐维度对照）
+ *   1. registry 里每一套已批准的 pack 在十个维度上是否**真的不同**（逐维度对照）
  *   2. motion 契约的差异（时长/角色/降级）
  *   3. registry/assets.json 里有什么、状态如何
  *   4. Incoming Workflow 的完整链路
+ *
+ * 表格的行列都来自 registry（`PACK_VIEWS` ← `registry/assets.json`），
+ * 「几套 pack」不是这一页的常量。
  */
 
 export const metadata = {
@@ -50,7 +53,7 @@ export default function AuditPage() {
       <h1 className="pg-title">Asset Registry · 审计</h1>
       <p className="pg-lede">
         资产库成立的前提不是「东西多」，而是**可追溯、可审计、可替换**。
-        这一页把三套风格的真实差异、动效契约、登记表与准入流程摊开来看。
+        这一页把 {PACK_VIEWS.length} 套风格的真实差异、动效契约、登记表与准入流程摊开来看。
       </p>
 
       {/* ------------------------------------------------------------------ */}
@@ -75,6 +78,19 @@ export default function AuditPage() {
                   (pack) => pack.profile[dimension.key],
                 );
                 const distinct = new Set(values).size;
+                /*
+                 * 判据按 **pack 数**算，不写死"3"。
+                 * 这里曾经是 `distinct === 3 ? "✅ 三套全不同" : …`：
+                 * 加了第四套 pack 之后，一个四套互不相同的维度会算出
+                 * distinct === 4，被这条过期判据判成"⚠️ 两套相同"——
+                 * 一句由视图本身产生的假话（K1 新增 console 时留下）。
+                 */
+                const verdict =
+                  distinct === PACK_VIEWS.length
+                    ? `✅ ${distinct} 套全不同`
+                    : distinct === 1
+                      ? "❌ 完全相同"
+                      : `⚠️ 有取值重复（${distinct} 种取值 / ${PACK_VIEWS.length} 套 pack）`;
                 return (
                   <tr key={String(dimension.key)}>
                     <td>
@@ -87,13 +103,7 @@ export default function AuditPage() {
                         <code>{String(value)}</code>
                       </td>
                     ))}
-                    <td>
-                      {distinct === 3
-                        ? "✅ 三套全不同"
-                        : distinct === 2
-                          ? "⚠️ 两套相同"
-                          : "❌ 完全相同"}
-                    </td>
+                    <td>{verdict}</td>
                   </tr>
                 );
               })}
@@ -143,7 +153,7 @@ export default function AuditPage() {
           `tokens.css` 里有没有 `.kits-ambient` 核对，`glow` 与 `--kits-color-glow`
           核对，并与 `effects[]` 的材质类别交叉（不发光声明 + 发光效果 = audit error）。
           <br />
-          左边三套 pack 的材质由 pack 拥有；<strong>Kits 不会自动使用任何一项</strong> ——
+          左边每一套 pack 的材质由 pack 拥有；<strong>Kits 不会自动使用任何一项</strong> ——
           装 pack 只买到能力，用不用、用在哪里，由产品在自己的 Visual Manifest 里决定，
           且 Effect Pack 必须显式安装。
         </p>

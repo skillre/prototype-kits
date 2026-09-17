@@ -2,7 +2,7 @@
   "name": "@kits/playground",
   "version": "0.2.0",
   "private": true,
-  "description": "Prototype Kits · Visual Playground —— 三套 Style Pack 并排 + 五个 Signature Component 验收 + Registry 审计。不是业务产品。",
+  "description": "Prototype Kits · Visual Playground —— registry 里全部已批准的 Style Pack 并排 + 五个 Signature Component 验收 + Registry 审计。不是业务产品。",
   "scripts": {
     "dev": "next dev -p 3300",
     "build": "next build",
@@ -21,6 +21,7 @@
     "@kits/react-utils": "workspace:*",
     "@kits/spotlight-surface": "workspace:*",
     "@kits/style-cinematic": "workspace:*",
+    "@kits/style-console": "workspace:*",
     "@kits/style-editorial": "workspace:*",
     "@kits/style-instrument": "workspace:*",
     "next": "16.3.4",

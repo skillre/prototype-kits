@@ -10,6 +10,7 @@ import { PackColumn } from "../../components/pack-stage";
 import {
   MOBILE_STATE_LABEL,
   mobileStateOf,
+  PACK_VIEWS,
   type FitFields,
 } from "../../components/registry-view";
 import {
@@ -29,7 +30,7 @@ const mobileStateOfManifest = (manifest: Manifest) =>
  * 这一页回答三个问题：
  *   1. 每个组件的**内部稳定 API** 是什么？（产品只允许用这些）
  *   2. 降级矩阵是否完整？（mobile / reduced-motion / SSR / 性能分级）
- *   3. 同一份调用在三种 pack 下是否都成立？
+ *   3. 同一份调用在**每一套已批准的 pack** 下是否都成立？
  */
 
 const MANIFESTS = [
@@ -42,7 +43,13 @@ const MANIFESTS = [
 
 type Manifest = (typeof MANIFESTS)[number];
 
-function usedBy(pack: "editorial" | "cinematic" | "instrument", manifest: Manifest) {
+/**
+ * `usedByStylePacks` 是**组件 manifest 自己**的表：某套 pack 没在表里
+ * （例如 K1 之后新增的 pack 还没回填 manifest）就渲染 `—`，
+ * 也就是"这张表没声明"，而不是"Playground 把它藏起来了"。
+ * 表里写了什么，这一页就显示什么 —— 不在这里替组件补默认值。
+ */
+function usedBy(pack: string, manifest: Manifest) {
   const table = manifest.usedByStylePacks as Record<string, string>;
   return table[pack] ?? "—";
 }
@@ -88,9 +95,9 @@ export default function ComponentsPage() {
                 <th>Mobile 降级</th>
                 <th>Reduced-motion</th>
                 <th>第三方运行时</th>
-                <th>editorial</th>
-                <th>cinematic</th>
-                <th>instrument</th>
+                {PACK_VIEWS.map((pack) => (
+                  <th key={pack.id}>{pack.id}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -114,9 +121,9 @@ export default function ComponentsPage() {
                   <td>
                     {manifest.thirdPartyRuntime === "none" ? "none" : manifest.thirdPartyRuntime}
                   </td>
-                  <td>{usedBy("editorial", manifest)}</td>
-                  <td>{usedBy("cinematic", manifest)}</td>
-                  <td>{usedBy("instrument", manifest)}</td>
+                  {PACK_VIEWS.map((pack) => (
+                    <td key={pack.id}>{usedBy(pack.id, manifest)}</td>
+                  ))}
                 </tr>
               ))}
             </tbody>
@@ -211,7 +218,7 @@ export default function ComponentsPage() {
       {/* ------------------------------------------------------------------ */}
       <section className="pg-section">
         <h2 className="pg-section__title">
-          同一份调用 × 三种 Pack（五个组件全部并排）
+          同一份调用 × registry 里全部已批准的 Pack（五个组件全部并排）
         </h2>
 
         {(
@@ -225,22 +232,14 @@ export default function ComponentsPage() {
         ).map(([label, Sample]) => (
           <div key={label} style={{ marginBottom: 32 }}>
             <h3 className="pg-section__title">{label}</h3>
-            <div className="pg-grid pg-grid--3">
-              <PackColumn pack="editorial">
-                <div className="pg-inner">
-                  <Sample />
-                </div>
-              </PackColumn>
-              <PackColumn pack="cinematic">
-                <div className="pg-inner">
-                  <Sample />
-                </div>
-              </PackColumn>
-              <PackColumn pack="instrument">
-                <div className="pg-inner">
-                  <Sample />
-                </div>
-              </PackColumn>
+            <div className="pg-grid pg-grid--packs">
+              {PACK_VIEWS.map((pack) => (
+                <PackColumn key={pack.id} pack={pack.id}>
+                  <div className="pg-inner">
+                    <Sample />
+                  </div>
+                </PackColumn>
+              ))}
             </div>
           </div>
         ))}

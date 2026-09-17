@@ -7,19 +7,28 @@
  *
  *   @import "@kits/style-<id>/tokens.css";   ← 契约 + pack（必须在最前面）
  *
- * 三个 pack 全部导入，但**它们只在各自的 [data-kits-pack] 子树里生效**：
- *   - :root 上的颜色变量是后导入者胜出（即 instrument）—— 但 Playground 的
- *     外壳不使用这些变量，因此外壳不受影响；
+ * **registry 里每一套已批准的 pack 都要在这里导入一次。**
+ * 这是全仓唯一一处**无法**由 registry 驱动的接线：`@import` 是静态的，
+ * 不能对 `registry/assets.json` 做 `.map()`。所以漏掉一套的代价必须由门禁兜住 ——
+ * `pnpm qa` 会核对每个 pack 舞台的**计算背景色**是否等于该 pack 自己
+ * `tokens.css` 里声明的 `--kits-color-canvas`：少一行 import，那一列就会退回
+ * 契约兜底值，QA 直接红（这正是 K1 的 `console` 从没被渲染过的另一半原因）。
+ *
+ * 导入之后，它们**只在各自的 [data-kits-pack] 子树里生效**：
+ *   - :root 上的颜色变量是后导入者胜出 —— 但 Playground 的外壳不使用这些变量，
+ *     因此外壳不受影响；且四套 pack 都把颜色写进了自己的作用域（见各 tokens.css），
+ *     所以同页共存时互不覆盖；
  *   - 所有排版/间距/组件规则都写在 [data-kits-pack="…"] 作用域下，
  *     永远不会泄漏到另一个 pack 的列里。
  *
- * 这就是「可插拔」在 CSS 层面的证据：三套风格可以在同一个页面共存，
+ * 这就是「可插拔」在 CSS 层面的证据：多套风格可以在同一个页面共存，
  * 而它们的冲突面只有 :root 上的颜色变量。
  * ========================================================================== */
 
 @import "@kits/style-editorial/tokens.css";
 @import "@kits/style-cinematic/tokens.css";
 @import "@kits/style-instrument/tokens.css";
+@import "@kits/style-console/tokens.css";
 
 /* =============================================================================
  * Playground 外壳（不使用任何 pack 变量 —— 外壳是中立的）
@@ -176,7 +185,18 @@ a {
 }
 
 /* -----------------------------------------------------------------------------
- * 并排对比：三栏 / 双栏 / 单栏
+ * 并排对比：列数由 **pack 数**决定，不由这里写死
+ *
+ * 历史：这里曾经是 `.pg-grid--3 { repeat(3, …) }`。K1 加了第四套 pack 之后，
+ * 那三个字面量就是「console 在本仓从没上过屏」的实现原因。
+ * 换成 `repeat(4, …)` 只是把同一个问题推给第五套 pack，所以改成 auto-fit：
+ *
+ *   - 列宽下界 --pg-pack-min 是**可读性**下界，不是布局偏好：
+ *     每列至少要放得下一份 pack 文案（console 是 16:9 大屏的密度，
+ *     被压到 260px 以下时列对齐与读数会塌掉）；
+ *   - 能放下几列就并排几列，放不下的换行（而不是压成细条）；
+ *   - 下界用 `min(100%, …)`：容器本身比下界还窄时，列随容器收缩，
+ *     不产生横向溢出（移动端 390px 见下面的断点）。
  * -------------------------------------------------------------------------- */
 
 .pg-grid {
@@ -185,8 +205,8 @@ a {
   align-items: start;
 }
 
-.pg-grid--3 {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+.pg-grid--packs {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
 }
 
 .pg-grid--2 {
@@ -197,14 +217,21 @@ a {
   grid-template-columns: minmax(0, 1fr);
 }
 
+/*
+ * 窄屏降级：这两个断点是有意设计的，语义保持不变 ——
+ *   ≤1200px  多列 → 2 列（宽屏之下先丢掉"全部并排"，保住每列的可读宽度）
+ *   ≤860px   任何多列 → 1 列（这一档已经不可能并排比较，改成上下堆叠）
+ * 它们与上面的 auto-fit 不冲突：断点一到就接管列数，auto-fit 只在
+ * "容器宽度允许" 的前提下决定一行放几列。
+ */
 @media (max-width: 1200px) {
-  .pg-grid--3 {
+  .pg-grid--packs {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 860px) {
-  .pg-grid--3,
+  .pg-grid--packs,
   .pg-grid--2 {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -258,20 +285,22 @@ a {
  *
  * 这些 class 全部写在 `[data-kits-pack]` 作用域下，因此它们读取的是
  * **当前子树所属 pack** 的变量，而不是 :root 上最后导入的那个。
+ *
+ * 作用域写成 `[data-kits-pack]`（而不是把三套 pack 逐个列出来）：
+ * demo 元素是通用样板，任何一套 pack 都不该在它上面缺席 ——
+ * 逐个列举等于让第五套 pack 又静默地少一块样式。
+ * 真正属于某一套 pack 的差异（cinematic 的端点光点、instrument 的圆角覆盖）
+ * 仍然单独写，那才是 pack 语义。
  * -------------------------------------------------------------------------- */
 
-[data-kits-pack="editorial"] .kits-demo-media,
-[data-kits-pack="cinematic"] .kits-demo-media,
-[data-kits-pack="instrument"] .kits-demo-media {
+[data-kits-pack] .kits-demo-media {
   margin: 0;
   display: flex;
   flex-direction: column;
   gap: var(--kits-space-sm);
 }
 
-[data-kits-pack="editorial"] .kits-demo-media__plot,
-[data-kits-pack="cinematic"] .kits-demo-media__plot,
-[data-kits-pack="instrument"] .kits-demo-media__plot {
+[data-kits-pack] .kits-demo-media__plot {
   aspect-ratio: 16 / 10;
   border-radius: var(--kits-radius-md);
   border: var(--kits-border-width) var(--kits-border-style)
