@@ -69,7 +69,7 @@ export const UPSTREAM_REUSABLE_WORKFLOW = `${UPSTREAM_CONTROL_REPO}/.github/work
 export const UPSTREAM_LOCK_ID = "upstream/control-repo"
 
 /**
- * The port Kits used to share with starter and s1. Retired by the 3200 → 3300
+ * The port Kits used to share with starter and sth. Retired by the 3200 → 3300
  * migration (root catalog advised 3300 for Kits). Declared port surfaces must no
  * longer contain it.
  */
@@ -400,7 +400,7 @@ export function renderManagedBlock(policy) {
     `- **单 worktree 单写者**（\`${concurrency.worktree}\`）：同一棵工作副本同一时间只有一个写者；要并行写就各自独立 worktree。两个写者共享一棵树，冲突不是概率问题，是时间问题。`,
     `- **共享路径单 owner**（\`${concurrency.sharedPaths}\`）：\`${AGENTS_FILENAME}\`、\`package.json\`、\`${POLICY_FILENAME}\`、\`${LOCK_FILENAME}\`、\`${kits.assetRegistryPath}\`、契约 schema 与门禁脚本这类共享面，同一时间只有一个 owner，其余 agent 只读。`,
     `- **test / qa 串行**（\`${concurrency.testAndQa}\`）：\`pnpm test\` 与 \`pnpm qa\` **永不并发**（Next 16 的 dev server 按项目加锁，并行只会在错误的 server 上出结果）。CI 里同样不得拆成两个并行 job。`,
-    `- **QA 端口 ${concurrency.qaPort}（独占资源）**：\`${QA_CONFIG_PATH}\` 是端口的唯一来源，playground 的 dev/start 与所有 QA 脚本都从它取值。原 3200 与 starter / s1 三仓共用，已按根控制面 catalog 的建议让到 ${concurrency.qaPort}。**QA 绝不复用未知 server**：server 必须由当前 run 自己启动，端口被占用时 fail loudly，不 adopt、不猜、不 pkill。`,
+    `- **QA 端口 ${concurrency.qaPort}（独占资源）**：\`${QA_CONFIG_PATH}\` 是端口的唯一来源，playground 的 dev/start 与所有 QA 脚本都从它取值。原 3200 与 starter / sth 三仓共用，已按根控制面 catalog 的建议让到 ${concurrency.qaPort}。**QA 绝不复用未知 server**：server 必须由当前 run 自己启动，端口被占用时 fail loudly，不 adopt、不猜、不 pkill。`,
     `- **registry 唯一权威**（\`${kits.authority}\`）：资产的存在性、状态与适用范围一律以 \`${kits.assetRegistryPath}\` 为准；README、文档、Playground 只是它的视图，视图可以过期，权威不能有第二份。`,
     `- **source install 是一等交付**（\`${kits.sourceInstall}\`）：产品在**自己的仓库**里安装 Kits，并且必须在 prototype-kits 仓库不存在时仍可 build——\`pnpm verify:standalone\` 是这条的唯一证据，没跑就不能说它成立。`,
     `- **本仓是 registry 来源，不是消费者**：\`${kits.consumerInstallPath}\` 属于产品，不属于本仓；本仓出现它就是角色错位，Gate 直接失败。`,

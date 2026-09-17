@@ -8,7 +8,7 @@
  * **no identity check at all**. A stale dev server, or another prototype on the
  * same port, therefore becomes "the app under test", and the entire suite can go
  * green against the wrong page. That is not a theoretical hazard on this machine:
- * 3200 used to be shared by starter, s1 and kits at the same time, and this guard
+ * 3200 used to be shared by starter, sth and kits at the same time, and this guard
  * exists so that a run can never quietly attach to a stranger.
  *
  * Three independent defences, because any one alone is insufficient:

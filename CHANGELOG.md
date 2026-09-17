@@ -7,7 +7,7 @@
 
 ### 新资产：`console`（type: style, status: approved, version 0.2.0）
 
-- 定位：**高级终端 / 运营控制台**，给 S1 安全运营控制台（16:9 大屏，1680×1050）用。
+- 定位：**高级终端 / 运营控制台**，给 STH 安全运营控制台（16:9 大屏，1680×1050）用。
   目标气质是「运营控制台」，明确**不是**「展厅大屏」。
 - 十个维度的立场：`console` / `columnar` / `very-high` / `flush` / `syntax-rule` /
   `cell-grid` / `command-line` / `log-stream` / `event-driven` / `luminance-and-weight`。
@@ -97,7 +97,7 @@
 
 ### 端口迁移：Playground / QA 迁到独立槽位 3300
 
-- **原端口是 3200，由 starter / s1 / kits 三个仓共用。** 三个仓都自管 server，任意两个同时运行
+- **原端口是 3200，由 starter / sth / kits 三个仓共用。** 三个仓都自管 server，任意两个同时运行
   就会互相把对方的页面当成被测应用 —— 而且不报错。Kits 是 Playground、不是业务原型，
   按根控制面 `catalog/ports.json` 的 advisory 让到独立槽位 **3300**，从此不与任何原型互撞。
 - 迁移覆盖面：`playground/package.json` 的 `dev` / `start`、`.qa/kits-shots.mjs` 与

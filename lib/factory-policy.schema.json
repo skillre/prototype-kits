@@ -106,7 +106,7 @@
         },
         "qaPort": {
           "const": 3300,
-          "description": "Kits 的 QA / Playground 独占端口。原为 3200，与 starter 和 s1 三仓共用；根控制面 catalog/ports.json 的 advisory 建议 Kits 让到 3300（kits 是 playground，不是业务原型）。本仓据此迁移，并把该事实在这里钉死——.qa/qa.config.mjs、playground/package.json 与文档必须与它一致，且不得再出现 3200。"
+          "description": "Kits 的 QA / Playground 独占端口。原为 3200，与 starter 和 sth 三仓共用；根控制面 catalog/ports.json 的 advisory 建议 Kits 让到 3300（kits 是 playground，不是业务原型）。本仓据此迁移，并把该事实在这里钉死——.qa/qa.config.mjs、playground/package.json 与文档必须与它一致，且不得再出现 3200。"
         }
       }
     },

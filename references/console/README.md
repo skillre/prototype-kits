@@ -1,6 +1,6 @@
 # Reference Board · console
 
-> 第四套 pack（`console`）的参考板。**它来得比前三套晚** —— `console` 是随 S1 一起做的，
+> 第四套 pack（`console`）的参考板。**它来得比前三套晚** —— `console` 是随 STH 一起做的，
 > 当时只交付了 pack 本身（tokens / manifest / motion / SKILL / README），没有交付参考板。
 > 这一份是补上的，并且在补齐的同时加了一道门（`tests/reference-board-coverage.spec.ts`），
 > 让「新增一套 pack 却忘了参考板」这件事**下次会红**，而不是靠人记得。
@@ -10,7 +10,7 @@
 ## 0 · 先说清楚这份参考板的诚实边界
 
 **本案没有做外部参考分析。** `console` 的方向不是从公开作品里提取出来的，它来自
-**本案自己的设计稿**（工作区根目录的 `.pen` 与 `S1-设计稿实测与实现规格.md`，391 个节点实测）。
+**本案自己的设计稿**（工作区根目录的 `.pen` 与 `STH-设计稿实测与实现规格.md`，391 个节点实测）。
 
 所以这份文档里：
 
