@@ -43,7 +43,7 @@ Style Packs、Signature Components、Effects、Skills 与 References，以及描
   - 允许：在 DSH 宿主内拆分/并行只读或彼此独立的任务（含本仓的 registry 审计、打包面核对、跨 pack 一致性检查）；宿主的 Subagent 调用不属于被交付的资产代码。
   - 禁止：本仓的对外交付面与运行时依赖（packages/、components/、effects/、playground/、styles/、scripts/、registry/ 产物）里出现 agent framework / orchestrator runtime / 多 agent 调度依赖。Kits 会被产品以 source install 方式装进对方仓库，一旦这些目录依赖编排运行时，污染会顺着安装边界扩散到产品。
   - 判据：`packages` `components` `effects` `styles` `playground` 不得 import 编排 SDK；`package.json` 的运行时依赖不得出现编排框架。宿主侧的 Subagent 调用不是被交付的代码，不受此限。
-- **模型路由**：provider `opencode-go-dsv41` / model `deepseek-flash` / reasoning effort `max`（2026-09-15 与 DSH 模型目录核对）。每次 Subagent 调用都必须把三个字段显式写全，不许依赖宿主默认值——默认值会漂移，而漂移不留痕迹。改路由先改 `factory-policy.json`。
+- **模型路由**：provider `commandcode` / model `deepseek/deepseek-v4.1-flash` / reasoning effort `max`（2026-09-17 与 DSH 模型目录核对）。每次 Subagent 调用都必须把三个字段显式写全，不许依赖宿主默认值——默认值会漂移，而漂移不留痕迹。改路由先改 `factory-policy.json`。
 - **单 worktree 单写者**（`single-writer`）：同一棵工作副本同一时间只有一个写者；要并行写就各自独立 worktree。两个写者共享一棵树，冲突不是概率问题，是时间问题。
 - **共享路径单 owner**（`single-owner`）：`AGENTS.md`、`package.json`、`factory-policy.json`、`factory.lock.json`、`registry/assets.json`、契约 schema 与门禁脚本这类共享面，同一时间只有一个 owner，其余 agent 只读。
 - **test / qa 串行**（`serial`）：`pnpm test` 与 `pnpm qa` **永不并发**（Next 16 的 dev server 按项目加锁，并行只会在错误的 server 上出结果）。CI 里同样不得拆成两个并行 job。
@@ -56,6 +56,20 @@ Style Packs、Signature Components、Effects、Skills 与 References，以及描
 
 机器可读副本：`factory-policy.json` · 关键值：`lib/factory-policy.schema.json` · 治理锁：`factory.lock.json` · 校验器：`scripts/guard-agent-policy.mjs`（`pnpm factory:agents`）。
 <!-- END:factory-core-policy -->
+
+> **块外注记（本仓人类文档，不属于上面的管理块）· 模型路由为什么在 2026-09-17 换**
+>
+> 旧路由 `opencode-go-dsv41 / deepseek-flash` 当天**额度耗尽**——三个 subagent 连续中途死亡、
+> 不留收尾消息（其中两份工作其实已经做完，只是没人收尾）。随后会话侧把
+> `deepseek/deepseek-v4.1-flash` 放进子代理允许名单、并**实测派发成功**，路由遂改为
+> `commandcode / deepseek/deepseek-v4.1-flash / max`，`verifiedOn` 记 **2026-09-17**。
+>
+> 依据：2026-09-17 用 `list_subagent_models` 核到 provider `commandcode` 的子代理可用模型为
+> `deepseek/deepseek-v4.1-flash` 与 `Qwen/Qwen3.8-Flash`，且该 model 广告 reasoning efforts
+> low/medium/high/max。本仓此前那条记录是 `opencode-go-dsv41 / deepseek-flash / 2026-09-15`，
+> 已经过期——本仓 schema 里 `verifiedOn` 的说明原文就是「路由变了要重新核，而不是让这里慢慢过期」。
+>
+> 这次只改路由四格；`concurrency.qaPort`（3300）与 `kitsRegistry` 各字段都没有动。
 
 ---
 

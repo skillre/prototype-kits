@@ -17,10 +17,10 @@
     "forbiddenScope": "本仓的对外交付面与运行时依赖（packages/、components/、effects/、playground/、styles/、scripts/、registry/ 产物）里出现 agent framework / orchestrator runtime / 多 agent 调度依赖。Kits 会被产品以 source install 方式装进对方仓库，一旦这些目录依赖编排运行时，污染会顺着安装边界扩散到产品。"
   },
   "modelRouting": {
-    "provider": "opencode-go-dsv41",
-    "model": "deepseek-flash",
+    "provider": "commandcode",
+    "model": "deepseek/deepseek-v4.1-flash",
     "reasoningEffort": "max",
-    "verifiedOn": "2026-09-15"
+    "verifiedOn": "2026-09-17"
   },
   "concurrency": {
     "worktree": "single-writer",
